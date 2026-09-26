@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-26T00:00:00Z",
+  "title": "Design System: localhub",
+  "extensions": {
+    "colorMeta": {
+      "chassis-bg": { "role": "neutral", "displayName": "Gunmetal Case", "canonical": "#14161a", "tonalRamp": ["#0c0d10", "#14161a", "#1a1d22", "#24272d", "#3a3e46", "#5a5f68", "#8a8f98", "#c5c8cf"] },
+      "chassis-panel": { "role": "neutral", "displayName": "Gunmetal Case (panel)", "canonical": "#1a1d22", "tonalRamp": ["#0e0f12", "#14161a", "#1a1d22", "#262a31", "#3d424b", "#5d636e", "#8d939d", "#c8ccd2"] },
+      "key-surface": { "role": "neutral", "displayName": "Bone Keycap", "canonical": "#d9d2c3", "tonalRamp": ["#2c2820", "#4a4335", "#6b6250", "#8c8168", "#ad9f81", "#c6bba7", "#d9d2c3", "#f0ece3"] },
+      "bezel": { "role": "neutral", "displayName": "Recessed Bezel", "canonical": "#1c1f24", "tonalRamp": ["#0f1114", "#16181c", "#1c1f24", "#282c32", "#40454d", "#61676f", "#909399", "#c9ccd0"] },
+      "orange": { "role": "primary", "displayName": "Safety Orange", "canonical": "#ff5a2e", "tonalRamp": ["#3a1206", "#6b220c", "#a23415", "#d6431c", "#ff5a2e", "#ff7648", "#ffa384", "#ffe0d4"] },
+      "amber": { "role": "secondary", "displayName": "Instrument Amber", "canonical": "#ffb238", "tonalRamp": ["#3a2705", "#6b470a", "#a26e11", "#d6931c", "#ffb238", "#ffc562", "#ffd996", "#ffefd0"] },
+      "ink-primary": { "role": "neutral", "displayName": "Chassis Ink Primary", "canonical": "#e9e6df", "tonalRamp": ["#2a2822", "#4a473e", "#6b675a", "#8c8778", "#adA897", "#c9c5b8", "#e9e6df", "#f7f6f1"] },
+      "ink-tertiary": { "role": "neutral", "displayName": "Chassis Ink Tertiary", "canonical": "#86887f", "tonalRamp": ["#1c1d1a", "#33352f", "#4b4d45", "#63655c", "#7b7d73", "#86887f", "#a5a79e", "#c8c9c2"] },
+      "key-ink": { "role": "neutral", "displayName": "Keycap Ink", "canonical": "#2a2822", "tonalRamp": ["#0f0e0c", "#1a1815", "#2a2822", "#443f36", "#635c4d", "#847b67", "#a89f89", "#d0c9ba"] }
+    },
+    "typographyMeta": {
+      "data-emphasis": { "displayName": "Counter Digit", "purpose": "The port counter's live readout only; the one number the instrument makes loud, with text-shadow glow and a counter-tick pulse on change." },
+      "wordmark": { "displayName": "Wordmark", "purpose": "The 'localhub' brand mark in the fascia." },
+      "data": { "displayName": "Data Value", "purpose": "Every port/protocol/PID/process/status value inside a keycap row." },
+      "label": { "displayName": "Label", "purpose": "Column headers, counter caption, kill-key legend, status chip text." }
+    },
+    "shadows": [
+      { "name": "panel-ambient", "value": "inset 0 1px 0 rgba(255,255,255,0.035), 0 2px 6px rgba(0,0,0,0.25)", "purpose": "Resting depth for the fascia and instrument-panel structural containers." },
+      { "name": "key-lift", "value": "inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3))", "purpose": "Every port row at rest, reading as a physically raised keycap." },
+      { "name": "bezel-recess", "value": "inset 0 1px 3px rgba(0,0,0,0.5)", "purpose": "Inset display windows: port counter tube, recessed controls." },
+      { "name": "kill-key-rest", "value": "0 2px 0 var(--orange-pressed), 0 3px 5px rgba(0,0,0,0.35)", "purpose": "Kill-key resting state, simulating physical key thickness." },
+      { "name": "kill-key-pressed", "value": "0 0 0 var(--orange-pressed), 0 1px 3px rgba(0,0,0,0.35)", "purpose": "Kill-key :active state, paired with translateY(2px)." }
+    ],
+    "motion": [
+      { "name": "counter-tick", "value": "260ms ease-out, opacity 0.35->1, text-shadow glow intensifies then settles", "purpose": "Amber digit pulse when the open-port count changes." },
+      { "name": "cool-down-fade", "value": "320ms ease, opacity/grayscale/scale(0.98); coordinated with COOL_DOWN_MS = 340 in App.tsx", "purpose": "Mesophotic Deep Dive raise: a killed row dims and shrinks out instead of vanishing abruptly." },
+      { "name": "refresh-spin", "value": "900ms linear infinite rotate", "purpose": "Refresh knob icon spin while a port list reload is in flight." },
+      { "name": "kill-key-press", "value": "100ms ease transform/box-shadow/background", "purpose": "Kill-key travel and shadow collapse on hover/active." }
+    ],
+    "breakpoints": [
+      { "name": "row-reflow", "value": "720px", "purpose": "Below this width, port rows switch from a table row to a named CSS grid reflowing whole fields onto two lines." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Kill Key",
+      "kind": "button",
+      "refersTo": "kill-key",
+      "description": "The one committed danger action per port row; orange gradient with a genuine skeuomorphic press.",
+      "html": "<button class=\"ds-kill-key\">Matar</button>",
+      "css": ".ds-kill-key { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 7px 13px; border: none; border-radius: 5px; color: #fff3ee; background: linear-gradient(180deg, #ff7648, #ff5a2e); box-shadow: 0 2px 0 #d6431c, 0 3px 5px rgba(0,0,0,0.35); cursor: pointer; transition: transform 100ms ease, box-shadow 100ms ease, background 100ms ease; white-space: nowrap; } .ds-kill-key:hover { background: linear-gradient(180deg, #ff8259, #ff7648); } .ds-kill-key:active { transform: translateY(2px); box-shadow: 0 0 0 #d6431c, 0 1px 3px rgba(0,0,0,0.35); } .ds-kill-key:focus-visible { outline: 2px solid #ffb238; outline-offset: 2px; } .ds-kill-key:disabled { cursor: not-allowed; color: #86887f; background: #1c1f24; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3); }"
+    },
+    {
+      "name": "Refresh Knob",
+      "kind": "button",
+      "refersTo": "refresh-btn",
+      "description": "Knurled circular refresh control beside the port counter; spins its icon while loading.",
+      "html": "<button class=\"ds-refresh-btn\" aria-label=\"Atualizar\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3.5 12a8.5 8.5 0 0 1 14.5-6\"/><path d=\"M20.5 12a8.5 8.5 0 0 1-14.5 6\"/><path d=\"M18 6.5V3.5h-3\"/><path d=\"M6 17.5v3h3\"/></svg></button>",
+      "css": ".ds-refresh-btn { position: relative; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border-radius: 999px; border: 1px solid rgba(255,255,255,0.1); background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.05) 0deg 4deg, rgba(255,255,255,0) 4deg 8deg), #1c1f24; color: #92948f; cursor: pointer; transition: color 120ms ease, transform 120ms ease, box-shadow 120ms ease; box-shadow: 0 1px 0 rgba(0,0,0,0.4); } .ds-refresh-btn:hover { color: #e9e6df; transform: translateY(-1px); } .ds-refresh-btn:active { transform: translateY(0); } .ds-refresh-btn:focus-visible { outline: 2px solid #ffb238; outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Chip (default)",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "Recessed pill chip showing a port's state value.",
+      "html": "<span class=\"ds-status-chip\">CLOSE_WAIT</span>",
+      "css": ".ds-status-chip { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.72rem; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 999px; background: #1c1f24; color: #92948f; }"
+    },
+    {
+      "name": "Status Chip (LISTEN)",
+      "kind": "chip",
+      "refersTo": "status-chip-listen",
+      "description": "The live-status amber variant, used only when a port is actively LISTENing.",
+      "html": "<span class=\"ds-status-chip-listen\">LISTEN</span>",
+      "css": ".ds-status-chip-listen { display: inline-block; font-size: 0.72rem; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 999px; background: #1c1f24; color: #ffb238; box-shadow: inset 0 0 0 1px rgba(255,178,56,0.16); }"
+    },
+    {
+      "name": "Port Row",
+      "kind": "custom",
+      "refersTo": "port-row",
+      "description": "The signature keycap-styled row: one physical key per open port, with mono data values, a status chip, and a kill key.",
+      "html": "<div class=\"ds-port-row\"><span class=\"ds-port-row__port\">3000</span><span class=\"ds-port-row__protocol\">TCP</span><span class=\"ds-port-row__process\">node</span><span class=\"ds-status-chip-listen\">LISTEN</span><button class=\"ds-kill-key\">Matar</button></div>",
+      "css": ".ds-port-row { display: flex; align-items: center; gap: 14px; background: #d9d2c3; box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -1px 0 rgba(35,26,12,0.16); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3)); border-radius: 8px; padding: 11px 14px; font-family: 'IBM Plex Mono', monospace; color: #2a2822; } .ds-port-row:hover { background: #e1dbcd; } .ds-port-row__port { font-weight: 600; white-space: nowrap; } .ds-port-row__protocol { color: #554f44; font-size: 0.78rem; letter-spacing: 0.04em; }"
+    },
+    {
+      "name": "Port Counter",
+      "kind": "custom",
+      "refersTo": "port-counter",
+      "description": "Amber glass-tube readout of the live open-port count, with rib-mesh texture and a counter-tick pulse on change.",
+      "html": "<div class=\"ds-port-counter\"><span class=\"ds-port-counter__value\">12</span><span class=\"ds-port-counter__label\">Portas</span></div>",
+      "css": ".ds-port-counter { position: relative; display: flex; align-items: center; gap: 8px; padding: 5px 12px; background: repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 4px), #1c1f24; border: 1px solid rgba(255,255,255,0.1); border-radius: 5px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); overflow: hidden; } .ds-port-counter__value { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 1.05rem; font-variant-numeric: tabular-nums; color: #ffb238; text-shadow: 0 0 8px rgba(255,178,56,0.45); } .ds-port-counter__label { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #86887f; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Creator's Bench",
+    "overview": "localhub is an instrument built by someone who makes their own tools, not a SaaS admin panel. It renders every open port as a physical key on a dark, machined instrument case: a gunmetal chassis holds a grid of raised bone-colored keycaps, an amber glass-tube counter reads the live port count, and one loud safety-orange key is the sole way to end a process. The voice is precise, technical, tactile, and has zero ceremony — nothing slow, decorated, or gamified, and nothing borrowed from the generic soft-shadow/gradient-blue SaaS-admin-dashboard default. This is also not a warm/bookish/cream world: the case reads cool and machined; the only warmth in the system is the keycap material itself and the orange/amber accents. This is a code-led build (no comp/image round; the direction contract's assigned oscilloscope/lab-panel form lost a direction-roll fusion to the 'creator hardware bench' challenger, which is what shipped). Three raises are load-bearing, not decoration: the Nixie Laboratory Counter glow-and-mesh treatment on the port count, the Exposure Record hatch texture marking protected rows (never color alone), and the Mesophotic cool-down fade (COOL_DOWN_MS = 340) that lets a killed row dim out instead of vanishing abruptly.",
+    "keyCharacteristics": [
+      "Dark gunmetal chassis holding light, physically raised keycap rows — layered and lifted, never flat.",
+      "One safety-orange kill/danger role, spent only on the kill key and the error alert.",
+      "One instrument-amber live-status role, spent only on the port counter and the LISTEN chip.",
+      "IBM Plex Mono for every data value (port, protocol, PID, status); IBM Plex Sans for all chrome and copy, set in Brazilian Portuguese.",
+      "Whole-row grid reflow on narrow viewports — never a fractional or broken table."
+    ],
+    "rules": [
+      { "name": "The One Loud Key Rule", "body": "Safety Orange appears in exactly two places system-wide (kill key, error alert) and nowhere else. Its rarity is what makes it read as consequential.", "section": "colors" },
+      { "name": "The Bezel-Is-a-Window Rule", "body": "Any small recessed/inset display — a counter, a status readout, a disabled control — draws from the same --bezel token. Don't invent a second dark inset shade.", "section": "colors" },
+      { "name": "The Mono-Is-Data Rule", "body": "IBM Plex Mono marks a live value read off the system; IBM Plex Sans marks everything the interface itself is saying. Never swap the two.", "section": "typography" },
+      { "name": "The Raised-Key Rule", "body": "A port row is never flat-filled; it always carries the highlight/shadow pairing plus the row-level drop-shadow. A flat table row is a regression to the pre-ship 'plain HTML table' the direction contract explicitly refused.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep Safety Orange to exactly the kill key and the error alert — one 'kill/danger' role, not a general accent.",
+      "Do mark protected/disabled rows with the diagonal hatch texture, never with color alone.",
+      "Do use IBM Plex Mono for every value read off the live system (port, protocol, PID, process, status) and IBM Plex Sans for everything the interface says.",
+      "Do give every pressable control (kill-key, refresh knob) real travel — a shadow collapse and/or translateY on :active, not a flat color-only hover.",
+      "Do reflow narrow layouts by whole field groups via named CSS grid areas, never by letting columns shrink into a broken fractional table."
+    ],
+    "donts": [
+      "Don't introduce a second accent color outside the orange (kill/danger) and amber (live-status) roles.",
+      "Don't flatten a port row to a single background fill — it must carry the highlight/shadow key-lift pairing plus the row-level drop-shadow.",
+      "Don't revert to a plain HTML table look or a generic soft-shadow/gradient-blue admin-dashboard treatment; both are explicitly refused by the direction contract this system was built against.",
+      "Don't translate interface copy out of Brazilian Portuguese; it is the product's permanent voice, not a placeholder."
+    ]
+  }
+}

@@ -1,0 +1,72 @@
+interface IconProps {
+    size?: number;
+    className?: string;
+}
+
+const STROKE = 1.75;
+
+export function RefreshIcon({ size = 16, className }: IconProps) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M3.5 12a8.5 8.5 0 0 1 14.5-6" />
+            <path d="M20.5 12a8.5 8.5 0 0 1-14.5 6" />
+            <path d="M18 6.5V3.5h-3" />
+            <path d="M6 17.5v3h3" />
+        </svg>
+    );
+}
+
+export function UnplugIcon({ size = 32, className }: IconProps) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 32 32"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M11 4v6" />
+            <path d="M17 4v6" />
+            <path d="M8 10h12v4a6 6 0 0 1-12 0v-4z" />
+            <path d="M14 20v4" />
+            <path d="M8 28h12" />
+        </svg>
+    );
+}
+
+export function AlertIcon({ size = 16, className }: IconProps) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M12 3.5 22 20.5H2L12 3.5z" />
+            <path d="M12 10v4.5" />
+            <path d="M12 17.8h0" />
+        </svg>
+    );
+}

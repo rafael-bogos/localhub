@@ -1,0 +1,151 @@
+@font-face {
+    font-family: "IBM Plex Sans";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("assets/fonts/ibm-plex-sans-400.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "IBM Plex Sans";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("assets/fonts/ibm-plex-sans-500.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "IBM Plex Sans";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("assets/fonts/ibm-plex-sans-600.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "IBM Plex Sans";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("assets/fonts/ibm-plex-sans-700.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "IBM Plex Mono";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("assets/fonts/ibm-plex-mono-400.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "IBM Plex Mono";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("assets/fonts/ibm-plex-mono-500.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "IBM Plex Mono";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("assets/fonts/ibm-plex-mono-600.woff2") format("woff2");
+}
+
+:root {
+    /* Chassis neutrals -- the dark instrument body */
+    --chassis-bg: #14161a;
+    --chassis-panel: #1a1d22;
+    --chassis-seam: rgba(255, 255, 255, 0.05);
+
+    /* Keycap surface -- bone/putty, raised light keys sitting in the dark chassis */
+    --key-surface: #d9d2c3;
+    --key-surface-hover: #e1dbcd;
+    --key-highlight: rgba(255, 255, 255, 0.65);
+    --key-shadow: rgba(35, 26, 12, 0.16);
+
+    /* Recessed bezel -- dark inset windows embedded in a key (status chip, disabled kill key) */
+    --bezel: #1c1f24;
+    --bezel-hatch: rgba(0, 0, 0, 0.1);
+
+    --key-border-strong: rgba(255, 255, 255, 0.1);
+
+    /* Ink on the dark chassis -- warm off-white legends */
+    --ink-primary: #e9e6df;
+    --ink-secondary: #92948f;
+    --ink-tertiary: #86887f;
+
+    /* Ink on the light keycaps -- charcoal legends, dye-sublimated */
+    --key-ink: #2a2822;
+    --key-ink-muted: #554f44;
+
+    /* Named role: kill / danger -- the ONE loud color, spent only here */
+    --orange: #ff5a2e;
+    --orange-strong: #ff7648;
+    --orange-pressed: #d6431c;
+    --orange-glow: rgba(255, 90, 46, 0.35);
+    --orange-ink: #fff3ee;
+
+    /* Named role: live status / count -- the amber instrument glow */
+    --amber: #ffb238;
+    --amber-glow: rgba(255, 178, 56, 0.45);
+    --amber-dim: rgba(255, 178, 56, 0.16);
+
+    --radius-key: 8px;
+    --radius-chip: 5px;
+    --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    background-color: var(--chassis-bg);
+    color-scheme: dark;
+}
+
+body {
+    margin: 0;
+    color: var(--ink-primary);
+    background-color: var(--chassis-bg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+    background-color: var(--amber-glow);
+    color: var(--ink-primary);
+}
+
+:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+    border-radius: var(--radius-chip);
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--chassis-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--bezel);
+    border-radius: 999px;
+    border: 2px solid var(--chassis-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--key-border-strong);
+}
+
+#root {
+    height: 100vh;
+}

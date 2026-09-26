@@ -1,0 +1,503 @@
+.app-shell {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+    background: var(--chassis-bg);
+    box-sizing: border-box;
+}
+
+/* ---- Fascia: the instrument's top strip ---- */
+
+.fascia {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 16px;
+    background:
+        repeating-linear-gradient(
+            100deg,
+            rgba(255, 255, 255, 0.014) 0px,
+            rgba(255, 255, 255, 0.014) 1px,
+            transparent 1px,
+            transparent 3px
+        ),
+        var(--chassis-panel);
+    border: 1px solid var(--chassis-seam);
+    border-radius: var(--radius-key);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 2px 6px rgba(0, 0, 0, 0.25);
+    flex-shrink: 0;
+}
+
+.fascia::before,
+.fascia::after,
+.instrument-panel::before,
+.instrument-panel::after {
+    content: "";
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.35);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+    top: 8px;
+}
+
+.fascia::before {
+    left: 8px;
+}
+
+.fascia::after {
+    right: 8px;
+}
+
+.fascia__brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.fascia__led {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--amber);
+    box-shadow: 0 0 6px 1px var(--amber-glow);
+}
+
+.fascia__wordmark {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 0.92rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-primary);
+}
+
+.fascia__controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ---- Port counter: amber glass-tube readout ---- */
+
+.port-counter {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.03) 0px,
+            rgba(255, 255, 255, 0.03) 1px,
+            transparent 1px,
+            transparent 4px
+        ),
+        var(--bezel);
+    border: 1px solid var(--key-border-strong);
+    border-radius: var(--radius-chip);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.port-counter::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 40%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent);
+    pointer-events: none;
+}
+
+.port-counter__value {
+    position: relative;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--amber);
+    text-shadow: 0 0 8px var(--amber-glow);
+    min-width: 1.6ch;
+    text-align: right;
+}
+
+@keyframes counter-tick {
+    0% {
+        opacity: 0.35;
+        text-shadow: 0 0 14px var(--amber-glow);
+    }
+    100% {
+        opacity: 1;
+        text-shadow: 0 0 8px var(--amber-glow);
+    }
+}
+
+.port-counter__value--tick {
+    animation: counter-tick 260ms ease-out;
+}
+
+.port-counter__label {
+    font-family: var(--font-sans);
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+}
+
+/* ---- Refresh: a knurled instrument knob ---- */
+
+.refresh-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 999px;
+    border: 1px solid var(--key-border-strong);
+    background:
+        repeating-conic-gradient(
+            from 0deg,
+            rgba(255, 255, 255, 0.05) 0deg 4deg,
+            rgba(255, 255, 255, 0) 4deg 8deg
+        ),
+        var(--bezel);
+    color: var(--ink-secondary);
+    cursor: pointer;
+    transition: color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.refresh-btn::before {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: 999px;
+    background: var(--bezel);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.refresh-btn svg {
+    position: relative;
+    z-index: 1;
+}
+
+.refresh-btn:hover:not(:disabled) {
+    color: var(--ink-primary);
+    transform: translateY(-1px);
+}
+
+.refresh-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.refresh-btn:disabled {
+    cursor: not-allowed;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.refresh-btn--loading svg {
+    animation: spin 900ms linear infinite;
+}
+
+/* ---- Instrument panel: the body holding the port grid ---- */
+
+.instrument-panel {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    padding: 14px 16px 16px;
+    background:
+        repeating-linear-gradient(
+            100deg,
+            rgba(255, 255, 255, 0.012) 0px,
+            rgba(255, 255, 255, 0.012) 1px,
+            transparent 1px,
+            transparent 3px
+        ),
+        var(--chassis-panel);
+    border: 1px solid var(--chassis-seam);
+    border-radius: var(--radius-key);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 2px 6px rgba(0, 0, 0, 0.2);
+    overflow-y: auto;
+}
+
+/* ---- Alert: fault strip, no left-border cliche ---- */
+
+.alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 10px 13px;
+    margin-bottom: 12px;
+    background: rgba(255, 90, 46, 0.12);
+    border-radius: var(--radius-chip);
+    color: var(--orange-strong);
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.alert svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* ---- Empty state ---- */
+
+.empty-state {
+    height: 100%;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--ink-tertiary);
+    text-align: center;
+}
+
+.empty-state svg {
+    color: var(--ink-tertiary);
+}
+
+.empty-state p {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+}
+
+/* ---- The port grid: each row is one keycap-styled bar ---- */
+
+.ports-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.ports-table thead th {
+    padding: 0 14px 6px;
+    text-align: left;
+    font-family: var(--font-sans);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+    border-bottom: 1px solid var(--chassis-seam);
+}
+
+.ports-table thead th:last-child {
+    text-align: right;
+}
+
+.port-row {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+}
+
+.port-row td {
+    background: var(--key-surface);
+    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow);
+    padding: 11px 14px;
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    color: var(--key-ink);
+    vertical-align: middle;
+    transition: background-color 160ms ease, opacity 320ms ease, transform 320ms ease, filter 320ms ease;
+}
+
+.port-row:hover td {
+    background: var(--key-surface-hover);
+}
+
+.port-row td:first-child {
+    border-top-left-radius: var(--radius-key);
+    border-bottom-left-radius: var(--radius-key);
+}
+
+.port-row td:last-child {
+    border-top-right-radius: var(--radius-key);
+    border-bottom-right-radius: var(--radius-key);
+    text-align: right;
+}
+
+.port-row__port {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.port-row__protocol {
+    color: var(--key-ink-muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+}
+
+.port-row__process {
+    color: var(--key-ink);
+    max-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.port-row__pid {
+    color: var(--key-ink-muted);
+}
+
+.status-chip {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--bezel);
+    color: var(--ink-secondary);
+}
+
+.status-chip--listen {
+    color: var(--amber);
+    box-shadow: inset 0 0 0 1px var(--amber-dim);
+}
+
+/* A row whose kill key is disabled (invalid PID) is marked by texture,
+   never by color alone. */
+.port-row--protected td:first-child {
+    background-image: repeating-linear-gradient(
+        135deg,
+        var(--bezel-hatch) 0px,
+        var(--bezel-hatch) 1px,
+        transparent 1px,
+        transparent 7px
+    );
+}
+
+.port-row--cooling td {
+    opacity: 0;
+    filter: grayscale(1);
+    transform: scale(0.98);
+}
+
+.kill-key {
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 7px 13px;
+    border: none;
+    border-radius: var(--radius-chip);
+    color: var(--orange-ink);
+    background: linear-gradient(180deg, var(--orange-strong), var(--orange));
+    box-shadow: 0 2px 0 var(--orange-pressed), 0 3px 5px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+    transition: transform 100ms ease, box-shadow 100ms ease, background 100ms ease;
+    white-space: nowrap;
+}
+
+.kill-key:hover:not(:disabled) {
+    background: linear-gradient(180deg, #ff8259, var(--orange-strong));
+}
+
+.kill-key:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 0 0 var(--orange-pressed), 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.kill-key--busy {
+    background: var(--orange-pressed);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.kill-key:disabled {
+    cursor: not-allowed;
+    color: var(--ink-tertiary);
+    background: var(--bezel);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 720px) {
+    .ports-table thead {
+        display: none;
+    }
+
+    .port-row {
+        display: grid;
+        grid-template-columns: minmax(0, auto) minmax(0, auto) minmax(0, 1fr) 84px;
+        grid-template-areas:
+            "port protocol . action"
+            "process process pid status";
+        column-gap: 10px;
+        row-gap: 4px;
+        border-radius: var(--radius-key);
+        overflow: hidden;
+    }
+
+    .port-row td {
+        display: block;
+        border-radius: 0 !important;
+        padding: 9px 12px;
+    }
+
+    .port-row__port {
+        grid-area: port;
+        align-self: center;
+    }
+
+    .port-row__protocol {
+        grid-area: protocol;
+        align-self: center;
+        padding-left: 0 !important;
+    }
+
+    .port-row__process {
+        grid-area: process;
+        max-width: none;
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        padding-top: 0 !important;
+        padding-bottom: 4px !important;
+    }
+
+    .port-row__pid {
+        grid-area: pid;
+        align-self: center;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .port-row__status {
+        grid-area: status;
+        align-self: center;
+        min-width: 0;
+        text-align: right !important;
+    }
+
+    .port-row__action {
+        grid-area: action;
+        align-self: start;
+        min-width: 0;
+        text-align: right !important;
+    }
+}
