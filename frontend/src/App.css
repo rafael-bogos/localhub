@@ -82,6 +82,44 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    margin-left: auto;
+}
+
+/* ---- Tabs: selecting one is pressing it in, like any other key ---- */
+
+.fascia__tabs {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: var(--bezel);
+    border-radius: var(--radius-chip);
+    padding: 3px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.tab-btn {
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 6px 13px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--ink-secondary);
+    cursor: pointer;
+    transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.tab-btn:hover:not(.tab-btn--active) {
+    color: var(--ink-primary);
+}
+
+.tab-btn--active {
+    background: var(--key-surface);
+    color: var(--key-ink);
+    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow);
 }
 
 /* ---- Port counter: amber glass-tube readout ---- */
@@ -432,6 +470,191 @@
     color: var(--ink-tertiary);
     background: var(--bezel);
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+/* ---- Neutral action key: same physical key, no danger role spent ---- */
+
+.action-key {
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 7px 13px;
+    border: none;
+    border-radius: var(--radius-chip);
+    color: var(--key-ink);
+    background: var(--key-surface);
+    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow), 0 1px 2px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: transform 100ms ease, box-shadow 100ms ease, background-color 100ms ease;
+    white-space: nowrap;
+}
+
+.action-key + .action-key,
+.action-key + .kill-key,
+.kill-key + .action-key {
+    margin-left: 6px;
+}
+
+.action-key:hover:not(:disabled) {
+    background: var(--key-surface-hover);
+}
+
+.action-key:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 0 var(--key-highlight), 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.action-key:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.row-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ---- Prune result: a small readout after clearing unused images ---- */
+
+.prune-result {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--amber);
+    margin-left: 10px;
+}
+
+/* ---- Containers and Images tables: same keycap-row language as Portas,
+   kept as separate rules (not shared selectors) so the shipped/reviewed
+   Portas surface can never regress from a change made here. ---- */
+
+.containers-table,
+.images-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.containers-table thead th,
+.images-table thead th {
+    padding: 0 14px 6px;
+    text-align: left;
+    font-family: var(--font-sans);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+    border-bottom: 1px solid var(--chassis-seam);
+}
+
+.containers-table thead th:last-child,
+.images-table thead th:last-child {
+    text-align: right;
+}
+
+.container-row,
+.image-row {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+}
+
+.container-row td,
+.image-row td {
+    background: var(--key-surface);
+    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow);
+    padding: 11px 14px;
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    color: var(--key-ink);
+    vertical-align: middle;
+    transition: background-color 160ms ease, opacity 320ms ease, transform 320ms ease, filter 320ms ease;
+}
+
+.container-row:hover td,
+.image-row:hover td {
+    background: var(--key-surface-hover);
+}
+
+.container-row td:first-child,
+.image-row td:first-child {
+    border-top-left-radius: var(--radius-key);
+    border-bottom-left-radius: var(--radius-key);
+}
+
+.container-row td:last-child,
+.image-row td:last-child {
+    border-top-right-radius: var(--radius-key);
+    border-bottom-right-radius: var(--radius-key);
+    text-align: right;
+}
+
+.container-row__name,
+.image-row__repo {
+    font-weight: 600;
+    font-family: var(--font-sans);
+}
+
+.container-row__image,
+.container-row__ports,
+.image-row__tag,
+.image-row__id,
+.image-row__size,
+.image-row__created {
+    color: var(--key-ink-muted);
+}
+
+.container-row--protected td:first-child,
+.image-row--protected td:first-child {
+    background-image: repeating-linear-gradient(
+        135deg,
+        var(--bezel-hatch) 0px,
+        var(--bezel-hatch) 1px,
+        transparent 1px,
+        transparent 7px
+    );
+}
+
+.container-row--cooling td,
+.image-row--cooling td {
+    opacity: 0;
+    filter: grayscale(1);
+    transform: scale(0.98);
+}
+
+@media (max-width: 720px) {
+    .containers-table thead,
+    .images-table thead {
+        display: none;
+    }
+
+    .container-row,
+    .image-row {
+        display: flex;
+        flex-direction: column;
+        border-radius: var(--radius-key);
+        overflow: hidden;
+    }
+
+    .container-row td,
+    .image-row td {
+        display: block;
+        border-radius: 0 !important;
+        padding: 8px 12px;
+    }
+
+    .container-row td:last-child,
+    .image-row td:last-child {
+        text-align: left !important;
+        padding-top: 4px;
+        padding-bottom: 10px;
+    }
+
+    .row-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
 }
 
 @media (max-width: 720px) {

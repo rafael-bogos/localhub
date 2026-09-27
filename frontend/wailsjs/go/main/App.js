@@ -6,6 +6,38 @@ export function KillProcess(arg1) {
   return window['go']['main']['App']['KillProcess'](arg1);
 }
 
+export function ListContainers() {
+  return window['go']['main']['App']['ListContainers']();
+}
+
+export function ListImages() {
+  return window['go']['main']['App']['ListImages']();
+}
+
 export function ListPorts() {
   return window['go']['main']['App']['ListPorts']();
+}
+
+export function PruneImages() {
+  return window['go']['main']['App']['PruneImages']();
+}
+
+export function RemoveContainer(arg1) {
+  return window['go']['main']['App']['RemoveContainer'](arg1);
+}
+
+export function RemoveImage(arg1) {
+  return window['go']['main']['App']['RemoveImage'](arg1);
+}
+
+export function RestartContainer(arg1) {
+  return window['go']['main']['App']['RestartContainer'](arg1);
+}
+
+export function StartContainer(arg1) {
+  return window['go']['main']['App']['StartContainer'](arg1);
+}
+
+export function StopContainer(arg1) {
+  return window['go']['main']['App']['StopContainer'](arg1);
 }

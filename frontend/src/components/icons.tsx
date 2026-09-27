@@ -50,6 +50,48 @@ export function UnplugIcon({ size = 32, className }: IconProps) {
     );
 }
 
+export function BoxIcon({ size = 32, className }: IconProps) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 32 32"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M16 4 27 9.5v13L16 28 5 22.5v-13L16 4z" />
+            <path d="M5 9.5 16 15l11-5.5" />
+            <path d="M16 15v13" />
+        </svg>
+    );
+}
+
+export function LayersIcon({ size = 32, className }: IconProps) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 32 32"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M16 5 27 11 16 17 5 11 16 5z" />
+            <path d="M5 16 16 22 27 16" />
+            <path d="M5 21 16 27 27 21" />
+        </svg>
+    );
+}
+
 export function AlertIcon({ size = 16, className }: IconProps) {
     return (
         <svg

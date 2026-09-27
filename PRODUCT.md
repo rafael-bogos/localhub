@@ -16,11 +16,11 @@ The author, as a solo developer, using localhub on their own machine during loca
 
 ## Product Purpose
 
-localhub is becoming a local developer-tools hub: a single desktop app for the small, repetitive housekeeping tasks of a local dev environment. Ports are the first feature — it shows every local TCP/UDP port currently bound and which process holds it, and lets the user kill that process directly from the list, replacing the terminal ritual of `lsof -i` / `netstat` plus `kill -9 <pid>` with a single glance-and-click. Docker container and image management (start/stop/remove containers, list/prune images) is planned as the next feature area. Success is: faster than the terminal, every time, for whichever local-dev chore the hub covers.
+localhub is a local developer-tools hub: a single desktop app for the small, repetitive housekeeping tasks of a local dev environment, organized as tabs in one instrument fascia. Ports was the first feature — shows every local TCP/UDP port currently bound and which process holds it, and lets the user kill that process directly from the list, replacing the terminal ritual of `lsof -i` / `netstat` plus `kill -9 <pid>` with a single glance-and-click. Containers and Imagens (Docker) shipped next — list/start/stop/restart/remove containers and list/remove/prune Docker images, replacing `docker ps` / `docker stop` / `docker rm` / `docker images` / `docker rmi` / `docker image prune`. Success is: faster than the terminal, every time, for whichever local-dev chore the hub covers.
 
 ## Positioning
 
-The value is removing friction from local-dev housekeeping: one click instead of remembering flags and copying IDs between terminal commands. Unlike the earlier read, this now has a committed roadmap beyond ports (Docker container/image management is next), so the product surface is expected to grow multi-section (ports today, containers/images later) rather than stay a single-purpose port killer. Still not competing on breadth with Activity Monitor/Task Manager or Docker Desktop's full feature set — competing on speed for the specific chores a solo dev repeats daily.
+The value is removing friction from local-dev housekeeping: one click instead of remembering flags and copying IDs between terminal commands. The product surface is multi-section by design (Portas / Containers / Imagens today, more later), not a single-purpose port killer. Still not competing on breadth with Activity Monitor/Task Manager or Docker Desktop's full feature set — competing on speed for the specific chores a solo dev repeats daily.
 
 ## Operating Context
 
@@ -31,8 +31,11 @@ Used ad hoc during local development, most often right after a "port already in 
 - Lists listening TCP sockets and bound UDP sockets with port, protocol, PID, process name, and status (`internal/ports/ports.go`).
 - Kills a process by PID with a native confirm dialog before acting; PID `<= 0` is treated as invalid and the kill button is disabled for it.
 - No filtering, sorting (beyond ascending port), search, or history yet — undecided whether these get added.
-- Docker container and image management is planned as the next feature area (not yet built): exact scope (start/stop/remove containers, image listing/pruning, logs?) is undecided.
-- Runs cross-platform wherever `gopsutil` and Wails do (contingent on `syscall.SOCK_STREAM`/`SOCK_DGRAM` support).
+- Lists Docker containers (running + stopped, running first) and lets the user start/stop/restart/remove them (`internal/docker/containers.go`); removing a running container is blocked until it is stopped first, never forced.
+- Lists local Docker images (repository:tag, size, created date) and lets the user remove one, or prune all dangling (`<none>:<none>`) images at once (`internal/docker/images.go`).
+- Talks to the Docker Engine API directly via the official SDK (`github.com/moby/moby/client`), not by shelling out to the `docker` CLI; shows a clear Portuguese error (not a raw SDK message) when the daemon isn't reachable.
+- No container logs, `exec`, image `pull`/`build`/`run`, volumes, networks, or remote Docker hosts — out of scope for now.
+- Runs cross-platform wherever `gopsutil`, Wails, and a local Docker daemon do (contingent on `syscall.SOCK_STREAM`/`SOCK_DGRAM` support for ports, and a reachable Docker socket for containers/images).
 
 ## Brand Commitments
 
