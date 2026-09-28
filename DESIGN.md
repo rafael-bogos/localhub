@@ -4,8 +4,8 @@ description: A desk instrument for local-dev housekeeping, not a dashboard — p
 colors:
   chassis-bg: "#14161a"
   chassis-panel: "#1a1d22"
-  key-surface: "#d9d2c3"
-  key-surface-hover: "#e1dbcd"
+  key-surface: "#21252b"
+  key-surface-hover: "#262a31"
   bezel: "#1c1f24"
   orange: "#ff5a2e"
   orange-strong: "#ff7648"
@@ -14,8 +14,8 @@ colors:
   ink-primary: "#e9e6df"
   ink-secondary: "#92948f"
   ink-tertiary: "#86887f"
-  key-ink: "#2a2822"
-  key-ink-muted: "#554f44"
+  key-ink: "#e9e6df"
+  key-ink-muted: "#92948f"
 typography:
   body:
     fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
@@ -94,12 +94,12 @@ components:
 
 **Creative North Star: "The Creator's Bench"**
 
-localhub is an instrument built by someone who makes their own tools, not a SaaS admin panel. It renders every open port as a physical key on a dark, machined instrument case: a gunmetal chassis holds a grid of raised bone-colored keycaps, an amber glass-tube counter reads the live port count, and one loud safety-orange key is the sole way to end a process. The voice is precise, technical, tactile, and has zero ceremony — nothing slow, decorated, or gamified, and nothing borrowed from the generic soft-shadow/gradient-blue SaaS-admin-dashboard default. This is also not a warm/bookish/cream world: the case reads cool and machined; the only warmth in the system is the keycap material itself and the orange/amber accents.
+localhub is an instrument built by someone who makes their own tools, not a SaaS admin panel. It renders every open port (and, since the Docker feature shipped, every container and image) as a physical key on a dark, machined instrument case: a gunmetal chassis holds a grid of raised graphite keycaps one shade lighter than the case itself, an amber glass-tube counter reads the live count for whichever tab is active, and one loud safety-orange key is the sole way to end something. The voice is precise, technical, tactile, and has zero ceremony — nothing slow, decorated, or gamified, and nothing borrowed from the generic soft-shadow/gradient-blue SaaS-admin-dashboard default. The system is monochrome-dark by explicit user preference: an earlier pass shipped light bone/putty keycaps, and the user asked for them back to dark — the raised-key lift now reads through highlight/shadow contrast alone, not through a light-vs-dark case/key split.
 
 This is a code-led build (no comp/image round; the direction contract's assigned oscilloscope/lab-panel form lost a direction-roll fusion to the "creator hardware bench" challenger, which is what shipped). Three raises are load-bearing, not decoration: the Nixie Laboratory Counter glow-and-mesh treatment on the port count, the Exposure Record hatch texture marking protected rows (never color alone), and the Mesophotic cool-down fade (`COOL_DOWN_MS = 340`) that lets a killed row dim out instead of vanishing abruptly.
 
 **Key Characteristics:**
-- Dark gunmetal chassis holding light, physically raised keycap rows — layered and lifted, never flat.
+- Dark gunmetal chassis holding dark graphite, physically raised keycap rows — layered and lifted, never flat, and never light — the whole instrument is monochrome-dark by deliberate choice.
 - One safety-orange kill/danger role, spent only on the kill key and the error alert.
 - One instrument-amber live-status role, spent only on the port counter and the LISTEN chip.
 - IBM Plex Mono for every data value (port, protocol, PID, status); IBM Plex Sans for all chrome and copy, set in Brazilian Portuguese.
@@ -117,10 +117,10 @@ A three-role palette on a cool dark ground: one neutral chassis system, one dang
 
 ### Neutral
 - **Gunmetal Case** (`--chassis-bg` #14161a, `--chassis-panel` #1a1d22): the dark instrument body — page background, fascia, and instrument-panel surfaces, textured with a faint diagonal brushed-metal repeating gradient and inset top highlight.
-- **Bone Keycap** (`--key-surface` #d9d2c3, hover `--key-surface-hover` #e1dbcd): the raised light material every port row is built from.
-- **Bezel** (`--bezel` #1c1f24): the recessed dark inset-window color, reused identically for the counter's glass tube, the status chip background, and the disabled/protected kill-key background — one token, three "small display window" contexts.
+- **Graphite Keycap** (`--key-surface` #21252b, hover `--key-surface-hover` #262a31): the raised material every row (ports, containers, images) is built from — one shade lighter than `--chassis-panel`, dark by deliberate user preference, never light/bone.
+- **Bezel** (`--bezel` #1c1f24): the recessed dark inset-window color, darker than the keycap surface, reused identically for the counter's glass tube, the status chip background, and the disabled/protected kill-key background — one token, three "small display window" contexts.
 - **Ink on chassis**: `--ink-primary` #e9e6df (primary legends), `--ink-secondary` #92948f (secondary/refresh-icon), `--ink-tertiary` #86887f (column headers, counter caption, empty-state text — raised from a ~2.5:1 contrast failure to ~4.7:1 during the ship round; this value is now the floor, not a placeholder).
-- **Ink on keycap**: `--key-ink` #2a2822 (primary row text), `--key-ink-muted` #554f44 (protocol/PID secondary values).
+- **Ink on keycap**: `--key-ink` #e9e6df (primary row text), `--key-ink-muted` #92948f (protocol/PID secondary values) — the same warm off-white family as chassis ink, since the keycap is dark too now.
 
 ### Named Rules
 **The One Loud Key Rule.** Safety Orange appears in exactly two places system-wide (kill key, error alert) and nowhere else. Its rarity is what makes it read as consequential.
@@ -182,7 +182,7 @@ Two radii cover the system: `--radius-key` (8px) for rows, the fascia, and the i
 - **Internal Padding:** panel `14px 16px 16px`; row cell `11px 14px`.
 
 ### Signature Component: The Port Row
-One `<tr>` per open port is the system's defining unit: a bone keycap bar with mono data on the left/center, a pill status chip, and an orange kill-key at the far right. Two state overlays are load-bearing and must never be replaced by color alone: `.port-row--protected` adds a diagonal hatch texture (`--bezel-hatch`, 135deg repeating stripe) to the first cell when the kill action is disabled (PID ≤ 0); `.port-row--cooling` triggers a 320ms fade-to-grayscale-and-shrink transition after a successful kill, coordinated with `COOL_DOWN_MS = 340` in `App.tsx`, before the row is removed from the list.
+One `<tr>` per open port (or container, or image) is the system's defining unit: a dark graphite keycap bar with mono data on the left/center, a pill status chip, and an orange kill-key at the far right. Two state overlays are load-bearing and must never be replaced by color alone: `.port-row--protected` adds a diagonal hatch texture (`--bezel-hatch`, 135deg repeating stripe) to the first cell when the kill action is disabled (PID ≤ 0); `.port-row--cooling` triggers a 320ms fade-to-grayscale-and-shrink transition after a successful kill, coordinated with `COOL_DOWN_MS = 340` in `App.tsx`, before the row is removed from the list.
 
 ## Do's and Don'ts
 
@@ -194,6 +194,7 @@ One `<tr>` per open port is the system's defining unit: a bone keycap bar with m
 - **Do** reflow narrow layouts by whole field groups via named CSS grid areas, never by letting columns shrink into a broken fractional table.
 
 ### Don't:
+- **Don't** make the keycap rows light/bone-colored. The system is monochrome-dark by explicit user request (confirmed after a first pass shipped light rows) — the raised-key lift must read through highlight/shadow contrast on a dark surface, never through a light-key-on-dark-case split.
 - **Don't** introduce a second accent color outside the orange (kill/danger) and amber (live-status) roles.
 - **Don't** flatten a port row to a single background fill — it must carry the highlight/shadow key-lift pairing plus the row-level drop-shadow.
 - **Don't** revert to a plain HTML table look or a generic soft-shadow/gradient-blue admin-dashboard treatment; both are explicitly refused by the direction contract this system was built against.

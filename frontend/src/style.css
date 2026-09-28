@@ -60,15 +60,17 @@
     --chassis-panel: #1a1d22;
     --chassis-seam: rgba(255, 255, 255, 0.05);
 
-    /* Keycap surface -- bone/putty, raised light keys sitting in the dark chassis */
-    --key-surface: #d9d2c3;
-    --key-surface-hover: #e1dbcd;
-    --key-highlight: rgba(255, 255, 255, 0.65);
-    --key-shadow: rgba(35, 26, 12, 0.16);
+    /* Keycap surface -- dark graphite keys, a shade lighter than the chassis
+       so they still read as raised, never light/bone. */
+    --key-surface: #21252b;
+    --key-surface-hover: #262a31;
+    --key-highlight: rgba(255, 255, 255, 0.05);
+    --key-shadow: rgba(0, 0, 0, 0.4);
 
-    /* Recessed bezel -- dark inset windows embedded in a key (status chip, disabled kill key) */
+    /* Recessed bezel -- inset windows embedded in a key (status chip, disabled kill key),
+       darker than the key surface so the "window" still reads as recessed. */
     --bezel: #1c1f24;
-    --bezel-hatch: rgba(0, 0, 0, 0.1);
+    --bezel-hatch: rgba(255, 255, 255, 0.035);
 
     --key-border-strong: rgba(255, 255, 255, 0.1);
 
@@ -77,9 +79,9 @@
     --ink-secondary: #92948f;
     --ink-tertiary: #86887f;
 
-    /* Ink on the light keycaps -- charcoal legends, dye-sublimated */
-    --key-ink: #2a2822;
-    --key-ink-muted: #554f44;
+    /* Ink on the dark keycaps -- same warm off-white family as the chassis ink */
+    --key-ink: #e9e6df;
+    --key-ink-muted: #92948f;
 
     /* Named role: kill / danger -- the ONE loud color, spent only here */
     --orange: #ff5a2e;

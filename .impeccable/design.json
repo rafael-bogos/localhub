@@ -1,18 +1,18 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-26T00:00:00Z",
+  "generatedAt": "2026-09-28T00:00:00Z",
   "title": "Design System: localhub",
   "extensions": {
     "colorMeta": {
       "chassis-bg": { "role": "neutral", "displayName": "Gunmetal Case", "canonical": "#14161a", "tonalRamp": ["#0c0d10", "#14161a", "#1a1d22", "#24272d", "#3a3e46", "#5a5f68", "#8a8f98", "#c5c8cf"] },
       "chassis-panel": { "role": "neutral", "displayName": "Gunmetal Case (panel)", "canonical": "#1a1d22", "tonalRamp": ["#0e0f12", "#14161a", "#1a1d22", "#262a31", "#3d424b", "#5d636e", "#8d939d", "#c8ccd2"] },
-      "key-surface": { "role": "neutral", "displayName": "Bone Keycap", "canonical": "#d9d2c3", "tonalRamp": ["#2c2820", "#4a4335", "#6b6250", "#8c8168", "#ad9f81", "#c6bba7", "#d9d2c3", "#f0ece3"] },
+      "key-surface": { "role": "neutral", "displayName": "Graphite Keycap", "canonical": "#21252b", "tonalRamp": ["#0b0c0e", "#14161a", "#1a1d22", "#21252b", "#262a31", "#3a3f47", "#5c626b", "#8a8f98"] },
       "bezel": { "role": "neutral", "displayName": "Recessed Bezel", "canonical": "#1c1f24", "tonalRamp": ["#0f1114", "#16181c", "#1c1f24", "#282c32", "#40454d", "#61676f", "#909399", "#c9ccd0"] },
       "orange": { "role": "primary", "displayName": "Safety Orange", "canonical": "#ff5a2e", "tonalRamp": ["#3a1206", "#6b220c", "#a23415", "#d6431c", "#ff5a2e", "#ff7648", "#ffa384", "#ffe0d4"] },
       "amber": { "role": "secondary", "displayName": "Instrument Amber", "canonical": "#ffb238", "tonalRamp": ["#3a2705", "#6b470a", "#a26e11", "#d6931c", "#ffb238", "#ffc562", "#ffd996", "#ffefd0"] },
       "ink-primary": { "role": "neutral", "displayName": "Chassis Ink Primary", "canonical": "#e9e6df", "tonalRamp": ["#2a2822", "#4a473e", "#6b675a", "#8c8778", "#adA897", "#c9c5b8", "#e9e6df", "#f7f6f1"] },
       "ink-tertiary": { "role": "neutral", "displayName": "Chassis Ink Tertiary", "canonical": "#86887f", "tonalRamp": ["#1c1d1a", "#33352f", "#4b4d45", "#63655c", "#7b7d73", "#86887f", "#a5a79e", "#c8c9c2"] },
-      "key-ink": { "role": "neutral", "displayName": "Keycap Ink", "canonical": "#2a2822", "tonalRamp": ["#0f0e0c", "#1a1815", "#2a2822", "#443f36", "#635c4d", "#847b67", "#a89f89", "#d0c9ba"] }
+      "key-ink": { "role": "neutral", "displayName": "Keycap Ink", "canonical": "#e9e6df", "tonalRamp": ["#2a2822", "#4a473e", "#6b675a", "#8c8778", "#ada897", "#c9c5b8", "#e9e6df", "#f7f6f1"] }
     },
     "typographyMeta": {
       "data-emphasis": { "displayName": "Counter Digit", "purpose": "The port counter's live readout only; the one number the instrument makes loud, with text-shadow glow and a counter-tick pulse on change." },
@@ -76,7 +76,7 @@
       "refersTo": "port-row",
       "description": "The signature keycap-styled row: one physical key per open port, with mono data values, a status chip, and a kill key.",
       "html": "<div class=\"ds-port-row\"><span class=\"ds-port-row__port\">3000</span><span class=\"ds-port-row__protocol\">TCP</span><span class=\"ds-port-row__process\">node</span><span class=\"ds-status-chip-listen\">LISTEN</span><button class=\"ds-kill-key\">Matar</button></div>",
-      "css": ".ds-port-row { display: flex; align-items: center; gap: 14px; background: #d9d2c3; box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -1px 0 rgba(35,26,12,0.16); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3)); border-radius: 8px; padding: 11px 14px; font-family: 'IBM Plex Mono', monospace; color: #2a2822; } .ds-port-row:hover { background: #e1dbcd; } .ds-port-row__port { font-weight: 600; white-space: nowrap; } .ds-port-row__protocol { color: #554f44; font-size: 0.78rem; letter-spacing: 0.04em; }"
+      "css": ".ds-port-row { display: flex; align-items: center; gap: 14px; background: #21252b; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.4); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3)); border-radius: 8px; padding: 11px 14px; font-family: 'IBM Plex Mono', monospace; color: #e9e6df; } .ds-port-row:hover { background: #262a31; } .ds-port-row__port { font-weight: 600; white-space: nowrap; } .ds-port-row__protocol { color: #92948f; font-size: 0.78rem; letter-spacing: 0.04em; }"
     },
     {
       "name": "Port Counter",
@@ -89,9 +89,9 @@
   ],
   "narrative": {
     "northStar": "The Creator's Bench",
-    "overview": "localhub is an instrument built by someone who makes their own tools, not a SaaS admin panel. It renders every open port as a physical key on a dark, machined instrument case: a gunmetal chassis holds a grid of raised bone-colored keycaps, an amber glass-tube counter reads the live port count, and one loud safety-orange key is the sole way to end a process. The voice is precise, technical, tactile, and has zero ceremony — nothing slow, decorated, or gamified, and nothing borrowed from the generic soft-shadow/gradient-blue SaaS-admin-dashboard default. This is also not a warm/bookish/cream world: the case reads cool and machined; the only warmth in the system is the keycap material itself and the orange/amber accents. This is a code-led build (no comp/image round; the direction contract's assigned oscilloscope/lab-panel form lost a direction-roll fusion to the 'creator hardware bench' challenger, which is what shipped). Three raises are load-bearing, not decoration: the Nixie Laboratory Counter glow-and-mesh treatment on the port count, the Exposure Record hatch texture marking protected rows (never color alone), and the Mesophotic cool-down fade (COOL_DOWN_MS = 340) that lets a killed row dim out instead of vanishing abruptly.",
+    "overview": "localhub is an instrument built by someone who makes their own tools, not a SaaS admin panel. It renders every open port (and every container and image) as a physical key on a dark, machined instrument case: a gunmetal chassis holds a grid of raised graphite keycaps one shade lighter than the case, an amber glass-tube counter reads the live count for whichever tab is active, and one loud safety-orange key is the sole way to end something. The voice is precise, technical, tactile, and has zero ceremony — nothing slow, decorated, or gamified, and nothing borrowed from the generic soft-shadow/gradient-blue SaaS-admin-dashboard default. The system is monochrome-dark by explicit user preference: an earlier pass shipped light bone/putty keycaps, and the user asked for them back to dark — the raised-key lift reads through highlight/shadow contrast alone, never through a light-key-on-dark-case split. This is a code-led build (no comp/image round; the direction contract's assigned oscilloscope/lab-panel form lost a direction-roll fusion to the 'creator hardware bench' challenger, which is what shipped). Three raises are load-bearing, not decoration: the Nixie Laboratory Counter glow-and-mesh treatment on the live count, the Exposure Record hatch texture marking protected rows (never color alone), and the Mesophotic cool-down fade (COOL_DOWN_MS = 340) that lets a removed row dim out instead of vanishing abruptly.",
     "keyCharacteristics": [
-      "Dark gunmetal chassis holding light, physically raised keycap rows — layered and lifted, never flat.",
+      "Dark gunmetal chassis holding dark graphite, physically raised keycap rows — layered and lifted, never flat, and never light.",
       "One safety-orange kill/danger role, spent only on the kill key and the error alert.",
       "One instrument-amber live-status role, spent only on the port counter and the LISTEN chip.",
       "IBM Plex Mono for every data value (port, protocol, PID, status); IBM Plex Sans for all chrome and copy, set in Brazilian Portuguese.",
@@ -111,6 +111,7 @@
       "Do reflow narrow layouts by whole field groups via named CSS grid areas, never by letting columns shrink into a broken fractional table."
     ],
     "donts": [
+      "Don't make the keycap rows light/bone-colored — the system is monochrome-dark by explicit user request, confirmed after a first pass shipped light rows.",
       "Don't introduce a second accent color outside the orange (kill/danger) and amber (live-status) roles.",
       "Don't flatten a port row to a single background fill — it must carry the highlight/shadow key-lift pairing plus the row-level drop-shadow.",
       "Don't revert to a plain HTML table look or a generic soft-shadow/gradient-blue admin-dashboard treatment; both are explicitly refused by the direction contract this system was built against.",
