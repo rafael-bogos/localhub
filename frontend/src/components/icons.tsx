@@ -92,6 +92,29 @@ export function LayersIcon({ size = 32, className }: IconProps) {
     );
 }
 
+export function BroomIcon({ size = 16, className }: IconProps) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M20 4 11 13" />
+            <path d="M11 13 4 20" />
+            <path d="M11 13 6.5 17.5" />
+            <path d="M13.5 15.5 9 20" />
+            <path d="M9 20h5.5" />
+        </svg>
+    );
+}
+
 export function AlertIcon({ size = 16, className }: IconProps) {
     return (
         <svg

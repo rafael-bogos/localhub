@@ -75,3 +75,9 @@ func (a *App) RemoveImage(id string) error {
 func (a *App) PruneImages() (docker.PruneResult, error) {
 	return docker.PruneImages(a.ctx)
 }
+
+// Cleanup runs a selective Docker system prune: only the categories set to
+// true in opts are touched, and the user picks them per run.
+func (a *App) Cleanup(opts docker.CleanupOptions) (docker.CleanupResult, error) {
+	return docker.Cleanup(a.ctx, opts)
+}

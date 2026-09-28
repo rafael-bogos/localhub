@@ -1,5 +1,43 @@
 export namespace docker {
 	
+	export class CleanupOptions {
+	    containers: boolean;
+	    images: boolean;
+	    networks: boolean;
+	    buildCache: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new CleanupOptions(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.containers = source["containers"];
+	        this.images = source["images"];
+	        this.networks = source["networks"];
+	        this.buildCache = source["buildCache"];
+	    }
+	}
+	export class CleanupResult {
+	    containersRemoved: number;
+	    imagesRemoved: number;
+	    networksRemoved: number;
+	    buildCacheRemoved: number;
+	    spaceMB: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new CleanupResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.containersRemoved = source["containersRemoved"];
+	        this.imagesRemoved = source["imagesRemoved"];
+	        this.networksRemoved = source["networksRemoved"];
+	        this.buildCacheRemoved = source["buildCacheRemoved"];
+	        this.spaceMB = source["spaceMB"];
+	    }
+	}
 	export class ContainerInfo {
 	    id: string;
 	    name: string;

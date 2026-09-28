@@ -3,6 +3,8 @@
 import {docker} from '../models';
 import {ports} from '../models';
 
+export function Cleanup(arg1:docker.CleanupOptions):Promise<docker.CleanupResult>;
+
 export function KillProcess(arg1:number):Promise<void>;
 
 export function ListContainers():Promise<Array<docker.ContainerInfo>>;

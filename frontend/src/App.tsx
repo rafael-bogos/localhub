@@ -5,21 +5,23 @@ import { ports } from '../wailsjs/go/models';
 import PortsTable from './components/PortsTable';
 import ContainersTable from './components/ContainersTable';
 import ImagesTable from './components/ImagesTable';
+import CleanupPanel from './components/CleanupPanel';
 import { RefreshIcon } from './components/icons';
 
 const COOL_DOWN_MS = 340;
 
-type Tab = 'portas' | 'containers' | 'imagens';
+type Tab = 'portas' | 'containers' | 'imagens' | 'limpeza';
 
 const TAB_LABELS: Record<Tab, string> = {
     portas: 'Portas',
     containers: 'Containers',
     imagens: 'Imagens',
+    limpeza: 'Limpeza',
 };
 
 function App() {
     const [activeTab, setActiveTab] = useState<Tab>('portas');
-    const [counts, setCounts] = useState<Record<Tab, number>>({ portas: 0, containers: 0, imagens: 0 });
+    const [counts, setCounts] = useState<Record<Tab, number>>({ portas: 0, containers: 0, imagens: 0, limpeza: 0 });
     const [refreshKey, setRefreshKey] = useState(0);
 
     const [portList, setPortList] = useState<ports.PortInfo[]>([]);
@@ -86,7 +88,7 @@ function App() {
     function handleRefresh() {
         if (activeTab === 'portas') {
             loadPorts();
-        } else {
+        } else if (activeTab !== 'limpeza') {
             setRefreshKey((k) => k + 1);
         }
     }
@@ -112,17 +114,32 @@ function App() {
                 </nav>
 
                 <div className="fascia__controls">
-                    <div className="port-counter" title={`${TAB_LABELS[activeTab]} listadas agora`}>
+                    <div
+                        className="port-counter"
+                        title={
+                            activeTab === 'limpeza'
+                                ? 'Categorias selecionadas para limpeza'
+                                : `${TAB_LABELS[activeTab]} listadas agora`
+                        }
+                    >
                         <span className={`port-counter__value${tick ? ' port-counter__value--tick' : ''}`}>
                             {activeCount}
                         </span>
-                        <span className="port-counter__label">{TAB_LABELS[activeTab]}</span>
+                        <span className="port-counter__label">
+                            {activeTab === 'limpeza' ? 'Selecionadas' : TAB_LABELS[activeTab]}
+                        </span>
                     </div>
                     <button
                         className={`refresh-btn${loading && activeTab === 'portas' ? ' refresh-btn--loading' : ''}`}
                         onClick={handleRefresh}
-                        disabled={loading && activeTab === 'portas'}
-                        title={loading && activeTab === 'portas' ? 'Atualizando...' : 'Atualizar'}
+                        disabled={(loading && activeTab === 'portas') || activeTab === 'limpeza'}
+                        title={
+                            activeTab === 'limpeza'
+                                ? 'Nada para atualizar aqui'
+                                : loading && activeTab === 'portas'
+                                  ? 'Atualizando...'
+                                  : 'Atualizar'
+                        }
                         aria-label={loading && activeTab === 'portas' ? 'Atualizando' : 'Atualizar'}
                     >
                         <RefreshIcon />
@@ -151,6 +168,9 @@ function App() {
                         key={refreshKey}
                         onCountChange={(n) => setCounts((prev) => ({ ...prev, imagens: n }))}
                     />
+                )}
+                {activeTab === 'limpeza' && (
+                    <CleanupPanel onCountChange={(n) => setCounts((prev) => ({ ...prev, limpeza: n }))} />
                 )}
             </main>
         </div>
