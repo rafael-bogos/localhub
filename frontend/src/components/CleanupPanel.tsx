@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Cleanup } from '../../wailsjs/go/main/App';
 import { docker } from '../../wailsjs/go/models';
 import { AlertIcon, BroomIcon } from './icons';
+import { useConfirm } from './ConfirmDialog';
 
 type Category = 'containers' | 'images' | 'networks' | 'buildCache';
 
@@ -41,6 +42,7 @@ function formatSpace(mb: number): string {
 }
 
 function CleanupPanel({ onCountChange }: CleanupPanelProps) {
+    const confirm = useConfirm();
     const [selected, setSelected] = useState<Record<Category, boolean>>({
         containers: false,
         images: false,
@@ -72,7 +74,7 @@ function CleanupPanel({ onCountChange }: CleanupPanelProps) {
 
     async function handleCleanup() {
         const labels = CATEGORIES.filter((c) => selected[c.key]).map((c) => c.label);
-        const confirmed = window.confirm(
+        const confirmed = await confirm(
             `Limpar agora: ${labels.join(', ')}? Essa ação não pode ser desfeita.`
         );
         if (!confirmed) return;

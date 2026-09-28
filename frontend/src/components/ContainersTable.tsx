@@ -8,6 +8,7 @@ import {
 } from '../../wailsjs/go/main/App';
 import { docker } from '../../wailsjs/go/models';
 import { AlertIcon, BoxIcon } from './icons';
+import { useConfirm } from './ConfirmDialog';
 
 const COOL_DOWN_MS = 340;
 
@@ -16,6 +17,7 @@ interface ContainersTableProps {
 }
 
 function ContainersTable({ onCountChange }: ContainersTableProps) {
+    const confirm = useConfirm();
     const [containers, setContainers] = useState<docker.ContainerInfo[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -63,7 +65,7 @@ function ContainersTable({ onCountChange }: ContainersTableProps) {
     }
 
     async function handleStop(c: docker.ContainerInfo) {
-        const confirmed = window.confirm(`Parar o container "${c.name}"?`);
+        const confirmed = await confirm(`Parar o container "${c.name}"?`);
         if (!confirmed) return;
 
         setError('');
@@ -81,7 +83,7 @@ function ContainersTable({ onCountChange }: ContainersTableProps) {
     }
 
     async function handleRestart(c: docker.ContainerInfo) {
-        const confirmed = window.confirm(`Reiniciar o container "${c.name}"?`);
+        const confirmed = await confirm(`Reiniciar o container "${c.name}"?`);
         if (!confirmed) return;
 
         setError('');
@@ -99,7 +101,7 @@ function ContainersTable({ onCountChange }: ContainersTableProps) {
     }
 
     async function handleRemove(c: docker.ContainerInfo) {
-        const confirmed = window.confirm(`Remover o container "${c.name}"? Essa ação não pode ser desfeita.`);
+        const confirmed = await confirm(`Remover o container "${c.name}"? Essa ação não pode ser desfeita.`);
         if (!confirmed) return;
 
         setError('');

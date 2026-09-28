@@ -681,6 +681,52 @@
     transform: scale(0.98);
 }
 
+/* ---- Confirm modal: in-app replacement for window.confirm, which WKWebView
+   (Wails on macOS) never implements — needed for confirmation to work on
+   every platform, not just Linux/GTK. ---- */
+
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.confirm-modal {
+    width: min(360px, calc(100vw - 32px));
+    padding: 18px;
+    background: var(--chassis-panel);
+    border: 1px solid var(--chassis-seam);
+    border-radius: var(--radius-key);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.confirm-modal__message {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin: 0 0 16px;
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    line-height: 1.4;
+    color: var(--ink-primary);
+}
+
+.confirm-modal__message svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--amber);
+}
+
+.confirm-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
 /* ---- Cleanup: one keycap row per prune category, user opts in per run ---- */
 
 .cleanup-list {

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ListImages, PruneImages, RemoveImage } from '../../wailsjs/go/main/App';
 import { docker } from '../../wailsjs/go/models';
 import { AlertIcon, LayersIcon } from './icons';
+import { useConfirm } from './ConfirmDialog';
 
 const COOL_DOWN_MS = 340;
 
@@ -10,6 +11,7 @@ interface ImagesTableProps {
 }
 
 function ImagesTable({ onCountChange }: ImagesTableProps) {
+    const confirm = useConfirm();
     const [images, setImages] = useState<docker.ImageInfo[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -44,7 +46,7 @@ function ImagesTable({ onCountChange }: ImagesTableProps) {
 
     async function handleRemove(img: docker.ImageInfo) {
         const label = img.repository === '<none>' ? img.id : `${img.repository}:${img.tag}`;
-        const confirmed = window.confirm(`Remover a imagem "${label}"? Essa ação não pode ser desfeita.`);
+        const confirmed = await confirm(`Remover a imagem "${label}"? Essa ação não pode ser desfeita.`);
         if (!confirmed) return;
 
         setError('');
@@ -64,7 +66,7 @@ function ImagesTable({ onCountChange }: ImagesTableProps) {
     }
 
     async function handlePrune() {
-        const confirmed = window.confirm('Remover todas as imagens não usadas (dangling)? Essa ação não pode ser desfeita.');
+        const confirmed = await confirm('Remover todas as imagens não usadas (dangling)? Essa ação não pode ser desfeita.');
         if (!confirmed) return;
 
         setError('');

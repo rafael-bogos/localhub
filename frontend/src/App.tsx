@@ -7,6 +7,7 @@ import ContainersTable from './components/ContainersTable';
 import ImagesTable from './components/ImagesTable';
 import CleanupPanel from './components/CleanupPanel';
 import { RefreshIcon, SearchIcon, CloseIcon } from './components/icons';
+import { useConfirm } from './components/ConfirmDialog';
 import logo from './assets/images/localhub-logo.svg';
 
 const COOL_DOWN_MS = 340;
@@ -21,6 +22,7 @@ const TAB_LABELS: Record<Tab, string> = {
 };
 
 function App() {
+    const confirm = useConfirm();
     const [activeTab, setActiveTab] = useState<Tab>('portas');
     const [counts, setCounts] = useState<Record<Tab, number>>({ portas: 0, containers: 0, imagens: 0, limpeza: 0 });
     const [refreshKey, setRefreshKey] = useState(0);
@@ -49,7 +51,7 @@ function App() {
     }
 
     async function handleKill(port: ports.PortInfo) {
-        const confirmed = window.confirm(
+        const confirmed = await confirm(
             `Matar o processo "${port.processName || 'desconhecido'}" (PID ${port.pid}) na porta ${port.port}/${port.protocol.toUpperCase()}?`
         );
         if (!confirmed) {
