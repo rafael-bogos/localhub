@@ -156,3 +156,7 @@ navegador nele para chamar o código Go direto do devtools.
 
 Mais sobre configuração do projeto (`wails.json`):
 https://wails.io/docs/reference/project-config
+
+## Licença
+
+[MIT](LICENSE) © Rafael Bogos
