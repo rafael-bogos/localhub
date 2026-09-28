@@ -7,6 +7,8 @@ export function Cleanup(arg1:docker.CleanupOptions):Promise<docker.CleanupResult
 
 export function KillProcess(arg1:number):Promise<void>;
 
+export function ListChildProcesses(arg1:number):Promise<Array<ports.PortInfo>>;
+
 export function ListContainers():Promise<Array<docker.ContainerInfo>>;
 
 export function ListImages():Promise<Array<docker.ImageInfo>>;

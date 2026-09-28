@@ -105,6 +105,8 @@ export namespace ports {
 	    pid: number;
 	    processName: string;
 	    status: string;
+	    parentPid: number;
+	    childCount: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new PortInfo(source);
@@ -117,6 +119,8 @@ export namespace ports {
 	        this.pid = source["pid"];
 	        this.processName = source["processName"];
 	        this.status = source["status"];
+	        this.parentPid = source["parentPid"];
+	        this.childCount = source["childCount"];
 	    }
 	}
 

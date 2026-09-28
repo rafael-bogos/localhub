@@ -10,6 +10,10 @@ export function KillProcess(arg1) {
   return window['go']['main']['App']['KillProcess'](arg1);
 }
 
+export function ListChildProcesses(arg1) {
+  return window['go']['main']['App']['ListChildProcesses'](arg1);
+}
+
 export function ListContainers() {
   return window['go']['main']['App']['ListContainers']();
 }

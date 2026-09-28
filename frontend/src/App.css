@@ -402,28 +402,19 @@
     text-align: right;
 }
 
-.port-row {
-    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
-}
-
 .port-row td {
     background: var(--key-surface);
-    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow);
+    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow), 0 2px 3px rgba(0, 0, 0, 0.3);
     padding: 11px 14px;
     font-family: var(--font-mono);
     font-size: 0.88rem;
     color: var(--key-ink);
     vertical-align: middle;
-    transition: background-color 160ms ease, opacity 320ms ease, transform 320ms ease, filter 320ms ease;
+    transition: background-color 160ms ease, opacity 320ms ease, transform 320ms ease;
 }
 
 .port-row:hover td {
     background: var(--key-surface-hover);
-}
-
-.port-row td:first-child {
-    border-top-left-radius: var(--radius-key);
-    border-bottom-left-radius: var(--radius-key);
 }
 
 .port-row td:last-child {
@@ -433,8 +424,30 @@
 }
 
 .port-row__port {
+    position: relative;
     font-weight: 600;
     white-space: nowrap;
+    border-top-left-radius: var(--radius-key);
+    border-bottom-left-radius: var(--radius-key);
+}
+
+/* Nested (child) rows get their left inset by masking over the card's own
+   left edge with the panel color — not a real table column, so it can never
+   leak into other rows the way a shared table column would. */
+.port-row--nested .port-row__port::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 16px;
+    background: var(--chassis-panel);
+    border-top-right-radius: var(--radius-key);
+    border-bottom-right-radius: var(--radius-key);
+}
+
+.port-row--nested .port-row__port {
+    padding-left: 30px;
 }
 
 .port-row__protocol {
@@ -454,6 +467,53 @@
 .port-row__pid {
     color: var(--key-ink-muted);
 }
+
+/* ---- Parent/child grouping: an app's main process first, its own port-
+   holding children revealed on click — killing a child alone often just
+   gets it respawned by the still-alive parent. ---- */
+
+.port-row--parent {
+    cursor: pointer;
+}
+
+.port-row--parent td {
+    background: var(--bezel);
+}
+
+.port-row--parent:hover td {
+    background: var(--key-surface-hover);
+}
+
+.port-row--parent:focus-visible {
+    outline: none;
+}
+
+.port-row--parent:focus-visible td:first-child {
+    box-shadow: inset 0 0 0 1px var(--amber-dim);
+}
+
+.port-row--parent .port-row__process {
+    font-weight: 600;
+}
+
+.port-row__expand {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-primary);
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+}
+
+.port-row__expand svg {
+    flex-shrink: 0;
+    transition: transform 140ms ease;
+}
+
+.port-row__expand-icon--open {
+    transform: rotate(90deg);
+}
+
 
 .status-chip {
     display: inline-block;
@@ -613,21 +673,16 @@
     text-align: right;
 }
 
-.container-row,
-.image-row {
-    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
-}
-
 .container-row td,
 .image-row td {
     background: var(--key-surface);
-    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow);
+    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow), 0 2px 3px rgba(0, 0, 0, 0.3);
     padding: 11px 14px;
     font-family: var(--font-mono);
     font-size: 0.88rem;
     color: var(--key-ink);
     vertical-align: middle;
-    transition: background-color 160ms ease, opacity 320ms ease, transform 320ms ease, filter 320ms ease;
+    transition: background-color 160ms ease, opacity 320ms ease, transform 320ms ease;
 }
 
 .container-row:hover td,
@@ -752,8 +807,7 @@
     padding: 11px 14px;
     background: var(--key-surface);
     border-radius: var(--radius-key);
-    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow);
-    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow), 0 2px 3px rgba(0, 0, 0, 0.3);
     cursor: pointer;
     transition: background-color 160ms ease;
 }

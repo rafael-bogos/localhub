@@ -155,6 +155,25 @@ export function BroomIcon({ size = 16, className }: IconProps) {
     );
 }
 
+export function ChevronIcon({ size = 14, className }: IconProps) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="m9 6 6 6-6 6" />
+        </svg>
+    );
+}
+
 export function AlertIcon({ size = 16, className }: IconProps) {
     return (
         <svg

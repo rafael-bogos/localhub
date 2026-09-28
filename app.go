@@ -34,6 +34,13 @@ func (a *App) KillProcess(pid int32) error {
 	return ports.KillProcess(pid)
 }
 
+// ListChildProcesses returns the ports held by processes whose immediate
+// parent is parentPID. Called only when the user expands a parent-process
+// row in the Portas tab, so child name resolution stays lazy.
+func (a *App) ListChildProcesses(parentPID int32) ([]ports.PortInfo, error) {
+	return ports.ListChildProcesses(parentPID)
+}
+
 // ListContainers returns every Docker container on the local daemon, running
 // containers first.
 func (a *App) ListContainers() ([]docker.ContainerInfo, error) {

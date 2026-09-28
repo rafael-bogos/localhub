@@ -15,7 +15,7 @@ const COOL_DOWN_MS = 340;
 type Tab = 'portas' | 'containers' | 'imagens' | 'limpeza';
 
 const TAB_LABELS: Record<Tab, string> = {
-    portas: 'Portas',
+    portas: 'Processos',
     containers: 'Containers',
     imagens: 'Imagens',
     limpeza: 'Limpeza',
@@ -50,20 +50,18 @@ function App() {
         }
     }
 
-    async function handleKill(port: ports.PortInfo) {
-        const confirmed = await confirm(
-            `Matar o processo "${port.processName || 'desconhecido'}" (PID ${port.pid}) na porta ${port.port}/${port.protocol.toUpperCase()}?`
-        );
+    async function killWithConfirm(pid: number, message: string) {
+        const confirmed = await confirm(message);
         if (!confirmed) {
             return;
         }
 
         setError('');
-        setKillingPid(port.pid);
+        setKillingPid(pid);
         try {
-            await KillProcess(port.pid);
+            await KillProcess(pid);
             setKillingPid(null);
-            setCoolingPid(port.pid);
+            setCoolingPid(pid);
             await new Promise((resolve) => setTimeout(resolve, COOL_DOWN_MS));
             await loadPorts();
         } catch (err) {
@@ -72,6 +70,20 @@ function App() {
             setKillingPid(null);
             setCoolingPid(null);
         }
+    }
+
+    async function handleKill(port: ports.PortInfo) {
+        await killWithConfirm(
+            port.pid,
+            `Matar o processo "${port.processName || 'desconhecido'}" (PID ${port.pid}) na porta ${port.port}/${port.protocol.toUpperCase()}?`
+        );
+    }
+
+    async function handleKillParent(pid: number, processName: string) {
+        await killWithConfirm(
+            pid,
+            `Matar o processo "${processName || 'desconhecido'}" (PID ${pid})? Isso também pode encerrar os processos filhos dele.`
+        );
     }
 
     useEffect(() => {
@@ -154,7 +166,9 @@ function App() {
                         title={
                             activeTab === 'limpeza'
                                 ? 'Categorias selecionadas para limpeza'
-                                : `${TAB_LABELS[activeTab]} listadas agora`
+                                : activeTab === 'portas'
+                                  ? 'Processos listados agora'
+                                  : `${TAB_LABELS[activeTab]} listadas agora`
                         }
                     >
                         <span className={`port-counter__value${tick ? ' port-counter__value--tick' : ''}`}>
@@ -188,6 +202,7 @@ function App() {
                         ports={filteredPorts}
                         searchQuery={portSearch}
                         onKill={handleKill}
+                        onKillParent={handleKillParent}
                         killingPid={killingPid}
                         coolingPid={coolingPid}
                         error={error}
