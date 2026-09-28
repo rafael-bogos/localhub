@@ -45,6 +45,12 @@ código-fonte, para qualquer um dos três sistemas.
   ```
   go install github.com/wailsapp/wails/v2/cmd/wails@latest
   ```
+  O binário vai para `$(go env GOPATH)/bin` — se `wails` não for
+  reconhecido no terminal, adicione ao seu shell rc (`~/.zshrc` /
+  `~/.bashrc`):
+  ```
+  export PATH="$PATH:$(go env GOPATH)/bin"
+  ```
 
 Depois, clone o repositório:
 
