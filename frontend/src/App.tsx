@@ -6,7 +6,8 @@ import PortsTable from './components/PortsTable';
 import ContainersTable from './components/ContainersTable';
 import ImagesTable from './components/ImagesTable';
 import CleanupPanel from './components/CleanupPanel';
-import { RefreshIcon } from './components/icons';
+import { RefreshIcon, SearchIcon, CloseIcon } from './components/icons';
+import logo from './assets/images/localhub-logo.svg';
 
 const COOL_DOWN_MS = 340;
 
@@ -25,6 +26,7 @@ function App() {
     const [refreshKey, setRefreshKey] = useState(0);
 
     const [portList, setPortList] = useState<ports.PortInfo[]>([]);
+    const [portSearch, setPortSearch] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [killingPid, setKillingPid] = useState<number | null>(null);
@@ -84,6 +86,13 @@ function App() {
     }, [portList.length]);
 
     const activeCount = counts[activeTab];
+    const filteredPorts = portSearch
+        ? portList.filter((p) => String(p.port).includes(portSearch))
+        : portList;
+
+    function handlePortSearchChange(value: string) {
+        setPortSearch(value.replace(/\D/g, ''));
+    }
 
     function handleRefresh() {
         if (activeTab === 'portas') {
@@ -97,7 +106,7 @@ function App() {
         <div className="app-shell">
             <header className="fascia">
                 <div className="fascia__brand">
-                    <span className="fascia__led" aria-hidden="true" />
+                    <img src={logo} className="fascia__logo" alt="" aria-hidden="true" />
                     <h1 className="fascia__wordmark">localhub</h1>
                 </div>
 
@@ -114,6 +123,30 @@ function App() {
                 </nav>
 
                 <div className="fascia__controls">
+                    {activeTab === 'portas' && (
+                        <div className="port-search">
+                            <SearchIcon size={14} className="port-search__icon" />
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                className="port-search__input"
+                                placeholder="Buscar porta"
+                                value={portSearch}
+                                onChange={(e) => handlePortSearchChange(e.target.value)}
+                                aria-label="Buscar por número da porta"
+                            />
+                            {portSearch && (
+                                <button
+                                    className="port-search__clear"
+                                    onClick={() => setPortSearch('')}
+                                    title="Limpar busca"
+                                    aria-label="Limpar busca"
+                                >
+                                    <CloseIcon size={11} />
+                                </button>
+                            )}
+                        </div>
+                    )}
                     <div
                         className="port-counter"
                         title={
@@ -150,7 +183,8 @@ function App() {
             <main className="instrument-panel">
                 {activeTab === 'portas' && (
                     <PortsTable
-                        ports={portList}
+                        ports={filteredPorts}
+                        searchQuery={portSearch}
                         onKill={handleKill}
                         killingPid={killingPid}
                         coolingPid={coolingPid}

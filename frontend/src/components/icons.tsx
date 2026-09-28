@@ -92,6 +92,46 @@ export function LayersIcon({ size = 32, className }: IconProps) {
     );
 }
 
+export function SearchIcon({ size = 16, className }: IconProps) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="m20 20-4.8-4.8" />
+        </svg>
+    );
+}
+
+export function CloseIcon({ size = 12, className }: IconProps) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M5 5 19 19" />
+            <path d="M19 5 5 19" />
+        </svg>
+    );
+}
+
 export function BroomIcon({ size = 16, className }: IconProps) {
     return (
         <svg

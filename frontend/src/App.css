@@ -60,12 +60,11 @@
     gap: 9px;
 }
 
-.fascia__led {
-    width: 7px;
-    height: 7px;
-    border-radius: 999px;
-    background: var(--amber);
-    box-shadow: 0 0 6px 1px var(--amber-glow);
+.fascia__logo {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: var(--radius-key);
 }
 
 .fascia__wordmark {
@@ -123,6 +122,66 @@
 }
 
 /* ---- Port counter: amber glass-tube readout ---- */
+
+/* ---- Port search: same recessed bezel-window language as the counter ---- */
+
+.port-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--key-border-strong);
+    border-radius: var(--radius-chip);
+    background: var(--bezel);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    transition: box-shadow 120ms ease;
+}
+
+.port-search:focus-within {
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--amber-dim);
+}
+
+.port-search__icon {
+    position: absolute;
+    left: 9px;
+    color: var(--ink-tertiary);
+    pointer-events: none;
+}
+
+.port-search__input {
+    width: 140px;
+    padding: 6px 26px 6px 28px;
+    border: none;
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--ink-primary);
+}
+
+.port-search__input::placeholder {
+    color: var(--ink-tertiary);
+    font-family: var(--font-sans);
+}
+
+.port-search__input:focus {
+    outline: none;
+}
+
+.port-search__clear {
+    position: absolute;
+    right: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--ink-tertiary);
+    cursor: pointer;
+}
+
+.port-search__clear:hover {
+    color: var(--ink-primary);
+}
 
 .port-counter {
     position: relative;

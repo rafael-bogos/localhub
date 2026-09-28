@@ -3,13 +3,14 @@ import { AlertIcon, UnplugIcon } from './icons';
 
 interface PortsTableProps {
     ports: ports.PortInfo[];
+    searchQuery?: string;
     onKill: (port: ports.PortInfo) => void;
     killingPid: number | null;
     coolingPid: number | null;
     error: string;
 }
 
-function PortsTable({ ports, onKill, killingPid, coolingPid, error }: PortsTableProps) {
+function PortsTable({ ports, searchQuery, onKill, killingPid, coolingPid, error }: PortsTableProps) {
     return (
         <>
             {error && (
@@ -22,7 +23,11 @@ function PortsTable({ ports, onKill, killingPid, coolingPid, error }: PortsTable
             {ports.length === 0 ? (
                 <div className="empty-state">
                     <UnplugIcon />
-                    <p>Nenhuma porta encontrada.</p>
+                    <p>
+                        {searchQuery
+                            ? `Nenhuma porta encontrada para "${searchQuery}".`
+                            : 'Nenhuma porta encontrada.'}
+                    </p>
                 </div>
             ) : (
                 <table className="ports-table">

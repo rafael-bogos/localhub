@@ -42,7 +42,7 @@ Used ad hoc during local development, most often right after a "port already in 
 
 - Product name: **localhub**.
 - Interface language is Brazilian Portuguese by deliberate choice ("Atualizar", "Matar", "Nenhuma porta encontrada"), not a placeholder to translate.
-- Existing logo asset at `frontend/src/assets/images/logo-universal.png` (Wails template default; not confirmed as final brand mark).
+- Confirmed brand mark: `build/appicon.svg` (blue rounded-square icon, stacked teal/orange/cream window cards) — used as the app/window/desktop icon and inside the fascia (`frontend/src/assets/images/localhub-logo.svg`). Deliberately kept off the in-app dark/orange/amber palette, same as an OS-level app icon in other tools. `frontend/src/assets/images/logo-universal.png` is the old Wails template default and is no longer used.
 
 ## Evidence on Hand
 
