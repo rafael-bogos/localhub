@@ -677,6 +677,44 @@
    kept as separate rules (not shared selectors) so the shipped/reviewed
    Portas surface can never regress from a change made here. ---- */
 
+/* Summary strip above the containers grid: running/stopped counts plus the
+   summed CPU and memory of everything running. */
+
+.containers-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+    margin: 0 0 6px;
+}
+
+.containers-summary__tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 14px;
+    background: var(--bezel);
+    border-radius: var(--radius-key);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.containers-summary__tile dt {
+    font-family: var(--font-sans);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+}
+
+.containers-summary__tile dd {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--key-ink);
+    white-space: nowrap;
+}
+
 .containers-table,
 .images-table {
     width: 100%;
@@ -740,11 +778,22 @@
 
 .container-row__image,
 .container-row__ports,
+.container-row__metric,
 .image-row__tag,
 .image-row__id,
 .image-row__size,
 .image-row__created {
     color: var(--key-ink-muted);
+}
+
+.container-row__metric {
+    white-space: nowrap;
+}
+
+.container-row__metric-sub {
+    margin-left: 8px;
+    font-size: 0.74rem;
+    color: var(--ink-tertiary);
 }
 
 .container-row--protected td:first-child,

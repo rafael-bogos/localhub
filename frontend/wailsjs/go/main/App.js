@@ -14,6 +14,10 @@ export function ListChildProcesses(arg1) {
   return window['go']['main']['App']['ListChildProcesses'](arg1);
 }
 
+export function ListContainerStats() {
+  return window['go']['main']['App']['ListContainerStats']();
+}
+
 export function ListContainers() {
   return window['go']['main']['App']['ListContainers']();
 }

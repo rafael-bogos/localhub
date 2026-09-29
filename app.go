@@ -47,6 +47,13 @@ func (a *App) ListContainers() ([]docker.ContainerInfo, error) {
 	return docker.ListContainers(a.ctx)
 }
 
+// ListContainerStats returns a CPU/memory sample for every running
+// container. Kept separate from ListContainers because sampling takes about
+// a second, and the list should never wait on it.
+func (a *App) ListContainerStats() ([]docker.ContainerStats, error) {
+	return docker.ListContainerStats(a.ctx)
+}
+
 // StartContainer starts a stopped container.
 func (a *App) StartContainer(id string) error {
 	return docker.StartContainer(a.ctx, id)

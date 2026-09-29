@@ -60,6 +60,26 @@ export namespace docker {
 	        this.ports = source["ports"];
 	    }
 	}
+	export class ContainerStats {
+	    id: string;
+	    cpuPercent: number;
+	    memUsage: number;
+	    memLimit: number;
+	    memPercent: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ContainerStats(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.cpuPercent = source["cpuPercent"];
+	        this.memUsage = source["memUsage"];
+	        this.memLimit = source["memLimit"];
+	        this.memPercent = source["memPercent"];
+	    }
+	}
 	export class ImageInfo {
 	    id: string;
 	    repository: string;
