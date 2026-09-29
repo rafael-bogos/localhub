@@ -34,8 +34,20 @@ pra traduzir depois.
 
 ## Instalação
 
-Não há binários prontos publicados — o app é buildado localmente a partir do
-código-fonte, para qualquer um dos três sistemas.
+### Binário pronto
+
+A forma mais rápida: baixe o binário do seu sistema direto na página de
+[Releases](https://github.com/rafael-bogos/localhub/releases) — cada release
+traz builds para Linux, Windows e macOS. Como não são assinados
+digitalmente, o Windows pode avisar via SmartScreen e o macOS vai bloquear a
+primeira abertura pelo Gatekeeper (veja a seção do macOS abaixo para
+contornar isso).
+
+### Build a partir do código-fonte
+
+Se preferir compilar você mesmo (ou seu sistema não for compatível com o
+binário publicado — ex. Linux com `webkit2gtk-4.0`), siga os passos abaixo
+para qualquer um dos três sistemas.
 
 ### Pré-requisitos (todos os sistemas)
 

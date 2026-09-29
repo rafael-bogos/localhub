@@ -1,0 +1,131 @@
+name: Release
+
+# Builds the desktop app for Linux, Windows and macOS and attaches the
+# binaries to the GitHub Release for the pushed tag. Create the tag +
+# release manually (with its own title/notes) first — this workflow only
+# adds the build artifacts to whatever release already exists for that tag,
+# it never touches the title or description.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  GO_VERSION: "1.25"
+  NODE_VERSION: "20"
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Ubuntu 24.04+ only ships libwebkit2gtk-4.1-dev (4.0 was dropped), so
+      # the build needs the matching -tags webkit2_41 — same requirement as
+      # Fedora and other newer distros.
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Build
+        run: wails build -tags webkit2_41
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp build/bin/localhub dist/localhub-linux-amd64
+          chmod +x dist/localhub-linux-amd64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-binary
+          path: dist/*
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Build
+        run: wails build
+
+      - name: Package
+        run: |
+          mkdir dist
+          copy build\bin\localhub.exe dist\localhub-windows-amd64.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-binary
+          path: dist/*
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Build
+        run: wails build -platform darwin/universal
+
+      # App is unsigned/unnotarized — the README already documents the
+      # right-click-to-open / xattr workaround users need on first launch.
+      - name: Package
+        run: |
+          mkdir -p dist
+          cd build/bin
+          zip -r ../../dist/localhub-macos-universal.zip localhub.app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-binary
+          path: dist/*
+
+  release:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Attach binaries to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*/*
