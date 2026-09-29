@@ -56,17 +56,27 @@ func firstOrEmpty(names []string) string {
 	return names[0]
 }
 
+// formatPorts lists each published port once. The Docker API reports a
+// separate entry per host IP (0.0.0.0 and [::]), which would otherwise show
+// the same "33067->3306/tcp" twice.
 func formatPorts(ports []container.PortSummary) string {
 	if len(ports) == 0 {
 		return ""
 	}
+	seen := make(map[string]bool, len(ports))
 	parts := make([]string, 0, len(ports))
 	for _, p := range ports {
+		var label string
 		if p.PublicPort > 0 {
-			parts = append(parts, fmt.Sprintf("%d->%d/%s", p.PublicPort, p.PrivatePort, p.Type))
+			label = fmt.Sprintf("%d->%d/%s", p.PublicPort, p.PrivatePort, p.Type)
 		} else {
-			parts = append(parts, fmt.Sprintf("%d/%s", p.PrivatePort, p.Type))
+			label = fmt.Sprintf("%d/%s", p.PrivatePort, p.Type)
 		}
+		if seen[label] {
+			continue
+		}
+		seen[label] = true
+		parts = append(parts, label)
 	}
 	return strings.Join(parts, ", ")
 }
