@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	psnet "github.com/shirou/gopsutil/v3/net"
 	"github.com/shirou/gopsutil/v3/process"
@@ -168,14 +169,26 @@ func effectiveParents(pids map[int32]bool) (parents map[int32]int32, parentNames
 	return parents, names
 }
 
-// ListPorts returns the local TCP ports being listened on and UDP ports
-// bound on this machine, along with the process using each one. Processes
-// that share a parent (e.g. an Electron app's helper/renderer processes)
-// are collapsed into a single row reporting how many ports its children
-// hold — resolving each child's own name (potentially slow: on macOS, a
-// long process name falls back to shelling out to `ps`) is deferred to
-// ListChildProcesses, called only once the user expands that row.
-func ListPorts() ([]PortInfo, error) {
+// snapshotTTL is how long a scan stays reusable by ListChildProcesses. The UI
+// expands a group right after listing, so re-scanning every connection (the
+// dominant cost, especially on macOS/Windows) would only repeat that work.
+const snapshotTTL = 5 * time.Second
+
+// snapshot is one scan of the machine's visible port entries, plus the
+// grouping and the names already resolved along the way.
+type snapshot struct {
+	at      time.Time
+	visible []visibleConn
+	parents map[int32]int32
+	names   map[int32]string
+}
+
+var (
+	snapMu   sync.Mutex
+	lastSnap *snapshot
+)
+
+func scan() (*snapshot, error) {
 	conns, err := psnet.Connections("inet")
 	if err != nil {
 		return nil, err
@@ -186,7 +199,57 @@ func ListPorts() ([]PortInfo, error) {
 	for _, v := range visible {
 		pids[v.pid] = true
 	}
-	parents, _ := effectiveParents(pids)
+	parents, names := effectiveParents(pids)
+
+	snap := &snapshot{at: time.Now(), visible: visible, parents: parents, names: names}
+	snapMu.Lock()
+	lastSnap = snap
+	snapMu.Unlock()
+	return snap, nil
+}
+
+// freshSnapshot returns the last scan if it is still within snapshotTTL.
+func freshSnapshot() *snapshot {
+	snapMu.Lock()
+	defer snapMu.Unlock()
+	if lastSnap != nil && time.Since(lastSnap.at) < snapshotTTL {
+		return lastSnap
+	}
+	return nil
+}
+
+// resolveMissingNames resolves only the pids whose name isn't known yet.
+func resolveMissingNames(pids map[int32]bool, known map[int32]string) map[int32]string {
+	missing := map[int32]bool{}
+	for pid := range pids {
+		if _, ok := known[pid]; !ok {
+			missing[pid] = true
+		}
+	}
+	resolved := resolveNames(missing)
+	names := make(map[int32]string, len(known)+len(resolved))
+	for pid, n := range known {
+		names[pid] = n
+	}
+	for pid, n := range resolved {
+		names[pid] = n
+	}
+	return names
+}
+
+// ListPorts returns the local TCP ports being listened on and UDP ports
+// bound on this machine, along with the process using each one. Processes
+// that share a parent (e.g. an Electron app's helper/renderer processes)
+// are collapsed into a single row reporting how many ports its children
+// hold — resolving each child's own name (potentially slow: on macOS, a
+// long process name falls back to shelling out to `ps`) is deferred to
+// ListChildProcesses, called only once the user expands that row.
+func ListPorts() ([]PortInfo, error) {
+	snap, err := scan()
+	if err != nil {
+		return nil, err
+	}
+	visible, parents := snap.visible, snap.parents
 
 	// Counted per visible port row (not per child process) so it always
 	// matches exactly how many rows ListChildProcesses returns — a process
@@ -207,7 +270,7 @@ func ListPorts() ([]PortInfo, error) {
 	for ppid := range childCount {
 		needsName[ppid] = true
 	}
-	names := resolveNames(needsName)
+	names := resolveMissingNames(needsName, snap.names)
 
 	result := []PortInfo{}
 
@@ -251,17 +314,14 @@ func ListPorts() ([]PortInfo, error) {
 // that group in the UI, so the name resolution for each child (potentially
 // slow on macOS) happens only when actually needed.
 func ListChildProcesses(parentPID int32) ([]PortInfo, error) {
-	conns, err := psnet.Connections("inet")
-	if err != nil {
-		return nil, err
+	snap := freshSnapshot()
+	if snap == nil {
+		var err error
+		if snap, err = scan(); err != nil {
+			return nil, err
+		}
 	}
-	visible := visibleConnections(conns)
-
-	pids := map[int32]bool{}
-	for _, v := range visible {
-		pids[v.pid] = true
-	}
-	parents, _ := effectiveParents(pids)
+	visible, parents := snap.visible, snap.parents
 
 	childPids := map[int32]bool{}
 	for pid, ppid := range parents {
@@ -269,7 +329,7 @@ func ListChildProcesses(parentPID int32) ([]PortInfo, error) {
 			childPids[pid] = true
 		}
 	}
-	names := resolveNames(childPids)
+	names := resolveMissingNames(childPids, snap.names)
 
 	result := []PortInfo{}
 

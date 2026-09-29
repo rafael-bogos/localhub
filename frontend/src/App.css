@@ -384,6 +384,9 @@
     width: 100%;
     border-collapse: separate;
     border-spacing: 0 8px;
+    /* Own compositing layer: scrolling just moves the painted layer instead
+       of repainting every shadowed cell on each frame. */
+    will-change: transform;
 }
 
 .ports-table thead th {
@@ -404,7 +407,9 @@
 
 .port-row td {
     background: var(--key-surface);
-    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow), 0 2px 3px rgba(0, 0, 0, 0.3);
+    /* Hard 2px drop instead of a blurred one: same keycap read, but no
+       blur to rasterize on every cell. */
+    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow), 0 2px 0 rgba(0, 0, 0, 0.3);
     padding: 11px 14px;
     font-family: var(--font-mono);
     font-size: 0.88rem;
@@ -433,20 +438,44 @@
 
 /* Nested (child) rows get their left inset by masking over the card's own
    left edge with the panel color — not a real table column, so it can never
-   leak into other rows the way a shared table column would. */
+   leak into other rows the way a shared table column would. The mask is a
+   solid 16px strip plus two corner cut-outs, so the card's new left edge
+   rounds outward (convex) like every other row. */
 .port-row--nested .port-row__port::before {
     content: "";
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
-    width: 16px;
-    background: var(--chassis-panel);
-    border-top-right-radius: var(--radius-key);
-    border-bottom-right-radius: var(--radius-key);
+    width: calc(16px + var(--radius-key));
+    background:
+        radial-gradient(
+                circle at 100% 100%,
+                transparent calc(var(--radius-key) - 0.5px),
+                var(--chassis-panel) var(--radius-key)
+            )
+            16px 0 / var(--radius-key) var(--radius-key) no-repeat,
+        radial-gradient(
+                circle at 100% 0,
+                transparent calc(var(--radius-key) - 0.5px),
+                var(--chassis-panel) var(--radius-key)
+            )
+            16px 100% / var(--radius-key) var(--radius-key) no-repeat,
+        linear-gradient(var(--chassis-panel), var(--chassis-panel)) 0 0 / 16px 100% no-repeat;
 }
 
 .port-row--nested .port-row__port {
+    /* Clip the masked-off 16px, including the drop shadow that would
+       otherwise leak below it; the shadow only starts once the rounded
+       corner has ended. */
+    clip-path: polygon(
+        16px -1px,
+        100% -1px,
+        100% calc(100% + 3px),
+        calc(16px + var(--radius-key)) calc(100% + 3px),
+        calc(16px + var(--radius-key)) 100%,
+        16px 100%
+    );
     padding-left: 30px;
 }
 
