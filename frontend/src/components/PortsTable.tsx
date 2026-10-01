@@ -213,7 +213,7 @@ function PortsTable({
                     <UnplugIcon />
                     <p>
                         {searchQuery
-                            ? `Nenhuma porta encontrada para "${searchQuery}".`
+                            ? `Nenhuma porta ou processo encontrado para "${searchQuery}".`
                             : 'Nenhuma porta encontrada.'}
                     </p>
                 </div>

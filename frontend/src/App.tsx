@@ -152,13 +152,18 @@ function App() {
     }, [portList.length]);
 
     const activeCount = counts[activeTab];
-    const filteredPorts = portSearch
-        ? portList.filter((p) => String(p.port).includes(portSearch))
+    // Matches the port number or the process name (case-insensitive). A row
+    // that belongs to a Docker container also matches its container name,
+    // since that name is shown on the row.
+    const query = portSearch.trim().toLowerCase();
+    const filteredPorts = query
+        ? portList.filter(
+              (p) =>
+                  String(p.port).includes(query) ||
+                  p.processName.toLowerCase().includes(query) ||
+                  (portOwners[`${p.protocol}:${p.port}`]?.name.toLowerCase().includes(query) ?? false)
+          )
         : portList;
-
-    function handlePortSearchChange(value: string) {
-        setPortSearch(value.replace(/\D/g, ''));
-    }
 
     function handleRefresh() {
         if (activeTab === 'portas') {
@@ -194,12 +199,11 @@ function App() {
                             <SearchIcon size={14} className="port-search__icon" />
                             <input
                                 type="text"
-                                inputMode="numeric"
                                 className="port-search__input"
-                                placeholder="Buscar porta"
+                                placeholder="Buscar porta ou processo"
                                 value={portSearch}
-                                onChange={(e) => handlePortSearchChange(e.target.value)}
-                                aria-label="Buscar por número da porta"
+                                onChange={(e) => setPortSearch(e.target.value)}
+                                aria-label="Buscar por número da porta ou nome do processo"
                             />
                             {portSearch && (
                                 <button

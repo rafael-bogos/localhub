@@ -13,9 +13,10 @@
 .fascia {
     position: relative;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 10px 16px;
     padding: 10px 16px;
     background:
         repeating-linear-gradient(
@@ -147,8 +148,16 @@
     pointer-events: none;
 }
 
+/* Wide enough for the whole "Buscar porta ou processo" placeholder (measured:
+   ~150px of text plus the icon and clear-button padding). */
+.fascia__controls .port-search {
+    width: 224px;
+    max-width: 100%;
+}
+
 .port-search__input {
-    width: 140px;
+    width: 100%;
+    min-width: 0;
     padding: 6px 26px 6px 28px;
     border: none;
     background: transparent;
