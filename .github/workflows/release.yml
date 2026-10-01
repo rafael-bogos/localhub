@@ -54,12 +54,17 @@ jobs:
 
       # A GitHub Release (and upload-artifact) drops Unix permission bits, so a
       # raw binary downloads as non-executable and the file manager refuses to
-      # open it. A tar.gz keeps the executable bit: extract and run.
+      # open it. A tar.gz keeps the executable bit. It also carries the icon and
+      # an installer (menu launcher), which a bare binary can't offer.
       - name: Package
         run: |
-          mkdir -p dist
-          chmod +x build/bin/localhub
-          tar -czf dist/localhub-linux-amd64.tar.gz -C build/bin localhub
+          set -euo pipefail
+          pkg=localhub-linux-amd64
+          mkdir -p dist "stage/$pkg"
+          install -m755 build/bin/localhub "stage/$pkg/localhub"
+          install -m644 build/appicon.png "stage/$pkg/localhub.png"
+          install -m755 packaging/linux/install.sh "stage/$pkg/install.sh"
+          tar -czf "dist/$pkg.tar.gz" -C stage "$pkg"
 
       - uses: actions/upload-artifact@v4
         with:

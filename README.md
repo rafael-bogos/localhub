@@ -43,11 +43,23 @@ digitalmente, o Windows pode avisar via SmartScreen e o macOS vai bloquear a
 primeira abertura pelo Gatekeeper (veja a seção do macOS abaixo para
 contornar isso).
 
-No **Linux**, o arquivo vem como `localhub-linux-amd64.tar.gz`: extraia (duplo
-clique no gerenciador de arquivos, ou `tar -xzf localhub-linux-amd64.tar.gz`)
-e execute o `localhub` que sai de dentro — a permissão de execução já vem
-preservada, sem precisar de `chmod`. Ele depende do WebKitGTK 4.1 e do GTK3
-instalados (Fedora: `webkit2gtk4.1`; Ubuntu/Debian: `libwebkit2gtk-4.1-0`).
+No **Linux**, o arquivo vem como `localhub-linux-amd64.tar.gz`. Extraia (duplo
+clique no gerenciador de arquivos, ou `tar -xzf localhub-linux-amd64.tar.gz`);
+a permissão de execução já vem preservada, sem precisar de `chmod`. A pasta
+extraída traz o binário, o ícone e um instalador:
+
+```
+cd localhub-linux-amd64
+./localhub          # abrir direto, sem instalar
+./install.sh        # ou instalar: binário + ícone + atalho no menu de aplicativos
+./install.sh --uninstall   # remover
+```
+
+O instalador roda sem root: copia o binário para `~/.local/bin`, o ícone para
+`~/.local/share/icons` e cria o atalho "Localhub" em
+`~/.local/share/applications`. Ele depende do WebKitGTK 4.1 e do GTK3
+instalados (Fedora: `webkit2gtk4.1`; Ubuntu/Debian: `libwebkit2gtk-4.1-0`) e
+avisa se não encontrar a biblioteca.
 
 ### Build a partir do código-fonte
 
@@ -101,33 +113,16 @@ wails build
 wails build -tags webkit2_41
 ```
 
-O binário fica em `build/bin/localhub`. Para instalar de vez (ícone +
-launcher do desktop), use o script do projeto (ajuste a tag de build acima se
-necessário):
+O binário fica em `build/bin/localhub`. Para instalar de vez (binário + ícone +
+atalho no menu de aplicativos), use o script do projeto — ele compila com
+`-tags webkit2_41` (ajuste em `scripts/install.sh` se o seu sistema usar
+`webkit2gtk-4.0`) e chama o mesmo instalador que vai na release:
 
 ```
 ./scripts/install.sh
 ```
 
-Ou, manualmente:
-
-```
-install -Dm755 build/bin/localhub ~/.local/bin/localhub
-install -Dm644 build/appicon.png ~/.local/share/icons/localhub.png
-cat > ~/.local/share/applications/localhub.desktop <<EOF
-[Desktop Entry]
-Name=Localhub
-Comment=Hub de ferramentas locais para desenvolvedores
-Exec=$HOME/.local/bin/localhub
-Icon=$HOME/.local/share/icons/localhub.png
-Type=Application
-Terminal=false
-Categories=Utility;
-EOF
-update-desktop-database ~/.local/share/applications/
-```
-
-O app passa a aparecer no launcher do desktop normalmente.
+Para remover: `./packaging/linux/install.sh --uninstall`.
 
 ### Windows
 
