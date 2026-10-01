@@ -33,3 +33,9 @@ type ContainerStats struct {
 	MemLimit   uint64  `json:"memLimit"`
 	MemPercent float64 `json:"memPercent"`
 }
+
+// OlderLogs is the result of loading log lines older than the ones shown.
+type OlderLogs struct {
+	Lines   []LogLine `json:"lines"`
+	HasMore bool      `json:"hasMore"`
+}

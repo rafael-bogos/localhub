@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
-import { KillProcess, ListPorts } from '../wailsjs/go/main/App';
+import { KillProcess, ListContainers, ListPortOwners, ListPorts } from '../wailsjs/go/main/App';
 import { ports } from '../wailsjs/go/models';
 import PortsTable from './components/PortsTable';
 import ContainersTable from './components/ContainersTable';
 import ImagesTable from './components/ImagesTable';
 import CleanupPanel from './components/CleanupPanel';
+import LogsDrawer, { type LogsTarget } from './components/LogsDrawer';
+import { useLogsPrefs } from './useLogsPrefs';
 import { RefreshIcon, SearchIcon, CloseIcon } from './components/icons';
 import { useConfirm } from './components/ConfirmDialog';
 import logo from './assets/images/localhub-logo.svg';
@@ -36,6 +38,40 @@ function App() {
     const [tick, setTick] = useState(false);
     const prevCount = useRef(0);
 
+    const [logsPrefs, updateLogsPrefs] = useLogsPrefs();
+    const [logsTarget, setLogsTarget] = useState<LogsTarget | null>(null);
+    const [portOwners, setPortOwners] = useState<Record<string, LogsTarget>>({});
+
+    const openLogs = useCallback(
+        (id: string, name: string) => {
+            setLogsTarget({ id, name });
+            updateLogsPrefs({ container: name });
+        },
+        [updateLogsPrefs]
+    );
+
+    const closeLogs = useCallback(() => {
+        setLogsTarget(null);
+        updateLogsPrefs({ container: null });
+    }, [updateLogsPrefs]);
+
+    // Reopen the container left open last time (kept by name: the id changes
+    // when a container is recreated). If it no longer exists, start closed.
+    useEffect(() => {
+        const name = logsPrefs.container;
+        if (!name) return;
+        ListContainers()
+            .then((all) => {
+                const match = all.find((c) => c.name === name);
+                if (match) setLogsTarget({ id: match.id, name: match.name });
+                else updateLogsPrefs({ container: null });
+            })
+            .catch(() => {
+                // Docker unreachable: leave the panel closed, keep the preference.
+            });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     async function loadPorts() {
         setLoading(true);
         setError('');
@@ -43,11 +79,27 @@ function App() {
             const result = await ListPorts();
             setPortList(result);
             setCounts((prev) => ({ ...prev, portas: result.length }));
+            loadPortOwners();
         } catch (err) {
             setError(String(err));
         } finally {
             setLoading(false);
         }
+    }
+
+    // Which container publishes each port, for the "Logs" shortcut. Best-effort
+    // and after the list is already on screen: with Docker off, the Portas tab
+    // simply has no shortcut and no error.
+    function loadPortOwners() {
+        ListPortOwners()
+            .then((owners) => {
+                const map: Record<string, LogsTarget> = {};
+                for (const o of owners) {
+                    map[`${o.protocol}:${o.port}`] = { id: o.containerId, name: o.containerName };
+                }
+                setPortOwners(map);
+            })
+            .catch(() => setPortOwners({}));
     }
 
     async function killWithConfirm(pid: number, message: string) {
@@ -196,34 +248,49 @@ function App() {
                 </div>
             </header>
 
-            <main className="instrument-panel">
-                {activeTab === 'portas' && (
-                    <PortsTable
-                        ports={filteredPorts}
-                        searchQuery={portSearch}
-                        onKill={handleKill}
-                        onKillParent={handleKillParent}
-                        killingPid={killingPid}
-                        coolingPid={coolingPid}
-                        error={error}
+            <div className={`workspace${logsTarget ? ' workspace--logs' : ''}`}>
+                <main className={`instrument-panel${logsTarget && logsPrefs.expanded ? ' instrument-panel--hidden' : ''}`}>
+                    {activeTab === 'portas' && (
+                        <PortsTable
+                            ports={filteredPorts}
+                            searchQuery={portSearch}
+                            onKill={handleKill}
+                            onKillParent={handleKillParent}
+                            portOwners={portOwners}
+                            onOpenLogs={openLogs}
+                            killingPid={killingPid}
+                            coolingPid={coolingPid}
+                            error={error}
+                        />
+                    )}
+                    {activeTab === 'containers' && (
+                        <ContainersTable
+                            key={refreshKey}
+                            activeLogsId={logsTarget?.id ?? null}
+                            onOpenLogs={openLogs}
+                            onCountChange={(n) => setCounts((prev) => ({ ...prev, containers: n }))}
+                        />
+                    )}
+                    {activeTab === 'imagens' && (
+                        <ImagesTable
+                            key={refreshKey}
+                            onCountChange={(n) => setCounts((prev) => ({ ...prev, imagens: n }))}
+                        />
+                    )}
+                    {activeTab === 'limpeza' && (
+                        <CleanupPanel onCountChange={(n) => setCounts((prev) => ({ ...prev, limpeza: n }))} />
+                    )}
+                </main>
+                {logsTarget && (
+                    <LogsDrawer
+                        key={logsTarget.id}
+                        target={logsTarget}
+                        prefs={logsPrefs}
+                        onPrefsChange={updateLogsPrefs}
+                        onClose={closeLogs}
                     />
                 )}
-                {activeTab === 'containers' && (
-                    <ContainersTable
-                        key={refreshKey}
-                        onCountChange={(n) => setCounts((prev) => ({ ...prev, containers: n }))}
-                    />
-                )}
-                {activeTab === 'imagens' && (
-                    <ImagesTable
-                        key={refreshKey}
-                        onCountChange={(n) => setCounts((prev) => ({ ...prev, imagens: n }))}
-                    />
-                )}
-                {activeTab === 'limpeza' && (
-                    <CleanupPanel onCountChange={(n) => setCounts((prev) => ({ ...prev, limpeza: n }))} />
-                )}
-            </main>
+            </div>
         </div>
     );
 }

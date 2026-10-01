@@ -26,8 +26,16 @@ export function ListImages() {
   return window['go']['main']['App']['ListImages']();
 }
 
+export function ListPortOwners() {
+  return window['go']['main']['App']['ListPortOwners']();
+}
+
 export function ListPorts() {
   return window['go']['main']['App']['ListPorts']();
+}
+
+export function LoadOlderContainerLogs(arg1, arg2, arg3) {
+  return window['go']['main']['App']['LoadOlderContainerLogs'](arg1, arg2, arg3);
 }
 
 export function PruneImages() {
@@ -50,6 +58,14 @@ export function StartContainer(arg1) {
   return window['go']['main']['App']['StartContainer'](arg1);
 }
 
+export function StartContainerLogs(arg1, arg2, arg3) {
+  return window['go']['main']['App']['StartContainerLogs'](arg1, arg2, arg3);
+}
+
 export function StopContainer(arg1) {
   return window['go']['main']['App']['StopContainer'](arg1);
+}
+
+export function StopContainerLogs(arg1) {
+  return window['go']['main']['App']['StopContainerLogs'](arg1);
 }

@@ -139,9 +139,9 @@ function ImagesTable({ onCountChange }: ImagesTableProps) {
                                     >
                                         <td className="image-row__repo">{img.repository}</td>
                                         <td className="image-row__tag">{img.tag}</td>
-                                        <td className="image-row__id">{img.id}</td>
-                                        <td className="image-row__size">{img.size}</td>
-                                        <td className="image-row__created">{img.created}</td>
+                                        <td className="image-row__id" data-label="ID">{img.id}</td>
+                                        <td className="image-row__size" data-label="Tamanho">{img.size}</td>
+                                        <td className="image-row__created" data-label="Criada em">{img.created}</td>
                                         <td>
                                             <div className="row-actions">
                                                 <button

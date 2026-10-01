@@ -15,7 +15,11 @@ export function ListContainers():Promise<Array<docker.ContainerInfo>>;
 
 export function ListImages():Promise<Array<docker.ImageInfo>>;
 
+export function ListPortOwners():Promise<Array<docker.PortOwner>>;
+
 export function ListPorts():Promise<Array<ports.PortInfo>>;
+
+export function LoadOlderContainerLogs(arg1:string,arg2:string,arg3:number):Promise<docker.OlderLogs>;
 
 export function PruneImages():Promise<docker.PruneResult>;
 
@@ -27,4 +31,8 @@ export function RestartContainer(arg1:string):Promise<void>;
 
 export function StartContainer(arg1:string):Promise<void>;
 
+export function StartContainerLogs(arg1:string,arg2:string,arg3:number):Promise<void>;
+
 export function StopContainer(arg1:string):Promise<void>;
+
+export function StopContainerLogs(arg1:string):Promise<void>;

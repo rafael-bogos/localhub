@@ -5,6 +5,8 @@ import (
 
 	"localhub/internal/docker"
 	"localhub/internal/ports"
+
+	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -52,6 +54,35 @@ func (a *App) ListContainers() ([]docker.ContainerInfo, error) {
 // a second, and the list should never wait on it.
 func (a *App) ListContainerStats() ([]docker.ContainerStats, error) {
 	return docker.ListContainerStats(a.ctx)
+}
+
+// StartContainerLogs streams a container's logs to the UI as events
+// ("logs:batch:<sessionID>", "logs:end:<sessionID>"). The frontend picks the
+// sessionID and subscribes before calling, so no early batch is lost.
+func (a *App) StartContainerLogs(sessionID, containerID string, tail int) error {
+	return docker.StartLogs(a.ctx, sessionID, containerID, tail, func(event string, data any) {
+		wruntime.EventsEmit(a.ctx, event, data)
+	})
+}
+
+// StopContainerLogs closes the log stream of the given session.
+func (a *App) StopContainerLogs(sessionID string) {
+	docker.StopLogs(sessionID)
+}
+
+// LoadOlderContainerLogs returns up to count lines older than beforeTs, for
+// the "load older" button, and whether more exist before them.
+func (a *App) LoadOlderContainerLogs(containerID, beforeTs string, count int) (docker.OlderLogs, error) {
+	lines, hasMore, err := docker.LoadOlderLogs(a.ctx, containerID, beforeTs, count)
+	if err != nil {
+		return docker.OlderLogs{}, err
+	}
+	return docker.OlderLogs{Lines: lines, HasMore: hasMore}, nil
+}
+
+// ListPortOwners returns which running container publishes each host port.
+func (a *App) ListPortOwners() ([]docker.PortOwner, error) {
+	return docker.ListPortOwners(a.ctx)
 }
 
 // StartContainer starts a stopped container.

@@ -8,12 +8,25 @@ interface PortsTableProps {
     searchQuery?: string;
     onKill: (port: ports.PortInfo) => void;
     onKillParent: (pid: number, processName: string) => void;
+    /** Container that publishes each port, keyed "protocol:port". */
+    portOwners: Record<string, { id: string; name: string }>;
+    onOpenLogs: (id: string, name: string) => void;
     killingPid: number | null;
     coolingPid: number | null;
     error: string;
 }
 
-function PortsTable({ ports, searchQuery, onKill, onKillParent, killingPid, coolingPid, error }: PortsTableProps) {
+function PortsTable({
+    ports,
+    searchQuery,
+    onKill,
+    onKillParent,
+    portOwners,
+    onOpenLogs,
+    killingPid,
+    coolingPid,
+    error,
+}: PortsTableProps) {
     const [expanded, setExpanded] = useState<Set<number>>(new Set());
     const [children, setChildren] = useState<Record<number, ports.PortInfo[]>>({});
     const [loadingParent, setLoadingParent] = useState<number | null>(null);
@@ -52,6 +65,7 @@ function PortsTable({ ports, searchQuery, onKill, onKillParent, killingPid, cool
         const isKilling = killingPid === p.pid;
         const isCooling = coolingPid === p.pid;
         const isListening = p.status?.toUpperCase() === 'LISTEN';
+        const owner = portOwners[`${p.protocol}:${p.port}`];
 
         return (
             <tr
@@ -67,8 +81,12 @@ function PortsTable({ ports, searchQuery, onKill, onKillParent, killingPid, cool
             >
                 <td className="port-row__port">{p.port}</td>
                 <td className="port-row__protocol">{p.protocol.toUpperCase()}</td>
-                <td className="port-row__process" title={p.processName || undefined}>
+                <td
+                    className="port-row__process"
+                    title={owner ? `${p.processName || '—'} · container ${owner.name}` : p.processName || undefined}
+                >
                     {p.processName || '—'}
+                    {owner && <span className="port-row__container">{owner.name}</span>}
                 </td>
                 <td className="port-row__pid">{p.pid > 0 ? p.pid : '—'}</td>
                 <td className="port-row__status">
@@ -77,14 +95,25 @@ function PortsTable({ ports, searchQuery, onKill, onKillParent, killingPid, cool
                     </span>
                 </td>
                 <td className="port-row__action">
-                    <button
-                        className={`kill-key${isKilling ? ' kill-key--busy' : ''}`}
-                        disabled={!canKill || isKilling}
-                        title={canKill ? 'Matar processo' : 'PID inválido — não pode ser encerrado'}
-                        onClick={() => onKill(p)}
-                    >
-                        {isKilling ? 'Matando' : 'Matar'}
-                    </button>
+                    <div className="row-actions">
+                        {owner && (
+                            <button
+                                className="action-key"
+                                title={`Ver os logs do container ${owner.name}`}
+                                onClick={() => onOpenLogs(owner.id, owner.name)}
+                            >
+                                Logs
+                            </button>
+                        )}
+                        <button
+                            className={`kill-key${isKilling ? ' kill-key--busy' : ''}`}
+                            disabled={!canKill || isKilling}
+                            title={canKill ? 'Matar processo' : 'PID inválido — não pode ser encerrado'}
+                            onClick={() => onKill(p)}
+                        >
+                            {isKilling ? 'Matando' : 'Matar'}
+                        </button>
+                    </div>
                 </td>
             </tr>
         );

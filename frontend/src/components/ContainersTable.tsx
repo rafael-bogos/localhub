@@ -37,9 +37,11 @@ function memoryTitle(s?: docker.ContainerStats): string | undefined {
 
 interface ContainersTableProps {
     onCountChange: (count: number) => void;
+    onOpenLogs: (id: string, name: string) => void;
+    activeLogsId: string | null;
 }
 
-function ContainersTable({ onCountChange }: ContainersTableProps) {
+function ContainersTable({ onCountChange, onOpenLogs, activeLogsId }: ContainersTableProps) {
     const confirm = useConfirm();
     const [containers, setContainers] = useState<docker.ContainerInfo[]>([]);
     const [loading, setLoading] = useState(false);
@@ -255,17 +257,18 @@ function ContainersTable({ onCountChange }: ContainersTableProps) {
                                         'container-row',
                                         !isRunning ? '' : 'container-row--protected',
                                         isCooling ? 'container-row--cooling' : '',
+                                        activeLogsId === c.id ? 'container-row--logs' : '',
                                     ]
                                         .filter(Boolean)
                                         .join(' ')}
                                 >
                                     <td className="container-row__name">{c.name}</td>
-                                    <td className="container-row__image">{c.image}</td>
-                                    <td className="container-row__ports">{c.ports || '—'}</td>
-                                    <td className="container-row__metric">
+                                    <td className="container-row__image" data-label="Imagem">{c.image}</td>
+                                    <td className="container-row__ports" data-label="Portas">{c.ports || '—'}</td>
+                                    <td className="container-row__metric" data-label="CPU">
                                         {isRunning && stats[c.id] ? formatPercent(stats[c.id].cpuPercent) : '—'}
                                     </td>
-                                    <td className="container-row__metric" title={memoryTitle(stats[c.id])}>
+                                    <td className="container-row__metric" data-label="Memória" title={memoryTitle(stats[c.id])}>
                                         {isRunning && stats[c.id] ? (
                                             <>
                                                 {formatBytes(stats[c.id].memUsage)}
@@ -286,6 +289,14 @@ function ContainersTable({ onCountChange }: ContainersTableProps) {
                                     </td>
                                     <td>
                                         <div className="row-actions">
+                                            <button
+                                                className="action-key"
+                                                aria-pressed={activeLogsId === c.id}
+                                                title="Ver os logs deste container"
+                                                onClick={() => onOpenLogs(c.id, c.name)}
+                                            >
+                                                Logs
+                                            </button>
                                             {isRunning ? (
                                                 <>
                                                     <button

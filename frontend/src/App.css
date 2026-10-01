@@ -787,7 +787,25 @@
 }
 
 .container-row__metric {
-    white-space: nowrap;
+    white-space: normal;
+}
+
+/* Table mode must be able to shrink instead of pushing the actions off-screen:
+   long names/images/ports wrap anywhere and the action buttons wrap onto a
+   second line when their cell gets narrow. */
+.container-row__name,
+.container-row__image,
+.container-row__ports {
+    overflow-wrap: anywhere;
+}
+
+.containers-table .row-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.containers-table .row-actions > * {
+    margin-left: 0;
 }
 
 .container-row__metric-sub {
@@ -943,7 +961,9 @@
     color: var(--key-ink-muted);
 }
 
-@media (max-width: 720px) {
+/* Row layouts respond to the width of the tab panel (not the window), so they
+   also collapse when the logs drawer takes half of the window. */
+@container (max-width: 720px) {
     .containers-table thead,
     .images-table thead {
         display: none;
@@ -978,14 +998,14 @@
     }
 }
 
-@media (max-width: 720px) {
+@container (max-width: 560px) {
     .ports-table thead {
         display: none;
     }
 
     .port-row {
         display: grid;
-        grid-template-columns: minmax(0, auto) minmax(0, auto) minmax(0, 1fr) 84px;
+        grid-template-columns: minmax(0, auto) minmax(0, auto) minmax(0, 1fr) auto;
         grid-template-areas:
             "port protocol . action"
             "process process pid status";
@@ -1043,5 +1063,839 @@
         align-self: start;
         min-width: 0;
         text-align: right !important;
+    }
+}
+
+
+/* ---- Workspace: the tab panel plus, when open, the logs drawer beside it ---- */
+
+.workspace {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    gap: 14px;
+}
+
+.workspace > .instrument-panel {
+    min-width: 0;
+}
+
+.instrument-panel--hidden {
+    display: none;
+}
+
+/* ---- Logs drawer: live container logs, resizable side panel that can expand ---- */
+
+.logs-drawer {
+    position: relative;
+    display: flex;
+    flex: 0 0 460px;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 12px;
+    box-sizing: border-box;
+    background: var(--chassis-panel);
+    border: 1px solid var(--chassis-seam);
+    border-radius: var(--radius-key);
+}
+
+.logs-drawer--expanded {
+    flex: 1 1 auto;
+}
+
+/* Grab strip sitting in the gap between the panel and the drawer. */
+.logs-drawer__resize {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -11px;
+    width: 12px;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+.logs-drawer__resize::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 5px;
+    width: 2px;
+    height: 36px;
+    margin-top: -18px;
+    border-radius: 2px;
+    background: var(--key-border-strong);
+}
+
+.logs-drawer__resize:hover::after {
+    background: var(--amber);
+}
+
+.logs-drawer__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.logs-drawer__title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.logs-drawer__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-sans);
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--ink-primary);
+}
+
+.logs-drawer__buttons {
+    display: flex;
+    flex-shrink: 0;
+    gap: 6px;
+}
+
+.logs-drawer__alert {
+    margin: 0;
+}
+
+.logs-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-chip);
+    background: var(--bezel);
+    color: var(--ink-secondary);
+    cursor: pointer;
+}
+
+.logs-icon-btn:hover {
+    color: var(--ink-primary);
+}
+
+/* Toolbar: search, filters and actions. */
+
+.logs-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.logs-toolbar__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+}
+
+.logs-toolbar__row--actions {
+    padding-top: 2px;
+}
+
+.logs-toolbar__spacer {
+    flex: 1;
+}
+
+.logs-search {
+    flex: 1;
+    min-width: 140px;
+}
+
+.logs-search .logs-search__input {
+    width: 100%;
+}
+
+.logs-search--error {
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--orange);
+}
+
+.logs-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.logs-chip {
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 4px 10px;
+    border: none;
+    border-radius: 999px;
+    background: var(--bezel);
+    color: var(--ink-tertiary);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.logs-chip:hover:not(:disabled) {
+    color: var(--ink-primary);
+}
+
+.logs-chip--on {
+    background: var(--key-surface);
+    color: var(--key-ink);
+    box-shadow: inset 0 0 0 1px var(--key-border-strong);
+}
+
+.logs-chip--mono {
+    font-family: var(--font-mono);
+}
+
+.logs-chip:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.logs-segment {
+    display: flex;
+    padding: 2px;
+    border-radius: var(--radius-chip);
+    background: var(--bezel);
+}
+
+.logs-segment__btn {
+    padding: 4px 10px;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--ink-tertiary);
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.logs-segment__btn--on {
+    background: var(--key-surface);
+    color: var(--key-ink);
+    box-shadow: inset 0 0 0 1px var(--key-border-strong);
+}
+
+.logs-select {
+    padding: 4px 8px;
+    border: 1px solid var(--key-border-strong);
+    border-radius: var(--radius-chip);
+    background: var(--bezel);
+    color: var(--ink-secondary);
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+}
+
+.logs-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.logs-nav__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-chip);
+    background: var(--bezel);
+    color: var(--ink-secondary);
+    cursor: pointer;
+}
+
+.logs-nav__btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.logs-nav__up {
+    transform: rotate(-90deg);
+}
+
+.logs-nav__down {
+    transform: rotate(90deg);
+}
+
+.logs-nav__count {
+    min-width: 32px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--ink-secondary);
+}
+
+.logs-count {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--ink-tertiary);
+}
+
+.logs-filters-badge {
+    padding: 3px 9px;
+    border: none;
+    border-radius: 999px;
+    background: var(--bezel);
+    box-shadow: inset 0 0 0 1px var(--amber-dim);
+    color: var(--amber);
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.logs-filters-badge:hover {
+    box-shadow: inset 0 0 0 1px var(--amber);
+}
+
+/* The log itself: flat monospace rows — no shadows, transitions or gradients
+   per line, so thousands of them scroll smoothly. */
+
+.logs-listwrap {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.logs-list {
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+    padding: 6px 0;
+    border-radius: var(--radius-chip);
+    background: var(--bezel);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    line-height: 1.5;
+}
+
+.logs-list:focus-visible {
+    outline: 1px solid var(--amber-dim);
+}
+
+.logs-history {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 10px 8px;
+}
+
+.logs-history__note {
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+    color: var(--ink-tertiary);
+}
+
+.logs-empty {
+    margin: 0;
+    padding: 24px 16px;
+    text-align: center;
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    color: var(--ink-tertiary);
+}
+
+.log-line {
+    display: grid;
+    grid-template-columns: auto 10px 26px minmax(0, 1fr);
+    column-gap: 8px;
+    padding: 0 12px;
+}
+
+.log-line:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.log-line__time,
+.log-line__level,
+.log-line__stream {
+    color: var(--ink-tertiary);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.log-line__level {
+    align-self: start;
+    padding-top: 2px;
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+}
+
+.log-line__text {
+    color: var(--key-ink);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* stderr is marked by a glyph and weight, never by color alone. */
+.log-line--stderr .log-line__stream {
+    color: var(--ink-primary);
+    font-weight: 700;
+}
+
+.log-line--erro .log-line__level,
+.log-line--erro .log-line__text {
+    color: var(--orange-strong);
+}
+
+.log-line--aviso .log-line__level,
+.log-line--aviso .log-line__text {
+    color: var(--amber);
+}
+
+.log-line--debug .log-line__text {
+    color: var(--ink-tertiary);
+}
+
+.log-line--current {
+    background: var(--amber-dim);
+}
+
+.log-line mark {
+    padding: 0 1px;
+    border-radius: 2px;
+    background: var(--amber-dim);
+    color: var(--amber);
+    box-shadow: 0 0 0 1px var(--amber-glow);
+}
+
+.logs-unseen {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 12px;
+    border: none;
+    border-radius: 999px;
+    background: var(--key-surface);
+    box-shadow: inset 0 0 0 1px var(--amber-dim), 0 2px 0 rgba(0, 0, 0, 0.4);
+    color: var(--amber);
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Container row currently shown in the drawer. */
+.container-row--logs td {
+    box-shadow: inset 0 0 0 1px var(--amber-dim), 0 2px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Name of the Docker container behind a published port. */
+.port-row__container {
+    margin-left: 8px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--bezel);
+    color: var(--ink-secondary);
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+}
+
+@media (max-width: 720px) {
+    /* Too narrow for a side panel: the drawer takes the whole workspace. */
+    .workspace--logs > .instrument-panel {
+        display: none;
+    }
+
+    .logs-drawer {
+        flex: 1 1 auto !important;
+    }
+
+    .logs-drawer__resize {
+        display: none;
+    }
+}
+
+/* Give the process column room so the container name beside it stays readable. */
+.ports-table thead th:nth-child(3) {
+    width: 36%;
+}
+
+.instrument-panel {
+    container-type: inline-size;
+}
+
+/* Containers: the table needs ~1100px to stay readable (measured: with real
+   CPU/memory/ports data it overflows below ~1270px, and squeezed columns
+   break names mid-word). Narrower than that — a small window, or the logs
+   drawer taking half of it — each row becomes a card that shows every field.
+   Two tiers: a compact 4-column card, and a 2-column card below 620px. */
+@container (max-width: 1100px) {
+    .containers-table thead {
+        display: none;
+    }
+
+    .containers-table,
+    .containers-table tbody {
+        display: block;
+    }
+
+    .containers-table .container-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-areas:
+            "name name status status"
+            "image ports cpu mem"
+            "actions actions actions actions";
+        gap: 2px 12px;
+        margin-bottom: 8px;
+        padding: 6px 0;
+        background: var(--key-surface);
+        border-radius: var(--radius-key);
+        box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow), 0 2px 3px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+    }
+
+    .containers-table .container-row:hover {
+        background: var(--key-surface-hover);
+    }
+
+    .containers-table .container-row.container-row--logs {
+        box-shadow: inset 0 0 0 1px var(--amber-dim), 0 2px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .containers-table .container-row td,
+    .containers-table .container-row:hover td,
+    .containers-table .container-row.container-row--logs td {
+        min-width: 0;
+        padding: 4px 12px;
+        background: transparent;
+        background-image: none;
+        box-shadow: none;
+    }
+
+    .containers-table .container-row td:nth-child(1) {
+        grid-area: name;
+    }
+
+    .containers-table .container-row td:nth-child(2) {
+        grid-area: image;
+    }
+
+    .containers-table .container-row td:nth-child(3) {
+        grid-area: ports;
+    }
+
+    .containers-table .container-row td:nth-child(4) {
+        grid-area: cpu;
+    }
+
+    .containers-table .container-row td:nth-child(5) {
+        grid-area: mem;
+    }
+
+    .containers-table .container-row td:nth-child(6) {
+        grid-area: status;
+        justify-self: end;
+        text-align: right;
+    }
+
+    .containers-table .container-row td:nth-child(7) {
+        grid-area: actions;
+        padding-top: 6px;
+        text-align: left;
+    }
+
+    /* Column headers are hidden in card mode, so each value carries its label. */
+    .containers-table .container-row td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 1px;
+        font-family: var(--font-sans);
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-tertiary);
+    }
+
+    .containers-table .container-row td:nth-child(2),
+    .containers-table .container-row td:nth-child(3) {
+        overflow-wrap: anywhere;
+    }
+
+    .containers-table .row-actions {
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: flex-start;
+    }
+
+    .containers-table .row-actions > * {
+        margin-left: 0;
+    }
+}
+
+/* ---- (1) Dragging the drawer edge must never select page text ---- */
+
+.logs-drawer__resize {
+    user-select: none;
+}
+
+body.is-resizing,
+body.is-resizing * {
+    cursor: col-resize !important;
+    user-select: none !important;
+}
+
+/* ---- (3) Toggle buttons: on/off must be obvious ----
+   Every toggle (aria-pressed) shows a dot — filled when on, hollow when off —
+   on top of the amber tint, so state never depends on color alone. Plain
+   actions (Limpar, Copiar) are raised keys with no dot. */
+
+.logs-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.logs-chip[aria-pressed]::before {
+    content: "";
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1.5px currentColor;
+}
+
+.logs-chip[aria-pressed="true"]::before {
+    background: currentColor;
+}
+
+.logs-chip[aria-pressed="false"] {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--chassis-seam);
+    color: var(--ink-tertiary);
+}
+
+.logs-chip[aria-pressed="true"],
+.logs-chip--on {
+    background: var(--amber-dim);
+    box-shadow: inset 0 0 0 1px var(--amber-glow);
+    color: var(--amber);
+}
+
+.logs-chip:not([aria-pressed]) {
+    background: var(--key-surface);
+    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow), 0 1px 2px rgba(0, 0, 0, 0.3);
+    color: var(--key-ink);
+}
+
+.logs-chip:not([aria-pressed]):active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+/* The ".*" regex toggle is too small for a dot: on is a solid amber key. */
+.logs-chip--mono::before {
+    display: none;
+}
+
+.logs-chip--mono[aria-pressed="true"] {
+    background: var(--amber);
+    box-shadow: none;
+    color: var(--chassis-panel);
+}
+
+.logs-chip:focus-visible,
+.logs-segment__btn:focus-visible,
+.logs-select:focus-visible,
+.logs-nav__btn:focus-visible,
+.logs-icon-btn:focus-visible {
+    outline: 1px solid var(--amber);
+    outline-offset: 1px;
+}
+
+.logs-segment__btn {
+    color: var(--ink-tertiary);
+}
+
+.logs-segment__btn--on,
+.logs-segment__btn[aria-pressed="true"] {
+    background: var(--amber-dim);
+    box-shadow: inset 0 0 0 1px var(--amber-glow);
+    color: var(--amber);
+}
+
+.logs-select--active {
+    border-color: var(--amber-glow);
+    background: var(--amber-dim);
+    color: var(--amber);
+}
+
+/* Ports: same card treatment as containers when the panel is narrow — the row
+   is one card (not a strip of separate keys), with the port, protocol, PID and
+   state on the first line and the process name plus its actions on the second. */
+@container (max-width: 560px) {
+    .ports-table,
+    .ports-table tbody {
+        display: block;
+    }
+
+    .ports-table .port-row {
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "port protocol pid status"
+            "process process process action";
+        align-items: center;
+        gap: 2px 10px;
+        margin-bottom: 8px;
+        padding: 4px 0;
+        background: var(--key-surface);
+        box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow), 0 2px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .ports-table .port-row:hover {
+        background: var(--key-surface-hover);
+    }
+
+    .ports-table .port-row.port-row--parent {
+        background: var(--bezel);
+        box-shadow: inset 0 0 0 1px var(--amber-dim);
+    }
+
+    .ports-table .port-row td,
+    .ports-table .port-row:hover td,
+    .ports-table .port-row.port-row--parent td,
+    .ports-table .port-row.port-row--parent:hover td {
+        padding: 4px 12px;
+        background: transparent;
+        background-image: none;
+        box-shadow: none;
+    }
+
+    .ports-table .port-row .port-row__protocol {
+        padding-left: 0;
+    }
+
+    .ports-table .port-row .port-row__pid {
+        justify-self: start;
+    }
+
+    .ports-table .port-row .port-row__status {
+        justify-self: end;
+    }
+
+    .ports-table .port-row .port-row__process {
+        padding-bottom: 6px;
+    }
+
+    .ports-table .port-row .port-row__action {
+        align-self: center;
+        padding-bottom: 6px;
+    }
+
+    /* A child row is indented as a whole card; the table-mode inset mask
+       (a panel-colored strip over the left edge) doesn't apply here. */
+    .ports-table .port-row--nested {
+        margin-left: 16px;
+    }
+
+    .ports-table .port-row--nested .port-row__port {
+        clip-path: none;
+        padding-left: 12px;
+    }
+
+    .ports-table .port-row--nested .port-row__port::before {
+        display: none;
+    }
+}
+
+@container (max-width: 620px) {
+    .containers-table .container-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-areas:
+            "name status"
+            "image ports"
+            "cpu mem"
+            "actions actions";
+    }
+}
+
+/* Images: cards with labeled values when the panel is narrow. */
+@container (max-width: 720px) {
+    .images-table,
+    .images-table tbody {
+        display: block;
+    }
+
+    .images-table .image-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-areas:
+            "repo tag"
+            "id id"
+            "size created"
+            "action action";
+        gap: 2px 12px;
+        margin-bottom: 8px;
+        padding: 6px 0;
+        background: var(--key-surface);
+        box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow), 0 2px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .images-table .image-row:hover {
+        background: var(--key-surface-hover);
+    }
+
+    .images-table .image-row td,
+    .images-table .image-row:hover td {
+        min-width: 0;
+        padding: 4px 12px;
+        background: transparent;
+        background-image: none;
+        box-shadow: none;
+    }
+
+    .images-table .image-row td:nth-child(1) {
+        grid-area: repo;
+    }
+
+    .images-table .image-row td:nth-child(2) {
+        grid-area: tag;
+        justify-self: end;
+        text-align: right;
+    }
+
+    .images-table .image-row td:nth-child(3) {
+        grid-area: id;
+        overflow-wrap: anywhere;
+    }
+
+    .images-table .image-row td:nth-child(4) {
+        grid-area: size;
+    }
+
+    .images-table .image-row td:nth-child(5) {
+        grid-area: created;
+    }
+
+    .images-table .image-row td:nth-child(6) {
+        grid-area: action;
+        padding-top: 6px;
+        text-align: left;
+    }
+
+    .images-table .image-row td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 1px;
+        font-family: var(--font-sans);
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-tertiary);
     }
 }
