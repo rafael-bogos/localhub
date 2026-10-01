@@ -43,6 +43,12 @@ digitalmente, o Windows pode avisar via SmartScreen e o macOS vai bloquear a
 primeira abertura pelo Gatekeeper (veja a seção do macOS abaixo para
 contornar isso).
 
+No **Linux**, o arquivo vem como `localhub-linux-amd64.tar.gz`: extraia (duplo
+clique no gerenciador de arquivos, ou `tar -xzf localhub-linux-amd64.tar.gz`)
+e execute o `localhub` que sai de dentro — a permissão de execução já vem
+preservada, sem precisar de `chmod`. Ele depende do WebKitGTK 4.1 e do GTK3
+instalados (Fedora: `webkit2gtk4.1`; Ubuntu/Debian: `libwebkit2gtk-4.1-0`).
+
 ### Build a partir do código-fonte
 
 Se preferir compilar você mesmo (ou seu sistema não for compatível com o

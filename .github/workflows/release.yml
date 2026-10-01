@@ -52,11 +52,14 @@ jobs:
       - name: Build
         run: wails build -tags webkit2_41
 
+      # A GitHub Release (and upload-artifact) drops Unix permission bits, so a
+      # raw binary downloads as non-executable and the file manager refuses to
+      # open it. A tar.gz keeps the executable bit: extract and run.
       - name: Package
         run: |
           mkdir -p dist
-          cp build/bin/localhub dist/localhub-linux-amd64
-          chmod +x dist/localhub-linux-amd64
+          chmod +x build/bin/localhub
+          tar -czf dist/localhub-linux-amd64.tar.gz -C build/bin localhub
 
       - uses: actions/upload-artifact@v4
         with:
