@@ -1908,3 +1908,122 @@ body.is-resizing * {
         color: var(--ink-tertiary);
     }
 }
+
+/* ---- Limpeza: Docker | node_modules sub-navigation ---- */
+
+.subtabs {
+    display: inline-flex;
+    gap: 3px;
+    margin-bottom: 14px;
+    padding: 3px;
+    border-radius: var(--radius-chip);
+    background: var(--bezel);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.subtab {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--ink-tertiary);
+    font-family: var(--font-sans);
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+}
+
+.subtab:hover:not(.subtab--active) {
+    color: var(--ink-primary);
+}
+
+.subtab--active {
+    background: var(--key-surface);
+    color: var(--key-ink);
+    box-shadow: inset 0 1px 0 var(--key-highlight), inset 0 -1px 0 var(--key-shadow);
+}
+
+.subtab:focus-visible {
+    outline: 1px solid var(--amber);
+    outline-offset: 1px;
+}
+
+/* ---- node_modules cleaner ---- */
+
+.nm-root {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.nm-root__field {
+    flex: 1 1 280px;
+    min-width: 0;
+}
+
+.nm-root .action-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.nm-hint {
+    margin: 4px 0 0;
+    max-width: 62ch;
+    font-family: var(--font-sans);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: var(--ink-tertiary);
+}
+
+.nm-hint code {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--ink-secondary);
+}
+
+.nm-row__text {
+    flex: 1;
+    min-width: 0;
+}
+
+.nm-row__path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+}
+
+.nm-row__aside {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.nm-row__size {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--key-ink-muted);
+    white-space: nowrap;
+}
+
+.nm-row__error {
+    font-family: var(--font-sans);
+    font-size: 0.74rem;
+    color: var(--orange-strong);
+}
+
+.nm-row--removed {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.nm-row--removed .cleanup-row__label {
+    text-decoration: line-through;
+}
+
+.cleanup-checkbox:disabled {
+    cursor: not-allowed;
+}

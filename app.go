@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"localhub/internal/docker"
+	"localhub/internal/nodemodules"
 	"localhub/internal/ports"
 
 	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -125,4 +126,36 @@ func (a *App) PruneImages() (docker.PruneResult, error) {
 // true in opts are touched, and the user picks them per run.
 func (a *App) Cleanup(opts docker.CleanupOptions) (docker.CleanupResult, error) {
 	return docker.Cleanup(a.ctx, opts)
+}
+
+// PickDirectory opens the native folder chooser and returns the chosen path,
+// or "" if the user cancelled.
+func (a *App) PickDirectory() (string, error) {
+	return wruntime.OpenDirectoryDialog(a.ctx, wruntime.OpenDialogOptions{
+		Title: "Escolha o diretório raiz",
+	})
+}
+
+// ScanNodeModules lists every project's node_modules under the given root.
+func (a *App) ScanNodeModules(root string) (nodemodules.ScanResult, error) {
+	return nodemodules.Scan(a.ctx, root)
+}
+
+// CancelNodeModulesScan stops the scan in progress.
+func (a *App) CancelNodeModulesScan() {
+	nodemodules.CancelScan()
+}
+
+// NodeModulesSize returns the size in bytes of a node_modules found by the
+// last scan.
+func (a *App) NodeModulesSize(path string) (int64, error) {
+	return nodemodules.Size(a.ctx, path)
+}
+
+// RemoveNodeModules deletes the given node_modules directories (each must come
+// from the last scan). Progress arrives as "nodemodules:removed" events.
+func (a *App) RemoveNodeModules(paths []string) []nodemodules.RemoveResult {
+	return nodemodules.Remove(paths, func(event string, data any) {
+		wruntime.EventsEmit(a.ctx, event, data)
+	})
 }

@@ -10,25 +10,10 @@ import {
 import { docker } from '../../wailsjs/go/models';
 import { AlertIcon, BoxIcon } from './icons';
 import { useConfirm } from './ConfirmDialog';
+import { formatBytes, formatPercent } from '../format';
 
 const COOL_DOWN_MS = 340;
 const STATS_INTERVAL_MS = 2000;
-
-const UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
-
-function formatBytes(bytes: number): string {
-    let value = bytes;
-    let unit = 0;
-    while (value >= 1024 && unit < UNITS.length - 1) {
-        value /= 1024;
-        unit++;
-    }
-    return `${value >= 100 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${UNITS[unit]}`;
-}
-
-function formatPercent(value: number): string {
-    return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)}%`;
-}
 
 function memoryTitle(s?: docker.ContainerStats): string | undefined {
     if (!s || s.memLimit === 0) return undefined;

@@ -5,7 +5,7 @@ import { ports } from '../wailsjs/go/models';
 import PortsTable from './components/PortsTable';
 import ContainersTable from './components/ContainersTable';
 import ImagesTable from './components/ImagesTable';
-import CleanupPanel from './components/CleanupPanel';
+import CleanupTab from './components/CleanupTab';
 import LogsDrawer, { type LogsTarget } from './components/LogsDrawer';
 import { useLogsPrefs } from './useLogsPrefs';
 import { RefreshIcon, SearchIcon, CloseIcon } from './components/icons';
@@ -221,7 +221,7 @@ function App() {
                         className="port-counter"
                         title={
                             activeTab === 'limpeza'
-                                ? 'Categorias selecionadas para limpeza'
+                                ? 'Itens selecionados para limpeza'
                                 : activeTab === 'portas'
                                   ? 'Processos listados agora'
                                   : `${TAB_LABELS[activeTab]} listadas agora`
@@ -282,7 +282,7 @@ function App() {
                         />
                     )}
                     {activeTab === 'limpeza' && (
-                        <CleanupPanel onCountChange={(n) => setCounts((prev) => ({ ...prev, limpeza: n }))} />
+                        <CleanupTab onCountChange={(n) => setCounts((prev) => ({ ...prev, limpeza: n }))} />
                     )}
                 </main>
                 {logsTarget && (
