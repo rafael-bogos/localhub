@@ -30,6 +30,9 @@ const LEVEL_TAG: Record<Level, string> = {
 export interface LogsTarget {
     id: string;
     name: string;
+    /** Set when the container lives on an SSH server (id and display name). */
+    hostId?: string;
+    hostName?: string;
 }
 
 interface LogsDrawerProps {
@@ -116,7 +119,7 @@ async function copyText(text: string) {
 }
 
 function LogsDrawer({ target, prefs, onPrefsChange, onClose }: LogsDrawerProps) {
-    const logs = useContainerLogs(target.id);
+    const logs = useContainerLogs(target.id, target.hostId);
     const listRef = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLInputElement>(null);
     const anchor = useRef<{ height: number; top: number } | null>(null);
@@ -305,7 +308,7 @@ function LogsDrawer({ target, prefs, onPrefsChange, onClose }: LogsDrawerProps) 
         <aside
             className={`logs-drawer${prefs.expanded ? ' logs-drawer--expanded' : ''}`}
             style={prefs.expanded ? undefined : { flexBasis: prefs.width }}
-            aria-label={`Logs de ${target.name}`}
+            aria-label={`Logs de ${target.name}${target.hostName ? ` em ${target.hostName}` : ''}`}
         >
             {!prefs.expanded && (
                 <div
@@ -320,6 +323,11 @@ function LogsDrawer({ target, prefs, onPrefsChange, onClose }: LogsDrawerProps) 
 
             <header className="logs-drawer__header">
                 <div className="logs-drawer__title">
+                    {target.hostId && (
+                        <span className="host-group__badge host-group__badge--remote" title={`Servidor ${target.hostName ?? ''}`}>
+                            {target.hostName || 'Remoto'}
+                        </span>
+                    )}
                     <span className="logs-drawer__name" title={target.name}>
                         {target.name}
                     </span>

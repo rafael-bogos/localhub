@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import './App.css';
 import { KillProcess, ListContainers, ListPortOwners, ListPorts } from '../wailsjs/go/main/App';
 import { ports } from '../wailsjs/go/models';
@@ -7,10 +7,15 @@ import ContainersTable from './components/ContainersTable';
 import ImagesTable from './components/ImagesTable';
 import CleanupTab from './components/CleanupTab';
 import SshTab from './components/SshTab';
+import HostGroup from './components/HostGroup';
+import RemotePortsSection from './components/RemotePortsSection';
+import RemoteContainersSection from './components/RemoteContainersSection';
+import RemoteImagesSection from './components/RemoteImagesSection';
 import LogsDrawer, { type LogsTarget } from './components/LogsDrawer';
 import { useLogsPrefs } from './useLogsPrefs';
 import { useSshHosts } from './useSshHosts';
-import { useSshConnections } from './useSshConnections';
+import { connInfo, useSshConnections } from './useSshConnections';
+import { useSshConnect } from './useSshConnect';
 import { RefreshIcon, SearchIcon, CloseIcon } from './components/icons';
 import { useConfirm } from './components/ConfirmDialog';
 import logo from './assets/images/localhub-logo.svg';
@@ -35,6 +40,11 @@ function App() {
 
     const sshHosts = useSshHosts();
     const sshConnections = useSshConnections();
+    const connectFlow = useSshConnect(sshConnections, sshHosts.hosts);
+    // Servers with a group in the data tabs, and what each one reported per tab.
+    const remoteHosts = sshHosts.hosts.filter((h) => sshConnections.tracked[h.id]);
+    const [remoteCounts, setRemoteCounts] = useState<Record<string, Record<string, number>>>({});
+    const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
     // The SSH tab stays mounted once opened, so open terminals survive tab switches.
     const [sshMounted, setSshMounted] = useState(false);
 
@@ -58,6 +68,12 @@ function App() {
         },
         [updateLogsPrefs]
     );
+
+    // Remote containers are not remembered across sessions (the server may not
+    // be connected next time), so the saved "container left open" stays local.
+    const openRemoteLogs = useCallback((hostId: string, hostName: string, id: string, name: string) => {
+        setLogsTarget({ id, name, hostId, hostName });
+    }, []);
 
     const closeLogs = useCallback(() => {
         setLogsTarget(null);
@@ -160,7 +176,18 @@ function App() {
         }
     }, [portList.length]);
 
-    const activeCount = activeTab === 'ssh' ? sshHosts.hosts.length : counts[activeTab];
+    const remoteTotal = (tab: 'portas' | 'containers' | 'imagens') =>
+        remoteHosts.reduce(
+            (sum, h) =>
+                sum + (connInfo(sshConnections.conns, h.id).state === 'connected' ? (remoteCounts[tab]?.[h.id] ?? 0) : 0),
+            0
+        );
+    const activeCount =
+        activeTab === 'ssh'
+            ? sshHosts.hosts.length
+            : activeTab === 'portas' || activeTab === 'containers' || activeTab === 'imagens'
+              ? counts[activeTab] + remoteTotal(activeTab)
+              : counts[activeTab];
     // Matches the port number or the process name (case-insensitive). A row
     // that belongs to a Docker container also matches its container name,
     // since that name is shown on the row.
@@ -174,9 +201,127 @@ function App() {
           )
         : portList;
 
+    function reportRemoteCount(tab: 'portas' | 'containers' | 'imagens', hostId: string, n: number) {
+        setRemoteCounts((prev) =>
+            prev[tab]?.[hostId] === n ? prev : { ...prev, [tab]: { ...prev[tab], [hostId]: n } }
+        );
+    }
+
+    function toggleGroup(key: string) {
+        setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+    }
+
+    // With a long local list the servers' sections sit far below the fold; the
+    // jump strip brings the user to one (expanding it if it was collapsed).
+    function jumpToGroup(key: string) {
+        setCollapsed((prev) => (prev[key] ? { ...prev, [key]: false } : prev));
+        requestAnimationFrame(() =>
+            document.getElementById(`hg-${key}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+        );
+    }
+
+    /**
+     * "Esta máquina" plus one section per connected server. With no server
+     * connected the header is hidden and the local content is the whole tab.
+     */
+    function renderGroups(tab: 'portas' | 'containers' | 'imagens', local: ReactNode) {
+        const showHeaders = remoteHosts.length > 0;
+        return (
+            <>
+                {showHeaders && (
+                    <nav className="host-jump" aria-label="Ir para a máquina">
+                        <button className="host-jump__btn" onClick={() => jumpToGroup(`${tab}:local`)}>
+                            Esta máquina
+                            <span className="host-jump__count">{counts[tab]}</span>
+                        </button>
+                        {remoteHosts.map((h) => {
+                            const info = connInfo(sshConnections.conns, h.id);
+                            const down = info.state !== 'connected';
+                            const n = remoteCounts[tab]?.[h.id];
+                            return (
+                                <button
+                                    key={h.id}
+                                    className="host-jump__btn host-jump__btn--remote"
+                                    onClick={() => jumpToGroup(`${tab}:${h.id}`)}
+                                >
+                                    {h.name}
+                                    <span className="host-jump__count">
+                                        {down ? 'desconectado' : typeof n === 'number' ? n : '…'}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </nav>
+                )}
+                <HostGroup
+                    id={`hg-${tab}:local`}
+                    title="Esta máquina"
+                    remote={false}
+                    showHeader={showHeaders}
+                    collapsed={!!collapsed[`${tab}:local`]}
+                    onToggle={() => toggleGroup(`${tab}:local`)}
+                    count={counts[tab]}
+                >
+                    {local}
+                </HostGroup>
+                {remoteHosts.map((h) => {
+                    const info = connInfo(sshConnections.conns, h.id);
+                    const connected = info.state === 'connected';
+                    const key = `${tab}:${h.id}`;
+                    return (
+                        <HostGroup
+                            key={h.id}
+                            id={`hg-${key}`}
+                            title={h.name}
+                            remote
+                            subtitle={`${h.user}@${h.address}`}
+                            showHeader
+                            collapsed={!!collapsed[key]}
+                            onToggle={() => toggleGroup(key)}
+                            count={remoteCounts[tab]?.[h.id] ?? null}
+                            disconnected={!connected}
+                            message={info.message}
+                            reconnecting={info.state === 'connecting'}
+                            onReconnect={() => connectFlow.connectHost(h)}
+                        >
+                            {tab === 'portas' && (
+                                <RemotePortsSection
+                                    hostId={h.id}
+                                    hostName={h.name}
+                                    refreshKey={refreshKey}
+                                    query={portSearch}
+                                    onCount={(n) => reportRemoteCount('portas', h.id, n)}
+                                />
+                            )}
+                            {tab === 'containers' && (
+                                <RemoteContainersSection
+                                    hostId={h.id}
+                                    hostName={h.name}
+                                    refreshKey={refreshKey}
+                                    onCount={(n) => reportRemoteCount('containers', h.id, n)}
+                                    onOpenLogs={(id, name) => openRemoteLogs(h.id, h.name, id, name)}
+                                    activeLogsId={logsTarget?.hostId === h.id ? logsTarget.id : null}
+                                />
+                            )}
+                            {tab === 'imagens' && (
+                                <RemoteImagesSection
+                                    hostId={h.id}
+                                    hostName={h.name}
+                                    refreshKey={refreshKey}
+                                    onCount={(n) => reportRemoteCount('imagens', h.id, n)}
+                                />
+                            )}
+                        </HostGroup>
+                    );
+                })}
+            </>
+        );
+    }
+
     function handleRefresh() {
         if (activeTab === 'portas') {
             loadPorts();
+            setRefreshKey((k) => k + 1); // reloads the remote sections too
         } else if (activeTab !== 'limpeza' && activeTab !== 'ssh') {
             setRefreshKey((k) => k + 1);
         }
@@ -268,45 +413,56 @@ function App() {
 
             <div className={`workspace${logsTarget ? ' workspace--logs' : ''}`}>
                 <main className={`instrument-panel${logsTarget && logsPrefs.expanded ? ' instrument-panel--hidden' : ''}`}>
-                    {activeTab === 'portas' && (
-                        <PortsTable
-                            ports={filteredPorts}
-                            searchQuery={portSearch}
-                            onKill={handleKill}
-                            onKillParent={handleKillParent}
-                            portOwners={portOwners}
-                            onOpenLogs={openLogs}
-                            killingPid={killingPid}
-                            coolingPid={coolingPid}
-                            error={error}
-                        />
-                    )}
-                    {activeTab === 'containers' && (
-                        <ContainersTable
-                            key={refreshKey}
-                            activeLogsId={logsTarget?.id ?? null}
-                            onOpenLogs={openLogs}
-                            onCountChange={(n) => setCounts((prev) => ({ ...prev, containers: n }))}
-                        />
-                    )}
-                    {activeTab === 'imagens' && (
-                        <ImagesTable
-                            key={refreshKey}
-                            onCountChange={(n) => setCounts((prev) => ({ ...prev, imagens: n }))}
-                        />
-                    )}
+                    {activeTab === 'portas' &&
+                        renderGroups(
+                            'portas',
+                            <PortsTable
+                                ports={filteredPorts}
+                                searchQuery={portSearch}
+                                onKill={handleKill}
+                                onKillParent={handleKillParent}
+                                portOwners={portOwners}
+                                onOpenLogs={openLogs}
+                                killingPid={killingPid}
+                                coolingPid={coolingPid}
+                                error={error}
+                            />
+                        )}
+                    {activeTab === 'containers' &&
+                        renderGroups(
+                            'containers',
+                            <ContainersTable
+                                key={refreshKey}
+                                activeLogsId={logsTarget && !logsTarget.hostId ? logsTarget.id : null}
+                                onOpenLogs={openLogs}
+                                onCountChange={(n) => setCounts((prev) => ({ ...prev, containers: n }))}
+                            />
+                        )}
+                    {activeTab === 'imagens' &&
+                        renderGroups(
+                            'imagens',
+                            <ImagesTable
+                                key={refreshKey}
+                                onCountChange={(n) => setCounts((prev) => ({ ...prev, imagens: n }))}
+                            />
+                        )}
                     {activeTab === 'limpeza' && (
                         <CleanupTab onCountChange={(n) => setCounts((prev) => ({ ...prev, limpeza: n }))} />
                     )}
                     {sshMounted && (
                         <div className="ssh-host" hidden={activeTab !== 'ssh'}>
-                            <SshTab hostsApi={sshHosts} connections={sshConnections} visible={activeTab === 'ssh'} />
+                            <SshTab
+                                hostsApi={sshHosts}
+                                connections={sshConnections}
+                                connectFlow={connectFlow}
+                                visible={activeTab === 'ssh'}
+                            />
                         </div>
                     )}
                 </main>
                 {logsTarget && (
                     <LogsDrawer
-                        key={logsTarget.id}
+                        key={`${logsTarget.hostId ?? 'local'}:${logsTarget.id}`}
                         target={logsTarget}
                         prefs={logsPrefs}
                         onPrefsChange={updateLogsPrefs}
@@ -314,6 +470,7 @@ function App() {
                     />
                 )}
             </div>
+            {connectFlow.dialogs}
         </div>
     );
 }

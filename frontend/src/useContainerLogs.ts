@@ -2,6 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ListContainers,
     LoadOlderContainerLogs,
+    RemoteListContainers,
+    RemoteLoadOlderLogs,
+    RemoteStartLogs,
+    RemoteStopLogs,
     StartContainerLogs,
     StopContainerLogs,
 } from '../wailsjs/go/main/App';
@@ -99,7 +103,11 @@ export interface ContainerLogs {
     clear: () => void;
 }
 
-export function useContainerLogs(containerId: string | null): ContainerLogs {
+/**
+ * Logs of a container. With `hostId` the container lives on that SSH server
+ * and the same events and paging come from the remote variants of the calls.
+ */
+export function useContainerLogs(containerId: string | null, hostId?: string): ContainerLogs {
     const [lines, setLines] = useState<LogEntry[]>([]);
     const [state, setState] = useState<LogsState>('loading');
     const [end, setEnd] = useState<LogsEnd | null>(null);
@@ -199,10 +207,14 @@ export function useContainerLogs(containerId: string | null): ContainerLogs {
             }, 150);
         });
 
-        StartContainerLogs(sessionId, containerId, INITIAL_TAIL)
+        const stop = () => (hostId ? RemoteStopLogs(sessionId) : StopContainerLogs(sessionId));
+        (hostId
+            ? RemoteStartLogs(hostId, sessionId, containerId, INITIAL_TAIL)
+            : StartContainerLogs(sessionId, containerId, INITIAL_TAIL)
+        )
             .then(() => {
                 if (cancelled) {
-                    StopContainerLogs(sessionId);
+                    stop();
                     return;
                 }
                 setState((s) => (s === 'loading' ? 'live' : s));
@@ -217,13 +229,13 @@ export function useContainerLogs(containerId: string | null): ContainerLogs {
             cancelled = true;
             offBatch();
             offEnd();
-            StopContainerLogs(sessionId);
+            stop();
             if (frame.current !== null) {
                 cancelAnimationFrame(frame.current);
                 frame.current = null;
             }
         };
-    }, [containerId, restartKey, schedule]);
+    }, [containerId, hostId, restartKey, schedule]);
 
     // A stopped container that is started again while its panel is open
     // reconnects on its own.
@@ -232,7 +244,7 @@ export function useContainerLogs(containerId: string | null): ContainerLogs {
         let cancelled = false;
         const timer = setInterval(async () => {
             try {
-                const all = await ListContainers();
+                const all = hostId ? ((await RemoteListContainers(hostId)).items ?? []) : await ListContainers();
                 if (!cancelled && all.some((c) => c.id === containerId && c.state === 'running')) {
                     setRestartKey((k) => k + 1);
                 }
@@ -244,7 +256,7 @@ export function useContainerLogs(containerId: string | null): ContainerLogs {
             cancelled = true;
             clearInterval(timer);
         };
-    }, [containerId, state, end]);
+    }, [containerId, hostId, state, end]);
 
     const loadOlder = useCallback(async () => {
         const current = linesRef.current;
@@ -253,7 +265,9 @@ export function useContainerLogs(containerId: string | null): ContainerLogs {
 
         setLoadingOlder(true);
         try {
-            const result = await LoadOlderContainerLogs(containerId, oldest.ts, OLDER_PAGE);
+            const result = hostId
+                ? await RemoteLoadOlderLogs(hostId, containerId, oldest.ts, OLDER_PAGE)
+                : await LoadOlderContainerLogs(containerId, oldest.ts, OLDER_PAGE);
             const room = MAX_LINES - linesRef.current.length;
             const older = annotate(result.lines ?? [], newLevelMemory()).slice(-room);
             if (older.length > 0) {
@@ -265,7 +279,7 @@ export function useContainerLogs(containerId: string | null): ContainerLogs {
         } finally {
             setLoadingOlder(false);
         }
-    }, [containerId, loadingOlder]);
+    }, [containerId, hostId, loadingOlder]);
 
     return {
         lines,

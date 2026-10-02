@@ -73,6 +73,8 @@ type Service struct {
 	trust  map[string]chan bool
 	termID string
 	term   *terminal
+	// logs holds the cancel function of each open remote log stream, by session.
+	logs map[string]context.CancelFunc
 }
 
 func NewService(emit Emit) *Service {

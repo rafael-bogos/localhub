@@ -58,6 +58,42 @@ export function PruneImages() {
   return window['go']['main']['App']['PruneImages']();
 }
 
+export function RemoteContainerAction(arg1, arg2, arg3) {
+  return window['go']['main']['App']['RemoteContainerAction'](arg1, arg2, arg3);
+}
+
+export function RemoteKillProcess(arg1, arg2) {
+  return window['go']['main']['App']['RemoteKillProcess'](arg1, arg2);
+}
+
+export function RemoteListContainers(arg1) {
+  return window['go']['main']['App']['RemoteListContainers'](arg1);
+}
+
+export function RemoteListImages(arg1) {
+  return window['go']['main']['App']['RemoteListImages'](arg1);
+}
+
+export function RemoteListPorts(arg1) {
+  return window['go']['main']['App']['RemoteListPorts'](arg1);
+}
+
+export function RemoteLoadOlderLogs(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['RemoteLoadOlderLogs'](arg1, arg2, arg3, arg4);
+}
+
+export function RemoteRemoveImage(arg1, arg2) {
+  return window['go']['main']['App']['RemoteRemoveImage'](arg1, arg2);
+}
+
+export function RemoteStartLogs(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['RemoteStartLogs'](arg1, arg2, arg3, arg4);
+}
+
+export function RemoteStopLogs(arg1) {
+  return window['go']['main']['App']['RemoteStopLogs'](arg1);
+}
+
 export function RemoveContainer(arg1) {
   return window['go']['main']['App']['RemoveContainer'](arg1);
 }

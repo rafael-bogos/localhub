@@ -2,37 +2,32 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import SshHostDialog from './SshHostDialog';
 import SshImportDialog from './SshImportDialog';
 import SshTerminal from './SshTerminal';
-import { HostKeyDialog, PassphrasePrompt } from './SshPrompts';
 import { useConfirm } from './ConfirmDialog';
 import { AlertIcon, ChevronIcon, CloseIcon, SearchIcon, ServerIcon } from './icons';
 import { connInfo, type SshConnectionsApi } from '../useSshConnections';
 import type { SshHost, SshHostsApi } from '../useSshHosts';
+import type { SshConnectApi } from '../useSshConnect';
 
 interface SshTabProps {
     hostsApi: SshHostsApi;
     connections: SshConnectionsApi;
+    /** Connection flow (with its dialogs) owned by the app root. */
+    connectFlow: SshConnectApi;
     /** The SSH tab is the one on screen (the component stays mounted to keep terminals alive). */
     visible: boolean;
-}
-
-interface PassphraseRequest {
-    host: SshHost;
-    retry: boolean;
-    openTerminal: boolean;
 }
 
 type View = 'list' | 'terminal';
 
 const STATE_LABEL = { connecting: 'Conectando', connected: 'Conectado', disconnected: '' } as const;
 
-function SshTab({ hostsApi, connections, visible }: SshTabProps) {
+function SshTab({ hostsApi, connections, connectFlow, visible }: SshTabProps) {
     const confirm = useConfirm();
     const { hosts, add, update, remove, addMany } = hostsApi;
-    const { conns, hostKeyPrompt, answerHostKey, connect, disconnect } = connections;
+    const { conns, disconnect } = connections;
 
     const [query, setQuery] = useState('');
     const [editing, setEditing] = useState<SshHost | 'new' | null>(null);
-    const [passphraseReq, setPassphraseReq] = useState<PassphraseRequest | null>(null);
     const [importing, setImporting] = useState(false);
     const [notice, setNotice] = useState('');
     const [info, setInfo] = useState('');
@@ -77,19 +72,10 @@ function SshTab({ hostsApi, connections, visible }: SshTabProps) {
         );
     }, [hosts, query]);
 
-    /** Connects (asking for the passphrase if needed); true once connected. */
-    async function connectHost(host: SshHost, openTerminal: boolean, passphrase = ''): Promise<boolean> {
+    /** Connects (the passphrase and host-key dialogs come from the app root). */
+    function connectHost(host: SshHost, openTerminal: boolean): Promise<boolean> {
         setNotice('');
-        const result = await connect(host, passphrase);
-        if (result.code === 'ok') {
-            if (openTerminal) startTerminal(host);
-            return true;
-        }
-        if (result.code === 'passphrase_required' || result.code === 'bad_passphrase') {
-            setPassphraseReq({ host, retry: result.code === 'bad_passphrase', openTerminal });
-        }
-        // 'error' is surfaced through the connection state (see the effect above).
-        return false;
+        return connectFlow.connectHost(host, openTerminal ? () => startTerminal(host) : undefined);
     }
 
     function startTerminal(host: SshHost) {
@@ -382,27 +368,6 @@ function SshTab({ hostsApi, connections, visible }: SshTabProps) {
                 />
             )}
 
-            {passphraseReq && (
-                <PassphrasePrompt
-                    hostName={passphraseReq.host.name}
-                    keyPath={passphraseReq.host.keyPath}
-                    retry={passphraseReq.retry}
-                    onCancel={() => setPassphraseReq(null)}
-                    onSubmit={(pass) => {
-                        const req = passphraseReq;
-                        setPassphraseReq(null);
-                        connectHost(req.host, req.openTerminal, pass);
-                    }}
-                />
-            )}
-
-            {hostKeyPrompt && (
-                <HostKeyDialog
-                    prompt={hostKeyPrompt}
-                    hostName={hosts.find((h) => h.id === hostKeyPrompt.hostId)?.name ?? hostKeyPrompt.address}
-                    onAnswer={answerHostKey}
-                />
-            )}
         </div>
     );
 }

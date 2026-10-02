@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -197,10 +198,24 @@ func dial(ctx context.Context, cfg Config) (*gossh.Client, error) {
 	})
 	if err != nil {
 		nc.Close()
-		return nil, fmt.Errorf("falha ao conectar a %s: %w", addr, err)
+		return nil, dialError(addr, cfg.User, err)
 	}
 	_ = nc.SetDeadline(time.Time{})
 	return gossh.NewClient(sc, chans, reqs), nil
+}
+
+// dialError turns the protocol's handshake failures into messages the user can
+// act on. The sentinel errors stay matchable with errors.Is.
+func dialError(addr, user string, err error) error {
+	switch {
+	case errors.Is(err, ErrHostKeyChanged):
+		return fmt.Errorf("%w em %s. Por segurança a conexão foi bloqueada; se o servidor foi reinstalado, remova a entrada antiga dele em ~/.ssh/known_hosts", ErrHostKeyChanged, addr)
+	case errors.Is(err, ErrHostKeyRejected):
+		return ErrHostKeyRejected
+	case strings.Contains(err.Error(), "unable to authenticate"):
+		return fmt.Errorf("o servidor %s não aceitou o login do usuário %q com este método (chave não autorizada?)", addr, user)
+	}
+	return fmt.Errorf("falha ao conectar a %s: %w", addr, err)
 }
 
 // keepAlive pings the server so a silently dead link is noticed within

@@ -27,10 +27,26 @@ rápido que o terminal, sempre, sem sair de uma única janela.
   quais categorias limpar (containers parados, imagens não usadas, redes não
   usadas, cache de build) em vez do tudo-ou-nada da CLI. Volumes nunca são
   tocados, por guardarem dados persistentes.
+- **SSH** — cadastra servidores e abre um terminal SSH dentro do app, sem
+  terminal externo. Login por chave privada (a passphrase é pedida na hora e
+  nunca é salva) ou pelo `ssh-agent`; importa os servidores do seu
+  `~/.ssh/config` (só o básico: `Host`, `HostName`, `User`, `Port` e
+  `IdentityFile`). Na primeira conexão mostra a impressão digital do servidor e
+  só segue se você confiar (grava no `~/.ssh/known_hosts`); se a chave de um
+  servidor conhecido mudar, a conexão é bloqueada.
+  - **Processos, Containers e Imagens dos servidores** — com um servidor
+    conectado, essas três abas mostram uma seção por máquina ("Esta máquina" e
+    cada servidor, marcado como **Remoto**), com as mesmas ações do local
+    (encerrar processo, iniciar/parar/reiniciar/remover container, remover
+    imagem, logs ao vivo). Toda ação destrutiva em um servidor pede confirmação
+    citando o nome dele. Vários servidores podem ficar conectados ao mesmo
+    tempo; o terminal é um por vez. O servidor remoto precisa ser Linux, com
+    `ss` e, para Containers e Imagens, o CLI `docker`.
 
-Fala direto com o Docker Engine API via SDK oficial (não faz shell-out para o
-binário `docker`), e toda a interface é em português — não é um placeholder
-pra traduzir depois.
+Containers e imagens locais falam direto com o Docker Engine API via SDK
+oficial (sem shell-out para o binário `docker`); o SSH é nativo em Go (sem
+chamar o `ssh` do sistema). Toda a interface é em português — não é um
+placeholder pra traduzir depois.
 
 ## Instalação
 

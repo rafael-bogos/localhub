@@ -235,3 +235,53 @@ func (a *App) SSHCloseTerminal(id, session string) {
 func (a *App) SSHImportConfig() (lssh.ImportResult, error) {
 	return lssh.ImportConfig()
 }
+
+// ---- Remote servers: the same lists and actions as the local tabs ----
+
+// RemoteListPorts lists the listening sockets of a connected SSH server.
+func (a *App) RemoteListPorts(hostID string) (lssh.RemotePorts, error) {
+	return a.ssh.ListPorts(a.ctx, hostID)
+}
+
+// RemoteKillProcess terminates a process on a connected SSH server.
+func (a *App) RemoteKillProcess(hostID string, pid int32) error {
+	return a.ssh.KillProcess(a.ctx, hostID, pid)
+}
+
+// RemoteListContainers lists the Docker containers of a connected SSH server.
+func (a *App) RemoteListContainers(hostID string) (lssh.RemoteContainers, error) {
+	return a.ssh.ListContainers(a.ctx, hostID)
+}
+
+// RemoteContainerAction runs "start", "stop", "restart" or "remove" on a
+// container of a connected SSH server.
+func (a *App) RemoteContainerAction(hostID, containerID, action string) error {
+	return a.ssh.ContainerAction(a.ctx, hostID, containerID, action)
+}
+
+// RemoteListImages lists the Docker images of a connected SSH server.
+func (a *App) RemoteListImages(hostID string) (lssh.RemoteImages, error) {
+	return a.ssh.ListImages(a.ctx, hostID)
+}
+
+// RemoteRemoveImage removes a Docker image from a connected SSH server.
+func (a *App) RemoteRemoveImage(hostID, imageID string) error {
+	return a.ssh.RemoveImage(a.ctx, hostID, imageID)
+}
+
+// RemoteStartLogs streams a remote container's logs as the same events local
+// containers use ("logs:batch:<sessionID>", "logs:end:<sessionID>"). The
+// frontend picks the sessionID and subscribes before calling.
+func (a *App) RemoteStartLogs(hostID, sessionID, containerID string, tail int) error {
+	return a.ssh.StartLogs(a.ctx, hostID, sessionID, containerID, tail)
+}
+
+// RemoteStopLogs closes a remote log stream.
+func (a *App) RemoteStopLogs(sessionID string) {
+	a.ssh.StopLogs(sessionID)
+}
+
+// RemoteLoadOlderLogs pages back through a remote container's logs.
+func (a *App) RemoteLoadOlderLogs(hostID, containerID, beforeTs string, count int) (docker.OlderLogs, error) {
+	return a.ssh.LoadOlderLogs(a.ctx, hostID, containerID, beforeTs, count)
+}

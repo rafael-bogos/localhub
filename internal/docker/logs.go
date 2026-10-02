@@ -271,31 +271,15 @@ func LoadOlderLogs(ctx context.Context, containerID, beforeTs string, count int)
 	}
 	defer body.Close()
 
-	var (
-		kept  []LogLine
-		total int
-	)
-	collect := func(l LogLine) {
-		// Until is inclusive: skip the boundary lines the UI already has.
-		if t, err := time.Parse(time.RFC3339Nano, l.Ts); err == nil && !t.Before(before) {
-			return
-		}
-		total++
-		kept = append(kept, l)
-		if len(kept) >= count*2 {
-			kept = append(kept[:0], kept[len(kept)-count:]...)
-		}
-	}
-	out := newLineAssembler("stdout", collect)
-	errOut := newLineAssembler("stderr", collect)
+	collector := NewOlderCollector(before, count)
+	out := newLineAssembler("stdout", collector.Add)
+	errOut := newLineAssembler("stderr", collector.Add)
 	if err := copyLogs(body, out, errOut, tty); err != nil && err != io.EOF {
 		return nil, false, fmt.Errorf("falha ao ler os logs do container")
 	}
 	out.Flush()
 	errOut.Flush()
 
-	if len(kept) > count {
-		kept = kept[len(kept)-count:]
-	}
-	return kept, total > count, nil
+	kept, more := collector.Result()
+	return kept, more, nil
 }

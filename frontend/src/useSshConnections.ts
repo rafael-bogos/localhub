@@ -42,6 +42,13 @@ const IDLE: ConnInfo = { state: 'disconnected', message: '' };
 export interface SshConnectionsApi {
     /** State per server id; absent means never connected (same as disconnected). */
     conns: Record<string, ConnInfo>;
+    /**
+     * Servers that get a group in the Processos/Containers/Imagens tabs: those
+     * connected now, plus those whose connection dropped (kept, marked as
+     * disconnected, so the user can reconnect). A user-requested disconnect
+     * removes the server from here.
+     */
+    tracked: Record<string, true>;
     /** Server whose key must be confirmed (first connection), if any. */
     hostKeyPrompt: HostKeyPrompt | null;
     answerHostKey: (accept: boolean) => void;
@@ -55,6 +62,7 @@ export interface SshConnectionsApi {
 
 export function useSshConnections(): SshConnectionsApi {
     const [conns, setConns] = useState<Record<string, ConnInfo>>({});
+    const [tracked, setTracked] = useState<Record<string, true>>({});
     const [hostKeyPrompt, setHostKeyPrompt] = useState<HostKeyPrompt | null>(null);
     // Event subscriptions per server, alive from the connect attempt until the
     // connection ends (state events keep flowing after a successful connect).
@@ -70,6 +78,7 @@ export function useSshConnections(): SshConnectionsApi {
             unsubscribe(id);
             const offState = EventsOn(`ssh:state:${id}`, (ev: StateEvent) => {
                 setConns((prev) => ({ ...prev, [id]: { state: ev.state, message: ev.message ?? '' } }));
+                if (ev.state === 'connected') setTracked((prev) => (prev[id] ? prev : { ...prev, [id]: true }));
                 if (ev.state === 'disconnected') {
                     setHostKeyPrompt((p) => (p?.hostId === id ? null : p));
                     unsubscribe(id);
@@ -128,6 +137,13 @@ export function useSshConnections(): SshConnectionsApi {
     );
 
     const disconnect = useCallback((id: string) => {
+        // A deliberate disconnect drops the server's group; a dropped link keeps it.
+        setTracked((prev) => {
+            if (!prev[id]) return prev;
+            const next = { ...prev };
+            delete next[id];
+            return next;
+        });
         SSHDisconnect(id).catch(() => {});
     }, []);
 
@@ -140,7 +156,7 @@ export function useSshConnections(): SshConnectionsApi {
         [hostKeyPrompt]
     );
 
-    return { conns, hostKeyPrompt, answerHostKey, connect, disconnect };
+    return { conns, tracked, hostKeyPrompt, answerHostKey, connect, disconnect };
 }
 
 export function connInfo(conns: Record<string, ConnInfo>, id: string): ConnInfo {

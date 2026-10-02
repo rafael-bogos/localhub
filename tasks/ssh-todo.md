@@ -6,7 +6,7 @@ Ordem por dependência: conexão → terminal → lista de servidores → dados 
 (processos → containers/imagens) → agrupamento → extras. Cada tarefa deixa o app
 compilando e funcionando.
 
-> Status: **Fases 1 e 2 (T1–T8) concluídas.** Verificadas no app real (`wails dev`,
+> Status: **Todas as tarefas (T1–T19) concluídas.** Verificadas no app real (`wails dev`,
 > página aberta no Chrome via CDP, backend Go ligado por websocket) contra um
 > `sshd` OpenSSH de verdade em `127.0.0.1:2222`, com `HOME` isolado: lista e
 > formulário, pedido de confiança do fingerprint, conexão por chave, passphrase
@@ -22,14 +22,60 @@ compilando e funcionando.
 > (`ssh:data|end:<session>`, escolhida pelo frontend) e `SSHCloseTerminal` exige a
 > sessão. Conexão e chave do servidor continuam por ID (`ssh:state|hostkey:<id>`).
 >
-> **Ainda não testado:** ssh-agent real (só um agente em processo, na T2), Windows
-> e macOS (só compilam), recarregar a janela com conexões abertas (o backend as
-> mantém; no app empacotado não há recarga).
+> Fase 3 verificada com um programa Go temporário (removido) contra o `sshd` real
+> e o Docker real, usando só um container e uma imagem descartáveis criados para o
+> teste: portas (PID e nome, `Limited`, kill, sem permissão, PID inexistente),
+> containers (ID completo, portas no formato local, ordem), start/stop/restart/
+> remove, imagens (uma linha por imagem, em uso), logs ao vivo (stdout/stderr
+> separados, timestamps, parar sem deixar `docker logs` pendurado no servidor,
+> fim `stopped`/`removed`, queda da conexão), logs antigos e 8 tentativas de
+> injeção de comando (nenhuma executou). A refatoração do "logs antigos" local
+> (agora usa `docker.OlderCollector`) foi conferida contra o Docker local.
 >
-> Servidor de teste para as verificações:
-> `docker run -d --name sshtest -p 2222:2222 -e USER_NAME=dev -e PASSWORD_ACCESS=false -e PUBLIC_KEY="$(cat ~/.ssh/id_ed25519.pub)" lscr.io/linuxserver/openssh-server`
-> (Docker disponível dentro dele só se montar o socket; para as tarefas de
-> containers use uma VM/servidor real ou monte `/var/run/docker.sock`).
+> Achado: um comando em segundo plano num shell não interativo tem a entrada
+> ligada a `/dev/null`; o wrapper de `streamScript` guarda o stdin do canal no
+> fd 3 (`exec 3<&0`), senão o `cat` via EOF e matava o `docker logs` na hora.
+>
+> Limites da v1 remota: sem CPU/memória dos containers (`docker stats` é lento),
+> sem agrupamento pai/filho nos processos, só Linux com `ss`.
+>
+> Fase 4 verificada no app real (mesmo método), com o `sshd` e o Docker reais e
+> um container/imagem descartáveis: sem servidor conectado as abas ficam como
+> sempre (sem cabeçalho de grupo); com um servidor aparecem "Esta máquina" +
+> o servidor (selo REMOTO, hachura), contador do header = soma dos grupos, busca
+> que alcança as duas máquinas, encerrar processo / parar / iniciar / remover
+> container / remover imagem com confirmação citando a máquina, erro "em uso" no
+> grupo certo, logs ao vivo do container remoto no painel lateral (selo do
+> servidor, stdout/stderr, "carregar antigas"), troca para container local sem
+> o selo, recolher grupo, queda da conexão (grupo "Desconectado" + Reconectar,
+> sem dados antigos, contador volta ao local), reconectar sem pedir confiança de
+> novo, desconectar de propósito remove o grupo e layout estreito.
+>
+> Achados: com uma lista local longa a seção do servidor ficava fora da tela;
+> foi adicionada uma faixa fixa no topo da aba com um botão por máquina e a
+> contagem (leva até a seção). O fluxo de conexão (passphrase e confiança da
+> chave) passou para a raiz do app (`useSshConnect`) para "Reconectar" funcionar
+> de qualquer aba. Caveat do teste: o servidor SSH era esta mesma máquina, então
+> os mesmos containers aparecem nos dois grupos.
+>
+> Fase 5 verificada no app real: dois servidores conectados ao mesmo tempo (três
+> cabeçalhos, contador = soma, faixa com 3 botões) e desconectar só um mantém o
+> outro; servidor sem Docker (um segundo sshd com PATH sem o docker) mostra o
+> motivo em Containers e Imagens, sem tabela nem erro vermelho, e Processos
+> funciona; `top` e `vi` em tela cheia no terminal (desenho, sair e voltar ao
+> prompt, `:wq` gravou); chave do servidor alterada (sem oferecer "confiar", sem
+> conectar, mensagem clara); servidor inalcançável (erro em ~10 s); fechar o app
+> (`runtime.Quit`) encerra o processo e a sessão SSH some do servidor (sessões
+> e conexões TCP 1/2 → 0/0). `wails build -tags webkit2_41` gera o binário.
+> README atualizado.
+>
+> Mensagens de conexão deixadas mais claras (chave alterada, login recusado),
+> conferidas contra o sshd real.
+>
+> **Não testado:** ssh-agent real (só um agente em processo, na T2), Windows e
+> macOS (só compilam), o binário empacotado com a janela real (os testes usaram
+> o `wails dev` com a página aberta no Chrome) e recarregar a janela com
+> conexões abertas (o backend as mantém; no app empacotado não há recarga).
 
 ## Fase 1: Conexão e terminal
 
@@ -82,54 +128,54 @@ compilando e funcionando.
 
 ## Fase 3: Dados remotos
 
-- [ ] **T9: Execução remota segura** — `internal/ssh/exec.go`, `validate.go`
+- [x] **T9: Execução remota segura** — `internal/ssh/exec.go`, `validate.go`
   - `Run(ctx, hostID, cmd)` com timeout e `Stream` (canal próprio); validadores
     (`pid` numérico, `id` por regex, `action` de lista fixa) e quoting POSIX.
   - Verify: `go build`; programa temporário rejeita `x; rm -rf ~` e `$(id)` antes
     de executar.
-- [ ] **T10: Processos remotos** — `internal/ssh/remote_ports.go`, `app.go`
+- [x] **T10: Processos remotos** — `internal/ssh/remote_ports.go`, `app.go`
   - `RemoteListPorts(hostID)` (`ss -H -tulnp`, parse em Go, "visibilidade
     limitada" sem root) e `RemoteKillProcess(hostID, pid)`; reaproveita
     `ports.PortInfo`.
   - Verify: `go build`; programa temporário lista portas do servidor de teste e
     encerra um `sleep`.
-- [ ] **T11: Containers e imagens remotos** — `internal/ssh/remote_docker.go`, `app.go`
+- [x] **T11: Containers e imagens remotos** — `internal/ssh/remote_docker.go`, `app.go`
   - `RemoteListContainers`, `RemoteContainerAction` (start/stop/restart/rm),
     `RemoteListImages`, `RemoteRemoveImage` (`docker … --format json`); detecção de
     "docker ausente/sem permissão"; reaproveita os tipos de `internal/docker`.
   - Verify: `go build`; programa temporário contra um servidor com Docker.
-- [ ] **T12: Logs remotos** — `internal/ssh/remote_logs.go`, `app.go`
+- [x] **T12: Logs remotos** — `internal/ssh/remote_logs.go`, `app.go`
   - `RemoteStartLogs(hostID, id, sessionID)` sobre `docker logs -f --tail N
     --timestamps`, no mesmo formato de eventos `logs:batch|end:<id>`, reaproveitando
     a montagem de linhas (`logs_lines.go`); `Stop` encerra o canal.
   - Verify: `go build`; programa temporário recebe linhas ao vivo e para limpo.
-- [ ] **T13: Bindings** — `wails generate module` (reverter `wailsjs/runtime`).
+- [x] **T13: Bindings** — `wails generate module` (reverter `wailsjs/runtime`).
 
 ## Fase 4: Agrupamento por servidor nas abas
 
-- [ ] **T14: Estado de conexões e grupo** — `useSshConnections.ts`,
+- [x] **T14: Estado de conexões e grupo** — `useSshConnections.ts`,
   `components/HostGroup.tsx`, `App.tsx`, `App.css`
   - Servidores conectados/estado compartilhados com o `App`; seção recolhível com
     chip REMOTO, nome, `usuário@host`, estado, contador, "Reconectar".
   - Verify: `tsc && vite build`; captura com 2 servidores simulados.
-- [ ] **T15: Processos agrupados** — `PortsTable.tsx`, `App.tsx`
+- [x] **T15: Processos agrupados** — `PortsTable.tsx`, `App.tsx`
   - Grupos "Esta máquina" + um por servidor; busca/atualizar valem para todos; falha
     de um servidor não afeta os outros; confirmação de encerrar cita o servidor.
   - Verify: `tsc && vite build`; `wails dev` com o servidor de teste.
-- [ ] **T16: Containers e imagens agrupados** — `ContainersTable.tsx`,
+- [x] **T16: Containers e imagens agrupados** — `ContainersTable.tsx`,
   `ImagesTable.tsx`, `LogsDrawer.tsx`, `useContainerLogs.ts`
   - Mesmos grupos; ações remotas com confirmação citando o servidor; `LogsDrawer`
     recebe `hostID` opcional (vazio = local); "docker ausente" por seção.
   - Verify: `tsc && vite build`; logs ao vivo de um container remoto.
-- [ ] **T17: Contador do header** — `App.tsx`: soma local + servidores conectados;
+- [x] **T17: Contador do header** — `App.tsx`: soma local + servidores conectados;
   desconectar remove o grupo.
 
 ## Fase 5: Fechamento
 
-- [ ] **T18: Ciclo de vida** — fechar o app encerra conexões (`OnBeforeClose`/
+- [x] **T18: Ciclo de vida** — fechar o app encerra conexões (`OnBeforeClose`/
   `shutdown`); trocar de aba não derruba terminal nem dados.
   - Verify: `ss -tn` sem conexões pendentes após fechar.
-- [ ] **T19: Docs e checagem final** — `README.md` ("Funcionalidades"),
+- [x] **T19: Docs e checagem final** — `README.md` ("Funcionalidades"),
   `specs/ssh-remote-access.md` (status), esta lista.
   - Verify: roteiro 1–8 da seção "Verificação" da spec; `wails build -tags
     webkit2_41`.

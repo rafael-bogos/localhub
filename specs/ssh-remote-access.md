@@ -1,6 +1,6 @@
 # Spec: Acesso remoto via SSH (aba SSH, terminal embutido e gestão de máquinas remotas)
 
-<!-- status: v1 (terminal, login, importação) implementada; dados remotos (Fases 3–4) pendentes; plano e todo em tasks/ssh-plan.md e tasks/ssh-todo.md (a criar) -->
+<!-- status: implementada (v1) — tarefas e verificações em tasks/ssh-todo.md; o que ficou de fora está em "Fora de escopo" -->
 
 ## Objective
 
