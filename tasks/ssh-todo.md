@@ -186,3 +186,20 @@ compilando e funcionando.
 - `frontend/wailsjs/` é versionado: regenerar e reverter `wailsjs/runtime` (T4, T13).
 - Nada sensível em `localStorage`; passphrase nunca em log.
 - Fora da v1: login por senha, Limpeza remota, múltiplos terminais, port forwarding, SFTP.
+
+## Extra: túnel para containers
+
+- [x] **T20: Túnel local para container** — `internal/ssh/tunnel.go`, `app.go`,
+  `TunnelDialog.tsx`, `useTunnels.ts`, `RemoteContainersSection.tsx`, `SshTab.tsx`
+  - Botão "Túnel" nos containers rodando de um servidor; diálogo com rede/IP,
+    porta do container, porta local sugerida e o comando `ssh -L` equivalente;
+    chip na linha com × para fechar; desconectar avisa e fecha os túneis.
+  - Verify (sshd e Docker reais, container Redis descartável): `PING` real pelo
+    túnel; 30 conexões em paralelo; 600 KB íntegros nos dois sentidos; porta
+    ocupada/privilegiada e entradas inválidas rejeitadas (nenhum comando
+    injetado); container reiniciado com **outro IP** (um container dublê ocupou o
+    antigo) e o túnel segue funcionando; fechar o túnel e desconectar liberam a
+    porta; fluxo completo pela interface (diálogo, resultado, segundo túnel,
+    erro de porta em uso, ×, aviso ao desconectar).
+  - Limites: só TCP, só 127.0.0.1, só portas de containers (não há `-L` livre nem
+    `-R`/`-D`).

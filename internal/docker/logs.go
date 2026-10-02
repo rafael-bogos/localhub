@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 	"time"
 
@@ -229,7 +228,7 @@ func (b *logBatcher) close() {
 
 // trimName is shared by the port-owner lookup.
 func trimName(names []string) string {
-	return strings.TrimPrefix(firstOrEmpty(names), "/")
+	return RealName(names)
 }
 
 // LoadOlderLogs returns up to count lines strictly older than beforeTs

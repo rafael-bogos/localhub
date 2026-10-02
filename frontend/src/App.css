@@ -2924,3 +2924,206 @@ body.is-resizing * {
 .host-group__header:hover {
     background-color: var(--key-surface);
 }
+
+/* Tunnels: local port forwards to a server's containers. */
+
+.tunnel-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    margin: 6px 6px 0 0;
+    font-family: var(--font-mono);
+    font-weight: 400;
+}
+
+.container-row__name .tunnel-chip {
+    display: flex;
+    width: fit-content;
+}
+
+.tunnel-chip__close {
+    display: inline-flex;
+    padding: 2px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.tunnel-chip__close:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.tunnel-dialog {
+    width: min(520px, calc(100vw - 32px));
+}
+
+.tunnel-dialog__static,
+.tunnel-dialog__cmd,
+.tunnel-dialog__address code {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--ink-primary);
+    overflow-wrap: anywhere;
+}
+
+.tunnel-dialog__cmd {
+    display: block;
+    padding: 8px 10px;
+    border-radius: var(--radius-chip);
+    background: var(--bezel);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    color: var(--ink-secondary);
+}
+
+.tunnel-dialog__ports {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.tunnel-dialog__ports .ssh-segment__opt {
+    background: var(--bezel);
+    font-family: var(--font-mono);
+}
+
+.tunnel-dialog__ports .ssh-segment__opt--on {
+    background: var(--key-surface-hover);
+}
+
+.tunnel-dialog__port {
+    width: 110px;
+}
+
+.tunnel-dialog__address {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-chip);
+    background: var(--bezel);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.tunnel-dialog__address code {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* Docker Compose service/project under a container's name. */
+
+.container-row__compose {
+    display: block;
+    margin-top: 3px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--ink-secondary);
+    overflow-wrap: anywhere;
+}
+
+/* Container name cell: the shown name, a details button, the Docker name when
+   another name is shown. */
+
+.container-row__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+}
+
+.container-row__info {
+    display: inline-flex;
+    padding: 2px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink-tertiary);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.container-row__info:hover {
+    color: var(--ink-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Details dialog */
+
+.details-dialog {
+    width: min(620px, calc(100vw - 32px));
+}
+
+.details-dialog__current {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: var(--radius-chip);
+    background: var(--bezel);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    color: var(--ink-secondary);
+}
+
+.details-dialog__current code {
+    font-family: var(--font-mono);
+    color: var(--ink-primary);
+}
+
+.details-dialog__labels {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 260px;
+    overflow-y: auto;
+    border-radius: var(--radius-chip);
+    background: var(--bezel);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.details-dialog__labels li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "key action"
+        "value action";
+    align-items: center;
+    gap: 2px 12px;
+    padding: 8px 12px;
+}
+
+.details-dialog__labels li + li {
+    border-top: 1px solid var(--chassis-seam);
+}
+
+.details-dialog__label--on {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.details-dialog__key {
+    grid-area: key;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--ink-secondary);
+    overflow-wrap: anywhere;
+}
+
+.details-dialog__value {
+    grid-area: value;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--ink-primary);
+    overflow-wrap: anywhere;
+}
+
+.details-dialog__labels .action-key {
+    grid-area: action;
+}

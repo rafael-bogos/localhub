@@ -33,7 +33,11 @@ export function PickFile():Promise<string>;
 
 export function PruneImages():Promise<docker.PruneResult>;
 
+export function RemoteCloseTunnel(arg1:string):Promise<void>;
+
 export function RemoteContainerAction(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function RemoteContainerNetworks(arg1:string,arg2:string):Promise<ssh.ContainerNet>;
 
 export function RemoteKillProcess(arg1:string,arg2:number):Promise<void>;
 
@@ -43,13 +47,19 @@ export function RemoteListImages(arg1:string):Promise<ssh.RemoteImages>;
 
 export function RemoteListPorts(arg1:string):Promise<ssh.RemotePorts>;
 
+export function RemoteListTunnels():Promise<Array<ssh.TunnelInfo>>;
+
 export function RemoteLoadOlderLogs(arg1:string,arg2:string,arg3:string,arg4:number):Promise<docker.OlderLogs>;
+
+export function RemoteOpenTunnel(arg1:string,arg2:string,arg3:string,arg4:number,arg5:number):Promise<ssh.TunnelInfo>;
 
 export function RemoteRemoveImage(arg1:string,arg2:string):Promise<void>;
 
 export function RemoteStartLogs(arg1:string,arg2:string,arg3:string,arg4:number):Promise<void>;
 
 export function RemoteStopLogs(arg1:string):Promise<void>;
+
+export function RemoteSuggestLocalPort(arg1:number):Promise<number>;
 
 export function RemoveContainer(arg1:string):Promise<void>;
 

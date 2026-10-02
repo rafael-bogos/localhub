@@ -27,7 +27,9 @@ funcionando.
   só local na v1.
 - Remoto que não seja Linux; `sudo` interativo para ver/encerrar processos de
   outros usuários.
-- Port forwarding, SFTP, X11, agent forwarding.
+- Port forwarding para destinos arbitrários (`-R`, `-D`, `-L` livre), túnel
+  que aceite conexões de outras máquinas (só `127.0.0.1`), SFTP, X11, agent
+  forwarding. (Túnel local para uma porta de **container** existe: ver abaixo.)
 - Guardar segredos (senha/passphrase) em keychain.
 - Testes automatizados (o projeto não tem; verificação por build + teste
   manual, como em `tasks/plan.md`).
@@ -88,7 +90,8 @@ funcionando.
 - **Processos:** portas em escuta no remoto (`ss`). Encerrar processo
   (`kill`). Processos de outros usuários podem não aparecer ou não poder ser
   encerrados sem root; a seção avisa "visibilidade limitada" em vez de falhar.
-- **Containers:** listar, iniciar, parar, reiniciar, remover e **Logs ao vivo**
+- **Containers:** listar (com o serviço e o projeto do Docker Compose, quando
+  houver), iniciar, parar, reiniciar, remover e **Logs ao vivo**
   (o mesmo painel lateral, alimentado por `docker logs -f` remoto).
 - **Imagens:** listar e remover.
 - Se o `docker` não existir ou o usuário não tiver permissão, as seções
@@ -97,6 +100,33 @@ funcionando.
   que **cita o nome da máquina** ("Remover container X em `prod-01`?").
 - O atalho "Logs" na aba Processos (porta publicada por container) só vale para
   itens locais na v1.
+
+### Nome de exibição dos containers
+- Plataformas como Coolify e Dokku dão ao container um nome gerado e guardam o
+  nome legível do app numa etiqueta. O botão ⓘ de cada container abre os
+  detalhes com todas as etiquetas (`docker inspect`, local e remoto); "Usar como
+  nome" escolhe a etiqueta cujo valor passa a ser o nome mostrado, para todos os
+  containers que a tiverem (guardado em `localStorage`, `localhub.names.v1`).
+  O nome do Docker continua visível abaixo e é o que identifica o container nas
+  ações; confirmações, painel de logs e túnel mostram o nome de exibição.
+
+### Túnel para um container (local port forward)
+- Em cada container **rodando** de um servidor, na aba Containers, o botão
+  **Túnel** abre um diálogo: rede/IP do container (`docker inspect`), porta do
+  container (as declaradas, ou uma digitada), porta neste computador (sugestão
+  livre; vazio = automática) e o comando `ssh -fN -L …` equivalente.
+- **Abrir túnel** passa a escutar em `127.0.0.1:<porta local>` e leva cada
+  conexão, pela conexão SSH já aberta do servidor, até `<IP do container>:<porta>`.
+  Nenhum processo `ssh` extra é iniciado.
+- O IP vem sempre do servidor (nunca da tela) e é consultado de novo se a conexão
+  falhar (container reiniciado com outro IP). Container em `network_mode: host`
+  usa `127.0.0.1` do servidor.
+- Só escuta em loopback. Porta local ocupada ou privilegiada dá erro claro.
+- O túnel aparece como chip `127.0.0.1:<local> → <porta>` na linha do container,
+  com **×** para fechar, e acaba com a conexão. **Desconectar** o servidor avisa
+  quantos túneis fecha.
+- Backend: `ContainerNetworks`, `SuggestLocalPort`, `OpenTunnel`, `CloseTunnel`,
+  `ListTunnels` (`internal/ssh/tunnel.go`); evento `tunnels:changed`.
 
 ### Verificação da chave do servidor
 - Usa `~/.ssh/known_hosts`. Servidor desconhecido: diálogo mostra o fingerprint

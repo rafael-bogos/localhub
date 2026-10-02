@@ -16,6 +16,8 @@ import { useLogsPrefs } from './useLogsPrefs';
 import { useSshHosts } from './useSshHosts';
 import { connInfo, useSshConnections } from './useSshConnections';
 import { useSshConnect } from './useSshConnect';
+import { useTunnels } from './useTunnels';
+import { useNameLabel } from './containerName';
 import { RefreshIcon, SearchIcon, CloseIcon } from './components/icons';
 import { useConfirm } from './components/ConfirmDialog';
 import logo from './assets/images/localhub-logo.svg';
@@ -41,6 +43,8 @@ function App() {
     const sshHosts = useSshHosts();
     const sshConnections = useSshConnections();
     const connectFlow = useSshConnect(sshConnections, sshHosts.hosts);
+    const tunnels = useTunnels();
+    const names = useNameLabel();
     // Servers with a group in the data tabs, and what each one reported per tab.
     const remoteHosts = sshHosts.hosts.filter((h) => sshConnections.tracked[h.id]);
     const [remoteCounts, setRemoteCounts] = useState<Record<string, Record<string, number>>>({});
@@ -63,8 +67,8 @@ function App() {
     const [portOwners, setPortOwners] = useState<Record<string, LogsTarget>>({});
 
     const openLogs = useCallback(
-        (id: string, name: string) => {
-            setLogsTarget({ id, name });
+        (id: string, name: string, label?: string) => {
+            setLogsTarget({ id, name, label });
             updateLogsPrefs({ container: name });
         },
         [updateLogsPrefs]
@@ -72,8 +76,8 @@ function App() {
 
     // Remote containers are not remembered across sessions (the server may not
     // be connected next time), so the saved "container left open" stays local.
-    const openRemoteLogs = useCallback((hostId: string, hostName: string, id: string, name: string) => {
-        setLogsTarget({ id, name, hostId, hostName });
+    const openRemoteLogs = useCallback((hostId: string, hostName: string, id: string, name: string, label?: string) => {
+        setLogsTarget({ id, name, label, hostId, hostName });
     }, []);
 
     const closeLogs = useCallback(() => {
@@ -321,11 +325,14 @@ function App() {
                             )}
                             {tab === 'containers' && (
                                 <RemoteContainersSection
+                                    names={names}
+                                    host={h}
+                                    tunnels={tunnels}
                                     hostId={h.id}
                                     hostName={h.name}
                                     refreshKey={refreshKey}
                                     onCount={(n) => reportRemoteCount('containers', h.id, n)}
-                                    onOpenLogs={(id, name) => openRemoteLogs(h.id, h.name, id, name)}
+                                    onOpenLogs={(id, name, label) => openRemoteLogs(h.id, h.name, id, name, label)}
                                     activeLogsId={logsTarget?.hostId === h.id ? logsTarget.id : null}
                                 />
                             )}
@@ -458,6 +465,7 @@ function App() {
                         renderGroups(
                             'containers',
                             <ContainersTable
+                                names={names}
                                 key={refreshKey}
                                 activeLogsId={logsTarget && !logsTarget.hostId ? logsTarget.id : null}
                                 onOpenLogs={openLogs}
@@ -481,6 +489,7 @@ function App() {
                                 hostsApi={sshHosts}
                                 connections={sshConnections}
                                 connectFlow={connectFlow}
+                                tunnels={tunnels}
                                 onOpenServerTab={openServerTab}
                                 visible={activeTab === 'ssh'}
                             />

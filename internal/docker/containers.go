@@ -29,11 +29,15 @@ func ListContainers(ctx context.Context) ([]ContainerInfo, error) {
 	for _, c := range result.Items {
 		containers = append(containers, ContainerInfo{
 			ID:     c.ID,
-			Name:   strings.TrimPrefix(firstOrEmpty(c.Names), "/"),
+			Name:   RealName(c.Names),
 			Image:  c.Image,
 			Status: c.Status,
 			State:  string(c.State),
 			Ports:  formatPorts(c.Ports),
+
+			Project: c.Labels[ComposeProjectLabel],
+			Service: c.Labels[ComposeServiceLabel],
+			Labels:  c.Labels,
 		})
 	}
 
@@ -49,11 +53,32 @@ func ListContainers(ctx context.Context) ([]ContainerInfo, error) {
 	return containers, nil
 }
 
+// Labels Docker Compose puts on the containers it creates.
+const (
+	ComposeProjectLabel = "com.docker.compose.project"
+	ComposeServiceLabel = "com.docker.compose.service"
+)
+
 func firstOrEmpty(names []string) string {
 	if len(names) == 0 {
 		return ""
 	}
 	return names[0]
+}
+
+// RealName picks the container's own name out of the names Docker lists for
+// it. That list also holds the aliases other containers reach it by through
+// legacy links ("/other/alias"), and their position is not guaranteed, so the
+// first entry isn't always the name: the real one has no "/" after the leading
+// one.
+func RealName(names []string) string {
+	for _, n := range names {
+		n = strings.TrimPrefix(n, "/")
+		if n != "" && !strings.Contains(n, "/") {
+			return n
+		}
+	}
+	return strings.TrimPrefix(firstOrEmpty(names), "/")
 }
 
 // formatPorts lists each published port once. The Docker API reports a

@@ -30,6 +30,8 @@ const LEVEL_TAG: Record<Level, string> = {
 export interface LogsTarget {
     id: string;
     name: string;
+    /** Name shown instead of the Docker name when the user picked a label for it. */
+    label?: string;
     /** Set when the container lives on an SSH server (id and display name). */
     hostId?: string;
     hostName?: string;
@@ -329,7 +331,7 @@ function LogsDrawer({ target, prefs, onPrefsChange, onClose }: LogsDrawerProps) 
                         </span>
                     )}
                     <span className="logs-drawer__name" title={target.name}>
-                        {target.name}
+                        {target.label || target.name}
                     </span>
                     <span className={`status-chip${status.live ? ' status-chip--listen' : ''}`}>{status.text}</span>
                 </div>

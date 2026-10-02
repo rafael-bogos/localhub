@@ -8,7 +8,9 @@ import {
     StopContainer,
 } from '../../wailsjs/go/main/App';
 import { docker } from '../../wailsjs/go/models';
-import { AlertIcon, BoxIcon } from './icons';
+import { AlertIcon, BoxIcon, InfoIcon } from './icons';
+import ContainerDetailsDialog from './ContainerDetailsDialog';
+import { displayName, isCustomName, type NameLabelApi } from '../containerName';
 import { useConfirm } from './ConfirmDialog';
 import { formatBytes, formatPercent } from '../format';
 
@@ -21,12 +23,13 @@ function memoryTitle(s?: docker.ContainerStats): string | undefined {
 }
 
 interface ContainersTableProps {
+    names: NameLabelApi;
     onCountChange: (count: number) => void;
-    onOpenLogs: (id: string, name: string) => void;
+    onOpenLogs: (id: string, name: string, label?: string) => void;
     activeLogsId: string | null;
 }
 
-function ContainersTable({ onCountChange, onOpenLogs, activeLogsId }: ContainersTableProps) {
+function ContainersTable({ names, onCountChange, onOpenLogs, activeLogsId }: ContainersTableProps) {
     const confirm = useConfirm();
     const [containers, setContainers] = useState<docker.ContainerInfo[]>([]);
     const [loading, setLoading] = useState(false);
@@ -35,6 +38,7 @@ function ContainersTable({ onCountChange, onOpenLogs, activeLogsId }: Containers
     const [pendingAction, setPendingAction] = useState<'start' | 'stop' | 'restart' | 'remove' | null>(null);
     const [coolingId, setCoolingId] = useState<string | null>(null);
     const [stats, setStats] = useState<Record<string, docker.ContainerStats>>({});
+    const [details, setDetails] = useState<docker.ContainerInfo | null>(null);
     const countReported = useRef(false);
 
     async function load() {
@@ -117,7 +121,7 @@ function ContainersTable({ onCountChange, onOpenLogs, activeLogsId }: Containers
     }
 
     async function handleStop(c: docker.ContainerInfo) {
-        const confirmed = await confirm(`Parar o container "${c.name}"?`);
+        const confirmed = await confirm(`Parar o container "${displayName(c, names.nameLabel)}"?`);
         if (!confirmed) return;
 
         setError('');
@@ -135,7 +139,7 @@ function ContainersTable({ onCountChange, onOpenLogs, activeLogsId }: Containers
     }
 
     async function handleRestart(c: docker.ContainerInfo) {
-        const confirmed = await confirm(`Reiniciar o container "${c.name}"?`);
+        const confirmed = await confirm(`Reiniciar o container "${displayName(c, names.nameLabel)}"?`);
         if (!confirmed) return;
 
         setError('');
@@ -153,7 +157,7 @@ function ContainersTable({ onCountChange, onOpenLogs, activeLogsId }: Containers
     }
 
     async function handleRemove(c: docker.ContainerInfo) {
-        const confirmed = await confirm(`Remover o container "${c.name}"? Essa ação não pode ser desfeita.`);
+        const confirmed = await confirm(`Remover o container "${displayName(c, names.nameLabel)}"? Essa ação não pode ser desfeita.`);
         if (!confirmed) return;
 
         setError('');
@@ -234,6 +238,8 @@ function ContainersTable({ onCountChange, onOpenLogs, activeLogsId }: Containers
                             const isRunning = c.state === 'running';
                             const isPending = pendingId === c.id;
                             const isCooling = coolingId === c.id;
+                            const shown = displayName(c, names.nameLabel);
+                            const custom = isCustomName(c, names.nameLabel);
 
                             return (
                                 <tr
@@ -247,7 +253,33 @@ function ContainersTable({ onCountChange, onOpenLogs, activeLogsId }: Containers
                                         .filter(Boolean)
                                         .join(' ')}
                                 >
-                                    <td className="container-row__name">{c.name}</td>
+                                    <td className="container-row__name">
+                                        <span className="container-row__title">
+                                            <span>{shown}</span>
+                                            <button
+                                                className="container-row__info"
+                                                onClick={() => setDetails(c)}
+                                                title="Detalhes e etiquetas"
+                                                aria-label={`Detalhes e etiquetas de ${c.name}`}
+                                            >
+                                                <InfoIcon size={12} />
+                                            </button>
+                                        </span>
+                                        {custom && (
+                                            <span className="container-row__compose" title="Nome no Docker">
+                                                {c.name}
+                                            </span>
+                                        )}
+                                        {c.service && (
+                                            <span
+                                                className="container-row__compose"
+                                                title={`Serviço ${c.service} do projeto Docker Compose ${c.project || '—'}`}
+                                            >
+                                                serviço: {c.service}
+                                                {c.project ? ` · projeto: ${c.project}` : ''}
+                                            </span>
+                                        )}
+                                    </td>
                                     <td className="container-row__image" data-label="Imagem">{c.image}</td>
                                     <td className="container-row__ports" data-label="Portas">{c.ports || '—'}</td>
                                     <td className="container-row__metric" data-label="CPU">
@@ -278,7 +310,7 @@ function ContainersTable({ onCountChange, onOpenLogs, activeLogsId }: Containers
                                                 className="action-key"
                                                 aria-pressed={activeLogsId === c.id}
                                                 title="Ver os logs deste container"
-                                                onClick={() => onOpenLogs(c.id, c.name)}
+                                                onClick={() => onOpenLogs(c.id, c.name, shown)}
                                             >
                                                 Logs
                                             </button>
@@ -331,6 +363,14 @@ function ContainersTable({ onCountChange, onOpenLogs, activeLogsId }: Containers
                         })}
                     </tbody>
                 </table>
+            )}
+            {details && (
+                <ContainerDetailsDialog
+                    container={details}
+                    nameLabel={names.nameLabel}
+                    onNameLabelChange={names.setNameLabel}
+                    onClose={() => setDetails(null)}
+                />
             )}
         </>
     );

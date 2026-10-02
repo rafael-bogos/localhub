@@ -75,6 +75,10 @@ type Service struct {
 	term   *terminal
 	// logs holds the cancel function of each open remote log stream, by session.
 	logs map[string]context.CancelFunc
+
+	// tunnels are the open port forwards, by id (see tunnel.go).
+	tmu     sync.Mutex
+	tunnels map[string]*tunnel
 }
 
 func NewService(emit Emit) *Service {

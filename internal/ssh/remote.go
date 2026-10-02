@@ -86,7 +86,7 @@ func (s *Service) ListContainers(ctx context.Context, id string) (RemoteContaine
 	if err != nil {
 		return RemoteContainers{}, err
 	}
-	res, err := runScript(ctx, conn, `docker ps -a --no-trunc --format "{{json .}}"`, listTimeout)
+	res, err := runScript(ctx, conn, containersScript, listTimeout)
 	if err != nil {
 		return RemoteContainers{}, err
 	}
@@ -96,7 +96,7 @@ func (s *Service) ListContainers(ctx context.Context, id string) (RemoteContaine
 		}
 		return RemoteContainers{}, failure(res, "falha ao listar os containers do servidor")
 	}
-	items, err := parseContainers(res.Stdout)
+	items, err := parseContainersOutput(res.Stdout)
 	if err != nil {
 		return RemoteContainers{}, err
 	}

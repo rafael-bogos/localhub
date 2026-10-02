@@ -58,8 +58,16 @@ export function PruneImages() {
   return window['go']['main']['App']['PruneImages']();
 }
 
+export function RemoteCloseTunnel(arg1) {
+  return window['go']['main']['App']['RemoteCloseTunnel'](arg1);
+}
+
 export function RemoteContainerAction(arg1, arg2, arg3) {
   return window['go']['main']['App']['RemoteContainerAction'](arg1, arg2, arg3);
+}
+
+export function RemoteContainerNetworks(arg1, arg2) {
+  return window['go']['main']['App']['RemoteContainerNetworks'](arg1, arg2);
 }
 
 export function RemoteKillProcess(arg1, arg2) {
@@ -78,8 +86,16 @@ export function RemoteListPorts(arg1) {
   return window['go']['main']['App']['RemoteListPorts'](arg1);
 }
 
+export function RemoteListTunnels() {
+  return window['go']['main']['App']['RemoteListTunnels']();
+}
+
 export function RemoteLoadOlderLogs(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['RemoteLoadOlderLogs'](arg1, arg2, arg3, arg4);
+}
+
+export function RemoteOpenTunnel(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['RemoteOpenTunnel'](arg1, arg2, arg3, arg4, arg5);
 }
 
 export function RemoteRemoveImage(arg1, arg2) {
@@ -92,6 +108,10 @@ export function RemoteStartLogs(arg1, arg2, arg3, arg4) {
 
 export function RemoteStopLogs(arg1) {
   return window['go']['main']['App']['RemoteStopLogs'](arg1);
+}
+
+export function RemoteSuggestLocalPort(arg1) {
+  return window['go']['main']['App']['RemoteSuggestLocalPort'](arg1);
 }
 
 export function RemoveContainer(arg1) {

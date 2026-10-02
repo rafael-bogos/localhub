@@ -8,6 +8,14 @@ type ContainerInfo struct {
 	Status string `json:"status"`
 	State  string `json:"state"`
 	Ports  string `json:"ports"`
+	// Project and Service come from the Docker Compose labels; empty for
+	// containers that weren't started by Compose.
+	Project string `json:"project"`
+	Service string `json:"service"`
+	// Labels are all the container's labels. Platforms (Coolify, Dokku,
+	// Portainer...) keep the readable name of an app there while the container
+	// itself gets a generated name.
+	Labels map[string]string `json:"labels"`
 }
 
 // ImageInfo describes a Docker image for display in the UI.

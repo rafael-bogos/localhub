@@ -7,6 +7,7 @@ import { AlertIcon, ChevronIcon, CloseIcon, SearchIcon, ServerIcon } from './ico
 import { connInfo, type SshConnectionsApi } from '../useSshConnections';
 import type { SshHost, SshHostsApi } from '../useSshHosts';
 import type { SshConnectApi } from '../useSshConnect';
+import type { ssh } from '../../wailsjs/go/models';
 
 interface SshTabProps {
     hostsApi: SshHostsApi;
@@ -15,6 +16,8 @@ interface SshTabProps {
     connectFlow: SshConnectApi;
     /** Opens a data tab (Processos, Containers, Imagens) scrolled to this server's section. */
     onOpenServerTab: (tab: ServerTab, hostId: string) => void;
+    /** Open tunnels, to warn that disconnecting closes them. */
+    tunnels: ssh.TunnelInfo[];
     /** The SSH tab is the one on screen (the component stays mounted to keep terminals alive). */
     visible: boolean;
 }
@@ -31,7 +34,7 @@ const SERVER_TABS: Array<{ tab: ServerTab; label: string }> = [
 
 const STATE_LABEL = { connecting: 'Conectando', connected: 'Conectado', disconnected: '' } as const;
 
-function SshTab({ hostsApi, connections, connectFlow, onOpenServerTab, visible }: SshTabProps) {
+function SshTab({ hostsApi, connections, connectFlow, onOpenServerTab, tunnels, visible }: SshTabProps) {
     const confirm = useConfirm();
     const { hosts, add, update, remove, addMany } = hostsApi;
     const { conns, disconnect } = connections;
@@ -126,8 +129,12 @@ function SshTab({ hostsApi, connections, connectFlow, onOpenServerTab, visible }
     }
 
     async function handleDisconnect(host: SshHost) {
-        if (terminalHostId === host.id && !terminalEnded) {
-            const ok = await confirm(`Desconectar de "${host.name}" encerra o terminal aberto. Continuar?`);
+        const effects: string[] = [];
+        if (terminalHostId === host.id && !terminalEnded) effects.push('encerra o terminal aberto');
+        const nTunnels = tunnels.filter((t) => t.hostId === host.id).length;
+        if (nTunnels > 0) effects.push(`fecha ${nTunnels} ${nTunnels === 1 ? 'túnel aberto' : 'túneis abertos'}`);
+        if (effects.length > 0) {
+            const ok = await confirm(`Desconectar de "${host.name}" ${effects.join(' e ')}. Continuar?`);
             if (!ok) return;
         }
         disconnect(host.id);

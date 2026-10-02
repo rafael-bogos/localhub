@@ -21,6 +21,12 @@ rápido que o terminal, sempre, sem sair de uma única janela.
   ritual de `lsof -i` / `netstat` + `kill -9`.
 - **Containers** — lista, inicia, para, reinicia e remove containers Docker
   (rodando e parados), substituindo `docker ps` / `docker stop` / `docker rm`.
+  Containers criados pelo Docker Compose mostram também o serviço e o projeto
+  (por exemplo, `serviço: mariadb · projeto: acessorias`). O botão ⓘ ao lado do
+  nome abre os detalhes e **todas as etiquetas** do container; em plataformas
+  como Coolify ou Dokku, que dão ao container um nome gerado e guardam o nome
+  do app numa etiqueta, você escolhe qual etiqueta mostrar como nome ("Usar
+  como nome") e a escolha vale para todos os containers que a tiverem.
 - **Imagens** — lista, remove e limpa imagens Docker não usadas, substituindo
   `docker images` / `docker rmi` / `docker image prune`.
 - **Limpeza** — um `docker system prune` seletivo: você escolhe por checkbox
@@ -40,7 +46,14 @@ rápido que o terminal, sempre, sem sair de uma única janela.
     (encerrar processo, iniciar/parar/reiniciar/remover container, remover
     imagem, logs ao vivo). Toda ação destrutiva em um servidor pede confirmação
     citando o nome dele. Vários servidores podem ficar conectados ao mesmo
-    tempo; o terminal é um por vez. O servidor remoto precisa ser Linux, com
+    tempo; o terminal é um por vez.
+  - **Túnel para containers** — o botão **Túnel**, em cada container rodando de
+    um servidor, abre uma porta neste computador que leva a uma porta do
+    container (o equivalente a `ssh -fN -L 33061:172.18.3.23:3306 usuario@servidor`,
+    sem sair do app). O app descobre o IP e as portas do container, sugere uma
+    porta local livre e mostra o comando equivalente. O túnel só aceita conexões
+    de `127.0.0.1`, aparece como um chip na linha do container (com × para
+    fechar) e acaba sozinho ao desconectar o servidor. O servidor remoto precisa ser Linux, com
     `ss` e, para Containers e Imagens, o CLI `docker`.
 
 Containers e imagens locais falam direto com o Docker Engine API via SDK

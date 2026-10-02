@@ -292,3 +292,33 @@ func (a *App) RemoteStopLogs(sessionID string) {
 func (a *App) RemoteLoadOlderLogs(hostID, containerID, beforeTs string, count int) (docker.OlderLogs, error) {
 	return a.ssh.LoadOlderLogs(a.ctx, hostID, containerID, beforeTs, count)
 }
+
+// ---- Tunnels: local port forwards to containers of a server ----
+
+// RemoteContainerNetworks reads a container's networks, IPs and TCP ports, to
+// build a tunnel to it.
+func (a *App) RemoteContainerNetworks(hostID, containerID string) (lssh.ContainerNet, error) {
+	return a.ssh.ContainerNetworks(a.ctx, hostID, containerID)
+}
+
+// RemoteSuggestLocalPort proposes a free local port for a container port.
+func (a *App) RemoteSuggestLocalPort(remotePort int) int {
+	return a.ssh.SuggestLocalPort(remotePort)
+}
+
+// RemoteOpenTunnel forwards 127.0.0.1:localPort (0 = any free port) to a
+// container's port through the server, like `ssh -fN -L`. Changes are
+// announced with the "tunnels:changed" event.
+func (a *App) RemoteOpenTunnel(hostID, containerID, network string, remotePort, localPort int) (lssh.TunnelInfo, error) {
+	return a.ssh.OpenTunnel(a.ctx, hostID, containerID, network, remotePort, localPort)
+}
+
+// RemoteCloseTunnel stops a tunnel.
+func (a *App) RemoteCloseTunnel(id string) {
+	a.ssh.CloseTunnel(id)
+}
+
+// RemoteListTunnels returns the open tunnels.
+func (a *App) RemoteListTunnels() []lssh.TunnelInfo {
+	return a.ssh.ListTunnels()
+}

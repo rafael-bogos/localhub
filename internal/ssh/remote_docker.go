@@ -77,13 +77,60 @@ func jsonLines[T any](out string) ([]T, error) {
 	return items, nil
 }
 
+// labelsMarker separates the container list from the labels in the output of
+// containersScript.
+const labelsMarker = "@@LABELS@@"
+
+// labelsFormat prints one JSON object per container with its full label set.
+const labelsFormat = `{"ID":{{json .Id}},"Labels":{{json .Config.Labels}}}`
+
+// containersScript lists the containers and then their labels. Labels come
+// from `docker inspect` because `docker ps` only offers them as one
+// comma-joined string, ambiguous when a value contains a comma. A failure of
+// the second step only costs the labels, never the list.
+var containersScript = "docker ps -a --no-trunc --format " + shQuote(psFormat) +
+	" || exit $?; echo " + labelsMarker +
+	"; ids=$(docker ps -aq --no-trunc 2>/dev/null); " +
+	"if [ -n \"$ids\" ]; then docker inspect --format " + shQuote(labelsFormat) + " $ids 2>/dev/null; fi; exit 0"
+
+// psFormat lists containers as one JSON object per line. The Compose labels
+// are asked for by name (`.Label`) rather than parsed out of the comma-joined
+// `.Labels` string, whose values may themselves contain commas.
+const psFormat = `{"ID":{{json .ID}},"Names":{{json .Names}},"Image":{{json .Image}},"Status":{{json .Status}},"State":{{json .State}},"Ports":{{json .Ports}},"Project":{{json (.Label "` + docker.ComposeProjectLabel + `")}},"Service":{{json (.Label "` + docker.ComposeServiceLabel + `")}}}`
+
 type psRow struct {
-	ID     string `json:"ID"`
-	Names  string `json:"Names"`
-	Image  string `json:"Image"`
-	Status string `json:"Status"`
-	State  string `json:"State"`
-	Ports  string `json:"Ports"`
+	ID      string `json:"ID"`
+	Names   string `json:"Names"`
+	Image   string `json:"Image"`
+	Status  string `json:"Status"`
+	State   string `json:"State"`
+	Ports   string `json:"Ports"`
+	Project string `json:"Project"`
+	Service string `json:"Service"`
+}
+
+type labelRow struct {
+	ID     string            `json:"ID"`
+	Labels map[string]string `json:"Labels"`
+}
+
+// parseContainersOutput reads the output of containersScript.
+func parseContainersOutput(out string) ([]docker.ContainerInfo, error) {
+	list, rest, _ := strings.Cut(out, labelsMarker+"\n")
+	containers, err := parseContainers(list)
+	if err != nil {
+		return nil, err
+	}
+	if rows, err := jsonLines[labelRow](rest); err == nil {
+		byID := make(map[string]map[string]string, len(rows))
+		for _, r := range rows {
+			byID[r.ID] = r.Labels
+		}
+		for i := range containers {
+			containers[i].Labels = byID[containers[i].ID]
+		}
+	}
+	return containers, nil
 }
 
 func parseContainers(out string) ([]docker.ContainerInfo, error) {
@@ -100,7 +147,7 @@ func parseContainers(out string) ([]docker.ContainerInfo, error) {
 				state = "running"
 			}
 		}
-		name, _, _ := strings.Cut(r.Names, ",")
+		name := docker.RealName(strings.Split(r.Names, ","))
 		list = append(list, docker.ContainerInfo{
 			ID:     r.ID,
 			Name:   strings.TrimPrefix(name, "/"),
@@ -108,6 +155,9 @@ func parseContainers(out string) ([]docker.ContainerInfo, error) {
 			Status: r.Status,
 			State:  state,
 			Ports:  formatRemotePorts(r.Ports),
+
+			Project: r.Project,
+			Service: r.Service,
 		})
 	}
 	sort.SliceStable(list, func(i, j int) bool {
