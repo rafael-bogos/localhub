@@ -283,3 +283,44 @@ export namespace ports {
 
 }
 
+export namespace ssh {
+	
+	export class ConnectResult {
+	    code: string;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ConnectResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.code = source["code"];
+	        this.message = source["message"];
+	    }
+	}
+	export class HostSpec {
+	    id: string;
+	    address: string;
+	    port: number;
+	    user: string;
+	    method: string;
+	    keyPath: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HostSpec(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.address = source["address"];
+	        this.port = source["port"];
+	        this.user = source["user"];
+	        this.method = source["method"];
+	        this.keyPath = source["keyPath"];
+	    }
+	}
+
+}
+

@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	"localhub/internal/docker"
 	"localhub/internal/nodemodules"
 	"localhub/internal/ports"
+	lssh "localhub/internal/ssh"
 
 	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -13,6 +16,7 @@ import (
 // App struct
 type App struct {
 	ctx context.Context
+	ssh *lssh.Service
 }
 
 // NewApp creates a new App application struct
@@ -24,6 +28,16 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.ssh = lssh.NewService(func(event string, data any) {
+		wruntime.EventsEmit(ctx, event, data)
+	})
+}
+
+// shutdown is called when the app exits; it closes every SSH connection.
+func (a *App) shutdown(ctx context.Context) {
+	if a.ssh != nil {
+		a.ssh.Shutdown()
+	}
 }
 
 // ListPorts returns the local ports currently in use, along with the
@@ -136,6 +150,20 @@ func (a *App) PickDirectory() (string, error) {
 	})
 }
 
+// PickFile opens the native file chooser, starting in ~/.ssh, and returns
+// the chosen path, or "" if the user cancelled. Used to select SSH keys.
+func (a *App) PickFile() (string, error) {
+	opts := wruntime.OpenDialogOptions{
+		Title:                "Escolha o arquivo da chave privada",
+		ShowHiddenFiles:      true,
+		CanCreateDirectories: false,
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		opts.DefaultDirectory = filepath.Join(home, ".ssh")
+	}
+	return wruntime.OpenFileDialog(a.ctx, opts)
+}
+
 // ScanNodeModules lists every project's node_modules under the given root.
 func (a *App) ScanNodeModules(root string) (nodemodules.ScanResult, error) {
 	return nodemodules.Scan(a.ctx, root)
@@ -158,4 +186,44 @@ func (a *App) RemoveNodeModules(paths []string) []nodemodules.RemoveResult {
 	return nodemodules.Remove(paths, func(event string, data any) {
 		wruntime.EventsEmit(a.ctx, event, data)
 	})
+}
+
+// SSHConnect connects to a saved server and blocks until it is established.
+// Events ("ssh:state|hostkey:<id>") must be subscribed to before calling. The
+// passphrase is only needed for encrypted keys; the result code tells the UI
+// when to ask for one.
+func (a *App) SSHConnect(spec lssh.HostSpec, passphrase string) lssh.ConnectResult {
+	return a.ssh.Connect(a.ctx, spec, []byte(passphrase))
+}
+
+// SSHConfirmHostKey answers the "ssh:hostkey:<id>" prompt for a server seen
+// for the first time.
+func (a *App) SSHConfirmHostKey(id string, accept bool) {
+	a.ssh.ConfirmHostKey(id, accept)
+}
+
+// SSHDisconnect closes the connection to a server, and its terminal.
+func (a *App) SSHDisconnect(id string) {
+	a.ssh.Disconnect(id)
+}
+
+// SSHOpenTerminal starts a shell on a connected server. Output arrives as
+// "ssh:data:<id>" (base64) and the end as "ssh:end:<id>"; subscribe first.
+func (a *App) SSHOpenTerminal(id string, cols, rows int) error {
+	return a.ssh.OpenTerminal(id, cols, rows)
+}
+
+// SSHWrite sends keystrokes to the server's terminal.
+func (a *App) SSHWrite(id, data string) error {
+	return a.ssh.WriteTerminal(id, data)
+}
+
+// SSHResize propagates the terminal size to the remote PTY.
+func (a *App) SSHResize(id string, cols, rows int) error {
+	return a.ssh.ResizeTerminal(id, cols, rows)
+}
+
+// SSHCloseTerminal ends the shell but keeps the connection alive.
+func (a *App) SSHCloseTerminal(id string) {
+	a.ssh.CloseTerminal(id)
 }

@@ -3,6 +3,7 @@
 import {docker} from '../models';
 import {ports} from '../models';
 import {nodemodules} from '../models';
+import {ssh} from '../models';
 
 export function CancelNodeModulesScan():Promise<void>;
 
@@ -28,6 +29,8 @@ export function NodeModulesSize(arg1:string):Promise<number>;
 
 export function PickDirectory():Promise<string>;
 
+export function PickFile():Promise<string>;
+
 export function PruneImages():Promise<docker.PruneResult>;
 
 export function RemoveContainer(arg1:string):Promise<void>;
@@ -37,6 +40,20 @@ export function RemoveImage(arg1:string):Promise<void>;
 export function RemoveNodeModules(arg1:Array<string>):Promise<Array<nodemodules.RemoveResult>>;
 
 export function RestartContainer(arg1:string):Promise<void>;
+
+export function SSHCloseTerminal(arg1:string):Promise<void>;
+
+export function SSHConfirmHostKey(arg1:string,arg2:boolean):Promise<void>;
+
+export function SSHConnect(arg1:ssh.HostSpec,arg2:string):Promise<ssh.ConnectResult>;
+
+export function SSHDisconnect(arg1:string):Promise<void>;
+
+export function SSHOpenTerminal(arg1:string,arg2:number,arg3:number):Promise<void>;
+
+export function SSHResize(arg1:string,arg2:number,arg3:number):Promise<void>;
+
+export function SSHWrite(arg1:string,arg2:string):Promise<void>;
 
 export function ScanNodeModules(arg1:string):Promise<nodemodules.ScanResult>;
 

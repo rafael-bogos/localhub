@@ -50,6 +50,10 @@ export function PickDirectory() {
   return window['go']['main']['App']['PickDirectory']();
 }
 
+export function PickFile() {
+  return window['go']['main']['App']['PickFile']();
+}
+
 export function PruneImages() {
   return window['go']['main']['App']['PruneImages']();
 }
@@ -68,6 +72,34 @@ export function RemoveNodeModules(arg1) {
 
 export function RestartContainer(arg1) {
   return window['go']['main']['App']['RestartContainer'](arg1);
+}
+
+export function SSHCloseTerminal(arg1) {
+  return window['go']['main']['App']['SSHCloseTerminal'](arg1);
+}
+
+export function SSHConfirmHostKey(arg1, arg2) {
+  return window['go']['main']['App']['SSHConfirmHostKey'](arg1, arg2);
+}
+
+export function SSHConnect(arg1, arg2) {
+  return window['go']['main']['App']['SSHConnect'](arg1, arg2);
+}
+
+export function SSHDisconnect(arg1) {
+  return window['go']['main']['App']['SSHDisconnect'](arg1);
+}
+
+export function SSHOpenTerminal(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SSHOpenTerminal'](arg1, arg2, arg3);
+}
+
+export function SSHResize(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SSHResize'](arg1, arg2, arg3);
+}
+
+export function SSHWrite(arg1, arg2) {
+  return window['go']['main']['App']['SSHWrite'](arg1, arg2);
 }
 
 export function ScanNodeModules(arg1) {
