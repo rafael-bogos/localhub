@@ -28,7 +28,10 @@ rápido que o terminal, sempre, sem sair de uma única janela.
   do app numa etiqueta, você escolhe qual etiqueta mostrar como nome ("Usar
   como nome") e a escolha vale para todos os containers que a tiverem.
 - **Imagens** — lista, remove e limpa imagens Docker não usadas, substituindo
-  `docker images` / `docker rmi` / `docker image prune`.
+  `docker images` / `docker rmi` / `docker image prune`. Containers e imagens têm
+  busca no cabeçalho: containers por nome, ID, imagem ou serviço do Compose;
+  imagens por nome, tag ou ID (várias palavras valem juntas, e a busca também
+  filtra as seções dos servidores).
 - **Limpeza** — um `docker system prune` seletivo: você escolhe por checkbox
   quais categorias limpar (containers parados, imagens não usadas, redes não
   usadas, cache de build) em vez do tudo-ou-nada da CLI. Volumes nunca são

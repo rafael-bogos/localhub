@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { RemoteCloseTunnel, RemoteContainerAction, RemoteListContainers } from '../../wailsjs/go/main/App';
 import { docker, ssh } from '../../wailsjs/go/models';
 import { AlertIcon, CloseIcon, InfoIcon } from './icons';
+import { matchesSearch } from '../search';
 import ContainerDetailsDialog from './ContainerDetailsDialog';
 import { displayName, isCustomName, type NameLabelApi } from '../containerName';
 import TunnelDialog from './TunnelDialog';
@@ -14,6 +15,8 @@ const COOL_DOWN_MS = 340;
 type Action = 'start' | 'stop' | 'restart' | 'remove';
 
 interface RemoteContainersSectionProps {
+    /** The header search box: matches names, IDs, images and Compose service/project. */
+    query: string;
     names: NameLabelApi;
     host: SshHost;
     /** Open tunnels, all servers; the section shows the ones of its own containers. */
@@ -29,6 +32,7 @@ interface RemoteContainersSectionProps {
 
 /** Docker containers of one connected server. CPU and memory are not sampled remotely. */
 function RemoteContainersSection({
+    query,
     names,
     host,
     tunnels,
@@ -88,7 +92,10 @@ function RemoteContainersSection({
         }
     }
 
-    const items = result?.items ?? [];
+    const all = result?.items ?? [];
+    const items = all.filter((c) =>
+        matchesSearch(query, c.name, displayName(c, names.nameLabel), c.id, c.image, c.service, c.project)
+    );
 
     return (
         <>
@@ -100,7 +107,10 @@ function RemoteContainersSection({
             )}
             {!result && !error && <GroupNote>Carregando…</GroupNote>}
             {result && result.status !== 'ok' && <GroupNote tone="warn">{result.message}</GroupNote>}
-            {result?.status === 'ok' && items.length === 0 && <GroupNote>Nenhum container neste servidor.</GroupNote>}
+            {result?.status === 'ok' && all.length === 0 && <GroupNote>Nenhum container neste servidor.</GroupNote>}
+            {result?.status === 'ok' && all.length > 0 && items.length === 0 && (
+                <GroupNote>Nenhum container deste servidor corresponde a "{query.trim()}".</GroupNote>
+            )}
             {result?.status === 'ok' && items.length > 0 && (
                 <table className="remote-table remote-table--containers">
                     <thead>

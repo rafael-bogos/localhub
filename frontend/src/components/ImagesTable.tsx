@@ -1,16 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { ListImages, PruneImages, RemoveImage } from '../../wailsjs/go/main/App';
 import { docker } from '../../wailsjs/go/models';
-import { AlertIcon, LayersIcon } from './icons';
+import { AlertIcon, LayersIcon, SearchIcon } from './icons';
+import { matchesSearch } from '../search';
 import { useConfirm } from './ConfirmDialog';
 
 const COOL_DOWN_MS = 340;
 
 interface ImagesTableProps {
+    /** The header search box: matches repository, tag and ID. */
+    query: string;
     onCountChange: (count: number) => void;
 }
 
-function ImagesTable({ onCountChange }: ImagesTableProps) {
+function ImagesTable({ query, onCountChange }: ImagesTableProps) {
     const confirm = useConfirm();
     const [images, setImages] = useState<docker.ImageInfo[]>([]);
     const [loading, setLoading] = useState(false);
@@ -87,6 +90,10 @@ function ImagesTable({ onCountChange }: ImagesTableProps) {
         }
     }
 
+    const visible = images.filter((img) =>
+        matchesSearch(query, img.repository, img.tag, `${img.repository}:${img.tag}`, img.id)
+    );
+
     if (!loading && images.length === 0 && !error) {
         return (
             <div className="empty-state">
@@ -114,6 +121,14 @@ function ImagesTable({ onCountChange }: ImagesTableProps) {
                         {pruneMessage && <span className="prune-result">{pruneMessage}</span>}
                     </div>
 
+                    {visible.length === 0 && (
+                        <div className="empty-state">
+                            <SearchIcon size={32} />
+                            <p>Nenhuma imagem encontrada para "{query.trim()}".</p>
+                        </div>
+                    )}
+
+                    {visible.length > 0 && (
                     <table className="images-table">
                         <thead>
                             <tr>
@@ -126,7 +141,7 @@ function ImagesTable({ onCountChange }: ImagesTableProps) {
                             </tr>
                         </thead>
                         <tbody>
-                            {images.map((img) => {
+                            {visible.map((img) => {
                                 const isRemoving = removingId === img.id;
                                 const isCooling = coolingId === img.id;
 
@@ -158,6 +173,7 @@ function ImagesTable({ onCountChange }: ImagesTableProps) {
                             })}
                         </tbody>
                     </table>
+                    )}
                 </>
             )}
         </>

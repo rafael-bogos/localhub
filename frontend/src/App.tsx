@@ -24,6 +24,13 @@ import logo from './assets/images/localhub-logo.svg';
 
 const COOL_DOWN_MS = 340;
 
+// The header search box changes meaning with the tab; each tab keeps its own text.
+const SEARCH_UI = {
+    portas: { placeholder: 'Buscar porta ou processo', label: 'Buscar por número da porta ou nome do processo' },
+    containers: { placeholder: 'Buscar nome ou ID', label: 'Buscar containers por nome ou ID' },
+    imagens: { placeholder: 'Buscar nome, tag ou ID', label: 'Buscar imagens por nome, tag ou ID' },
+} as const;
+
 type Tab = 'portas' | 'containers' | 'imagens' | 'limpeza' | 'ssh';
 
 const TAB_LABELS: Record<Tab, string> = {
@@ -55,6 +62,8 @@ function App() {
 
     const [portList, setPortList] = useState<ports.PortInfo[]>([]);
     const [portSearch, setPortSearch] = useState('');
+    const [containerSearch, setContainerSearch] = useState('');
+    const [imageSearch, setImageSearch] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [killingPid, setKillingPid] = useState<number | null>(null);
@@ -181,6 +190,10 @@ function App() {
         }
     }, [portList.length]);
 
+    const searchValue =
+        activeTab === 'containers' ? containerSearch : activeTab === 'imagens' ? imageSearch : portSearch;
+    const setSearchValue =
+        activeTab === 'containers' ? setContainerSearch : activeTab === 'imagens' ? setImageSearch : setPortSearch;
     const remoteTotal = (tab: 'portas' | 'containers' | 'imagens') =>
         remoteHosts.reduce(
             (sum, h) =>
@@ -325,6 +338,7 @@ function App() {
                             )}
                             {tab === 'containers' && (
                                 <RemoteContainersSection
+                                    query={containerSearch}
                                     names={names}
                                     host={h}
                                     tunnels={tunnels}
@@ -338,6 +352,7 @@ function App() {
                             )}
                             {tab === 'imagens' && (
                                 <RemoteImagesSection
+                                    query={imageSearch}
                                     hostId={h.id}
                                     hostName={h.name}
                                     refreshKey={refreshKey}
@@ -384,21 +399,21 @@ function App() {
                 </nav>
 
                 <div className="fascia__controls">
-                    {activeTab === 'portas' && (
+                    {(activeTab === 'portas' || activeTab === 'containers' || activeTab === 'imagens') && (
                         <div className="port-search">
                             <SearchIcon size={14} className="port-search__icon" />
                             <input
                                 type="text"
                                 className="port-search__input"
-                                placeholder="Buscar porta ou processo"
-                                value={portSearch}
-                                onChange={(e) => setPortSearch(e.target.value)}
-                                aria-label="Buscar por número da porta ou nome do processo"
+                                placeholder={SEARCH_UI[activeTab].placeholder}
+                                value={searchValue}
+                                onChange={(e) => setSearchValue(e.target.value)}
+                                aria-label={SEARCH_UI[activeTab].label}
                             />
-                            {portSearch && (
+                            {searchValue && (
                                 <button
                                     className="port-search__clear"
-                                    onClick={() => setPortSearch('')}
+                                    onClick={() => setSearchValue('')}
                                     title="Limpar busca"
                                     aria-label="Limpar busca"
                                 >
@@ -465,6 +480,7 @@ function App() {
                         renderGroups(
                             'containers',
                             <ContainersTable
+                                query={containerSearch}
                                 names={names}
                                 key={refreshKey}
                                 activeLogsId={logsTarget && !logsTarget.hostId ? logsTarget.id : null}
@@ -476,6 +492,7 @@ function App() {
                         renderGroups(
                             'imagens',
                             <ImagesTable
+                                query={imageSearch}
                                 key={refreshKey}
                                 onCountChange={(n) => setCounts((prev) => ({ ...prev, imagens: n }))}
                             />

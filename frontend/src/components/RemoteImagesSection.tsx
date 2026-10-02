@@ -2,12 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { RemoteListImages, RemoteRemoveImage } from '../../wailsjs/go/main/App';
 import { docker, ssh } from '../../wailsjs/go/models';
 import { AlertIcon } from './icons';
+import { matchesSearch } from '../search';
 import { GroupNote } from './HostGroup';
 import { useConfirm } from './ConfirmDialog';
 
 const COOL_DOWN_MS = 340;
 
 interface RemoteImagesSectionProps {
+    /** The header search box: matches repository, tag and ID. */
+    query: string;
     hostId: string;
     hostName: string;
     refreshKey: number;
@@ -15,7 +18,7 @@ interface RemoteImagesSectionProps {
 }
 
 /** Docker images of one connected server. */
-function RemoteImagesSection({ hostId, hostName, refreshKey, onCount }: RemoteImagesSectionProps) {
+function RemoteImagesSection({ query, hostId, hostName, refreshKey, onCount }: RemoteImagesSectionProps) {
     const confirm = useConfirm();
     const [result, setResult] = useState<ssh.RemoteImages | null>(null);
     const [error, setError] = useState('');
@@ -58,7 +61,10 @@ function RemoteImagesSection({ hostId, hostName, refreshKey, onCount }: RemoteIm
         }
     }
 
-    const items = result?.items ?? [];
+    const all = result?.items ?? [];
+    const items = all.filter((img) =>
+        matchesSearch(query, img.repository, img.tag, `${img.repository}:${img.tag}`, img.id)
+    );
 
     return (
         <>
@@ -70,7 +76,10 @@ function RemoteImagesSection({ hostId, hostName, refreshKey, onCount }: RemoteIm
             )}
             {!result && !error && <GroupNote>Carregando…</GroupNote>}
             {result && result.status !== 'ok' && <GroupNote tone="warn">{result.message}</GroupNote>}
-            {result?.status === 'ok' && items.length === 0 && <GroupNote>Nenhuma imagem neste servidor.</GroupNote>}
+            {result?.status === 'ok' && all.length === 0 && <GroupNote>Nenhuma imagem neste servidor.</GroupNote>}
+            {result?.status === 'ok' && all.length > 0 && items.length === 0 && (
+                <GroupNote>Nenhuma imagem deste servidor corresponde a "{query.trim()}".</GroupNote>
+            )}
             {result?.status === 'ok' && items.length > 0 && (
                 <table className="remote-table remote-table--images">
                     <thead>

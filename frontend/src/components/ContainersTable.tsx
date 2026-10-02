@@ -8,7 +8,8 @@ import {
     StopContainer,
 } from '../../wailsjs/go/main/App';
 import { docker } from '../../wailsjs/go/models';
-import { AlertIcon, BoxIcon, InfoIcon } from './icons';
+import { AlertIcon, BoxIcon, InfoIcon, SearchIcon } from './icons';
+import { matchesSearch } from '../search';
 import ContainerDetailsDialog from './ContainerDetailsDialog';
 import { displayName, isCustomName, type NameLabelApi } from '../containerName';
 import { useConfirm } from './ConfirmDialog';
@@ -23,13 +24,15 @@ function memoryTitle(s?: docker.ContainerStats): string | undefined {
 }
 
 interface ContainersTableProps {
+    /** The header search box: matches names, IDs, images and Compose service/project. */
+    query: string;
     names: NameLabelApi;
     onCountChange: (count: number) => void;
     onOpenLogs: (id: string, name: string, label?: string) => void;
     activeLogsId: string | null;
 }
 
-function ContainersTable({ names, onCountChange, onOpenLogs, activeLogsId }: ContainersTableProps) {
+function ContainersTable({ query, names, onCountChange, onOpenLogs, activeLogsId }: ContainersTableProps) {
     const confirm = useConfirm();
     const [containers, setContainers] = useState<docker.ContainerInfo[]>([]);
     const [loading, setLoading] = useState(false);
@@ -64,6 +67,9 @@ function ContainersTable({ names, onCountChange, onOpenLogs, activeLogsId }: Con
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const visible = containers.filter((c) =>
+        matchesSearch(query, c.name, displayName(c, names.nameLabel), c.id, c.image, c.service, c.project)
+    );
     const runningCount = containers.filter((c) => c.state === 'running').length;
     const hasRunning = runningCount > 0;
     const sampled = containers.filter((c) => c.state === 'running' && stats[c.id]);
@@ -220,7 +226,14 @@ function ContainersTable({ names, onCountChange, onOpenLogs, activeLogsId }: Con
                 </dl>
             )}
 
-            {containers.length > 0 && (
+            {containers.length > 0 && visible.length === 0 && (
+                <div className="empty-state">
+                    <SearchIcon size={32} />
+                    <p>Nenhum container encontrado para "{query.trim()}".</p>
+                </div>
+            )}
+
+            {visible.length > 0 && (
                 <table className="containers-table">
                     <thead>
                         <tr>
@@ -234,7 +247,7 @@ function ContainersTable({ names, onCountChange, onOpenLogs, activeLogsId }: Con
                         </tr>
                     </thead>
                     <tbody>
-                        {containers.map((c) => {
+                        {visible.map((c) => {
                             const isRunning = c.state === 'running';
                             const isPending = pendingId === c.id;
                             const isCooling = coolingId === c.id;
