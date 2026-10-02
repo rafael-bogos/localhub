@@ -6,28 +6,37 @@ import PortsTable from './components/PortsTable';
 import ContainersTable from './components/ContainersTable';
 import ImagesTable from './components/ImagesTable';
 import CleanupTab from './components/CleanupTab';
+import SshTab from './components/SshTab';
 import LogsDrawer, { type LogsTarget } from './components/LogsDrawer';
 import { useLogsPrefs } from './useLogsPrefs';
+import { useSshHosts } from './useSshHosts';
+import { useSshConnections } from './useSshConnections';
 import { RefreshIcon, SearchIcon, CloseIcon } from './components/icons';
 import { useConfirm } from './components/ConfirmDialog';
 import logo from './assets/images/localhub-logo.svg';
 
 const COOL_DOWN_MS = 340;
 
-type Tab = 'portas' | 'containers' | 'imagens' | 'limpeza';
+type Tab = 'portas' | 'containers' | 'imagens' | 'limpeza' | 'ssh';
 
 const TAB_LABELS: Record<Tab, string> = {
     portas: 'Processos',
     containers: 'Containers',
     imagens: 'Imagens',
     limpeza: 'Limpeza',
+    ssh: 'SSH',
 };
 
 function App() {
     const confirm = useConfirm();
     const [activeTab, setActiveTab] = useState<Tab>('portas');
-    const [counts, setCounts] = useState<Record<Tab, number>>({ portas: 0, containers: 0, imagens: 0, limpeza: 0 });
+    const [counts, setCounts] = useState<Record<Tab, number>>({ portas: 0, containers: 0, imagens: 0, limpeza: 0, ssh: 0 });
     const [refreshKey, setRefreshKey] = useState(0);
+
+    const sshHosts = useSshHosts();
+    const sshConnections = useSshConnections();
+    // The SSH tab stays mounted once opened, so open terminals survive tab switches.
+    const [sshMounted, setSshMounted] = useState(false);
 
     const [portList, setPortList] = useState<ports.PortInfo[]>([]);
     const [portSearch, setPortSearch] = useState('');
@@ -151,7 +160,7 @@ function App() {
         }
     }, [portList.length]);
 
-    const activeCount = counts[activeTab];
+    const activeCount = activeTab === 'ssh' ? sshHosts.hosts.length : counts[activeTab];
     // Matches the port number or the process name (case-insensitive). A row
     // that belongs to a Docker container also matches its container name,
     // since that name is shown on the row.
@@ -168,7 +177,7 @@ function App() {
     function handleRefresh() {
         if (activeTab === 'portas') {
             loadPorts();
-        } else if (activeTab !== 'limpeza') {
+        } else if (activeTab !== 'limpeza' && activeTab !== 'ssh') {
             setRefreshKey((k) => k + 1);
         }
     }
@@ -186,7 +195,10 @@ function App() {
                         <button
                             key={tab}
                             className={`tab-btn${activeTab === tab ? ' tab-btn--active' : ''}`}
-                            onClick={() => setActiveTab(tab)}
+                            onClick={() => {
+                                if (tab === 'ssh') setSshMounted(true);
+                                setActiveTab(tab);
+                            }}
                         >
                             {TAB_LABELS[tab]}
                         </button>
@@ -222,7 +234,9 @@ function App() {
                         title={
                             activeTab === 'limpeza'
                                 ? 'Itens selecionados para limpeza'
-                                : activeTab === 'portas'
+                                : activeTab === 'ssh'
+                                  ? 'Servidores salvos'
+                                  : activeTab === 'portas'
                                   ? 'Processos listados agora'
                                   : `${TAB_LABELS[activeTab]} listadas agora`
                         }
@@ -231,15 +245,15 @@ function App() {
                             {activeCount}
                         </span>
                         <span className="port-counter__label">
-                            {activeTab === 'limpeza' ? 'Selecionadas' : TAB_LABELS[activeTab]}
+                            {activeTab === 'limpeza' ? 'Selecionadas' : activeTab === 'ssh' ? 'Servidores' : TAB_LABELS[activeTab]}
                         </span>
                     </div>
                     <button
                         className={`refresh-btn${loading && activeTab === 'portas' ? ' refresh-btn--loading' : ''}`}
                         onClick={handleRefresh}
-                        disabled={(loading && activeTab === 'portas') || activeTab === 'limpeza'}
+                        disabled={(loading && activeTab === 'portas') || activeTab === 'limpeza' || activeTab === 'ssh'}
                         title={
-                            activeTab === 'limpeza'
+                            activeTab === 'limpeza' || activeTab === 'ssh'
                                 ? 'Nada para atualizar aqui'
                                 : loading && activeTab === 'portas'
                                   ? 'Atualizando...'
@@ -283,6 +297,11 @@ function App() {
                     )}
                     {activeTab === 'limpeza' && (
                         <CleanupTab onCountChange={(n) => setCounts((prev) => ({ ...prev, limpeza: n }))} />
+                    )}
+                    {sshMounted && (
+                        <div className="ssh-host" hidden={activeTab !== 'ssh'}>
+                            <SshTab hostsApi={sshHosts} connections={sshConnections} visible={activeTab === 'ssh'} />
+                        </div>
                     )}
                 </main>
                 {logsTarget && (

@@ -61,8 +61,10 @@ type HostKeyPrompt struct {
 }
 
 // Service ties connections, host-key confirmation and the terminal together.
-// All events are keyed by the server ID: "ssh:state:<id>", "ssh:hostkey:<id>",
-// "ssh:data:<id>", "ssh:end:<id>". The frontend subscribes before calling.
+// Connection events are keyed by the server ID ("ssh:state:<id>",
+// "ssh:hostkey:<id>"); terminal events by a session ID the frontend picks
+// ("ssh:data:<session>", "ssh:end:<session>"). The frontend subscribes
+// before calling.
 type Service struct {
 	mgr  *Manager
 	emit Emit
@@ -171,36 +173,44 @@ func (s *Service) ConfirmHostKey(id string, accept bool) {
 func (s *Service) Disconnect(id string) { s.mgr.Disconnect(id) }
 
 // OpenTerminal starts a shell on the server's connection. Only one terminal
-// can be open at a time; the caller closes the previous one first.
-func (s *Service) OpenTerminal(id string, cols, rows int) error {
+// can be open at a time; the caller closes the previous one first. Output
+// goes to "ssh:data:<session>" and the end to "ssh:end:<session>".
+func (s *Service) OpenTerminal(id, session string, cols, rows int) error {
 	conn, ok := s.mgr.Get(id)
 	if !ok {
 		return errors.New("este servidor não está conectado")
 	}
+	if session == "" {
+		return errors.New("sessão do terminal sem identificador")
+	}
 
 	s.mu.Lock()
-	if s.term != nil {
+	if s.term != nil && !s.term.ended.Load() {
 		s.mu.Unlock()
 		return errors.New("já existe um terminal aberto")
 	}
-	s.termID = id
-	s.term = &terminal{} // reserve the slot while the shell starts
+	placeholder := &terminal{} // reserve the slot while the shell starts
+	s.termID, s.term = id, placeholder
 	s.mu.Unlock()
 
-	t, err := openTerminal(conn, s.emit, cols, rows, func() { s.releaseTerminal(id) })
+	t, err := openTerminal(conn, s.emit, session, cols, rows, s.releaseTerminal)
 	if err != nil {
-		s.releaseTerminal(id)
+		s.releaseTerminal(placeholder)
 		return err
 	}
 	s.mu.Lock()
-	s.term = t
+	if s.term == placeholder {
+		s.term = t
+	}
 	s.mu.Unlock()
 	return nil
 }
 
-func (s *Service) releaseTerminal(id string) {
+// releaseTerminal frees the slot, but only if t still owns it: the end of an
+// old terminal must not release the one that replaced it.
+func (s *Service) releaseTerminal(t *terminal) {
 	s.mu.Lock()
-	if s.termID == id {
+	if s.term == t {
 		s.term, s.termID = nil, ""
 	}
 	s.mu.Unlock()
@@ -234,8 +244,10 @@ func (s *Service) ResizeTerminal(id string, cols, rows int) error {
 }
 
 // CloseTerminal ends the shell but keeps the connection (and its data) alive.
-func (s *Service) CloseTerminal(id string) {
-	if t, err := s.activeTerminal(id); err == nil {
+// It only acts on the given session: a late close of an old terminal must not
+// end the one that replaced it.
+func (s *Service) CloseTerminal(id, session string) {
+	if t, err := s.activeTerminal(id); err == nil && t.session == session {
 		t.close()
 	}
 }

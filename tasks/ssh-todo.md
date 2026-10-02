@@ -6,17 +6,25 @@ Ordem por dependência: conexão → terminal → lista de servidores → dados 
 (processos → containers/imagens) → agrupamento → extras. Cada tarefa deixa o app
 compilando e funcionando.
 
-> Status: **Fase 1 (T1–T4) concluída.** Verificada com programa temporário (removido) contra um
-> servidor SSH em processo: TOFU recusado/aceito, chave alterada bloqueada,
-> reconexão sem perguntar, porta fechada e cancelamento por `ctx`.
-> T2 verificada do mesmo modo (servidor exigindo chave pública + agente em processo):
-> chave sem/com passphrase, passphrase errada/zerada, `~`, chave não autorizada,
-> agent presente/ausente/vazio e `Cleanup`. Também compila para Windows e macOS.
-> T3 verificada com `go run -race` contra servidor em processo com PTY: códigos
-> `passphrase_required`/`bad_passphrase`, TOFU via evento, PTY 100x30 e resize,
-> 2 MiB de saída em 32 eventos, `exit`, `CloseTerminal`, `Disconnect` com terminal
-> aberto e recusa de segundo terminal. `OnShutdown` já fecha as conexões (parte da T18).
-> **Ainda não testado:** servidor OpenSSH real e a ponte de eventos no `wails dev`.
+> Status: **Fases 1 e 2 (T1–T8) concluídas.** Verificadas no app real (`wails dev`,
+> página aberta no Chrome via CDP, backend Go ligado por websocket) contra um
+> `sshd` OpenSSH de verdade em `127.0.0.1:2222`, com `HOME` isolado: lista e
+> formulário, pedido de confiança do fingerprint, conexão por chave, passphrase
+> (errada e certa), terminal (eco, PTY, resize, 30 mil linhas, `Esc` chega ao
+> shell, `exit`, reabrir), troca de aba mantém o terminal, desconectar com
+> confirmação, falha de conexão, busca, persistência e layout estreito;
+> importação do `~/.ssh/config` (duplicados, mesmo destino, ignorados) e conexão
+> com o servidor importado. Os roteiros de teste não estão no repositório.
+>
+> Bugs achados pelo teste e corrigidos: o evento de fim de um terminal antigo
+> chegava ao terminal novo do mesmo servidor, e o fim do antigo podia liberar a
+> vaga do novo. Agora os eventos do terminal são por sessão
+> (`ssh:data|end:<session>`, escolhida pelo frontend) e `SSHCloseTerminal` exige a
+> sessão. Conexão e chave do servidor continuam por ID (`ssh:state|hostkey:<id>`).
+>
+> **Ainda não testado:** ssh-agent real (só um agente em processo, na T2), Windows
+> e macOS (só compilam), recarregar a janela com conexões abertas (o backend as
+> mantém; no app empacotado não há recarga).
 >
 > Servidor de teste para as verificações:
 > `docker run -d --name sshtest -p 2222:2222 -e USER_NAME=dev -e PASSWORD_ACCESS=false -e PUBLIC_KEY="$(cat ~/.ssh/id_ed25519.pub)" lscr.io/linuxserver/openssh-server`
@@ -51,21 +59,21 @@ compilando e funcionando.
 
 ## Fase 2: Aba SSH (lista e terminal)
 
-- [ ] **T5: Persistência de servidores** — `frontend/src/useSshHosts.ts`
+- [x] **T5: Persistência de servidores** — `frontend/src/useSshHosts.ts`
   - `localStorage` `localhub.ssh.v1`, validação por campo, debounce, sem segredos.
   - Verify: `tsc`; recarregar a página mantém a lista; JSON adulterado não quebra.
-- [ ] **T6: Lista e formulário** — `SshTab.tsx`, `SshHostDialog.tsx`, `App.tsx`, `App.css`
+- [x] **T6: Lista e formulário** — `SshTab.tsx`, `SshHostDialog.tsx`, `App.tsx`, `App.css`
   - Nova aba "SSH" (`Tab`, `TAB_LABELS`, `counts`), cadastro/edição/exclusão
     com `useConfirm`, busca, seletor de arquivo da chave.
   - Verify: `tsc && vite build`; captura no Chrome com Wails simulado.
-- [ ] **T7: Terminal embutido** — `SshTerminal.tsx`, `package.json` (`@xterm/xterm`,
+- [x] **T7: Terminal embutido** — `SshTerminal.tsx`, `package.json` (`@xterm/xterm`,
   `@xterm/addon-fit`), `App.css`
   - Conectar/Abrir terminal/Desconectar, barra de estado, diálogo de passphrase e
     de confiança do fingerprint, resize, tema pelos tokens, `Esc` vai ao shell,
     atalhos globais suspensos com foco, mensagens de erro em PT-BR.
   - Verify: `tsc && vite build`; `wails dev -tags webkit2_41` contra o servidor de
     teste: `vim`, `htop`, resize, `cat` de arquivo grande.
-- [ ] **T8: Importar `~/.ssh/config`** — `internal/ssh/config.go`, `app.go`,
+- [x] **T8: Importar `~/.ssh/config`** — `internal/ssh/config.go`, `app.go`,
   `SshTab.tsx`
   - Parser básico (Host/HostName/User/Port/IdentityFile; ignora curingas,
     Include, ProxyJump e conta os ignorados), prévia com seleção, dedupe.

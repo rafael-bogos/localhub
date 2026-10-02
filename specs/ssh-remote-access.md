@@ -1,6 +1,6 @@
 # Spec: Acesso remoto via SSH (aba SSH, terminal embutido e gestão de máquinas remotas)
 
-<!-- status: proposta — ainda não implementada; plano e todo em tasks/ssh-plan.md e tasks/ssh-todo.md (a criar) -->
+<!-- status: v1 (terminal, login, importação) implementada; dados remotos (Fases 3–4) pendentes; plano e todo em tasks/ssh-plan.md e tasks/ssh-todo.md (a criar) -->
 
 ## Objective
 
@@ -140,9 +140,11 @@ funcionando.
   comando sem validação (`pid` numérico; `id` de container/imagem por regex
   `^[A-Za-z0-9][A-Za-z0-9_.:/@-]*$`; `action` de uma lista fixa) e todo
   argumento é passado com quoting para shell POSIX.
-- Streaming no padrão de `internal/docker/logs.go`: eventos
-  `ssh:data:<sessionID>`, `ssh:state:<sessionID>`, `ssh:hostkey:<sessionID>`,
-  `ssh:end:<sessionID>`; o frontend assina **antes** de chamar `SSHConnect`.
+- Streaming no padrão de `internal/docker/logs.go`: eventos de conexão por
+  servidor (`ssh:state:<id>`, `ssh:hostkey:<id>`) e de terminal por sessão
+  (`ssh:data:<session>`, `ssh:end:<session>`), com a sessão escolhida pelo
+  frontend para que o fim de um terminal antigo nunca atinja o novo; o frontend
+  assina **antes** de chamar `SSHConnect`/`SSHOpenTerminal`.
   Saída em lotes pequenos e em base64 (o terminal precisa de bytes crus).
 
 **Frontend (React/TS):**

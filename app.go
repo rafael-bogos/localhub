@@ -207,10 +207,11 @@ func (a *App) SSHDisconnect(id string) {
 	a.ssh.Disconnect(id)
 }
 
-// SSHOpenTerminal starts a shell on a connected server. Output arrives as
-// "ssh:data:<id>" (base64) and the end as "ssh:end:<id>"; subscribe first.
-func (a *App) SSHOpenTerminal(id string, cols, rows int) error {
-	return a.ssh.OpenTerminal(id, cols, rows)
+// SSHOpenTerminal starts a shell on a connected server. The frontend picks
+// the session; output arrives as "ssh:data:<session>" (base64) and the end as
+// "ssh:end:<session>", so subscribe before calling.
+func (a *App) SSHOpenTerminal(id, session string, cols, rows int) error {
+	return a.ssh.OpenTerminal(id, session, cols, rows)
 }
 
 // SSHWrite sends keystrokes to the server's terminal.
@@ -223,7 +224,14 @@ func (a *App) SSHResize(id string, cols, rows int) error {
 	return a.ssh.ResizeTerminal(id, cols, rows)
 }
 
-// SSHCloseTerminal ends the shell but keeps the connection alive.
-func (a *App) SSHCloseTerminal(id string) {
-	a.ssh.CloseTerminal(id)
+// SSHCloseTerminal ends the given terminal session but keeps the connection
+// alive. A session that is no longer the active one is ignored.
+func (a *App) SSHCloseTerminal(id, session string) {
+	a.ssh.CloseTerminal(id, session)
+}
+
+// SSHImportConfig reads ~/.ssh/config and returns the servers it finds, for
+// the UI to preview. Nothing is saved here.
+func (a *App) SSHImportConfig() (lssh.ImportResult, error) {
+	return lssh.ImportConfig()
 }

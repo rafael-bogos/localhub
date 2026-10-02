@@ -41,7 +41,7 @@ export function RemoveNodeModules(arg1:Array<string>):Promise<Array<nodemodules.
 
 export function RestartContainer(arg1:string):Promise<void>;
 
-export function SSHCloseTerminal(arg1:string):Promise<void>;
+export function SSHCloseTerminal(arg1:string,arg2:string):Promise<void>;
 
 export function SSHConfirmHostKey(arg1:string,arg2:boolean):Promise<void>;
 
@@ -49,7 +49,9 @@ export function SSHConnect(arg1:ssh.HostSpec,arg2:string):Promise<ssh.ConnectRes
 
 export function SSHDisconnect(arg1:string):Promise<void>;
 
-export function SSHOpenTerminal(arg1:string,arg2:number,arg3:number):Promise<void>;
+export function SSHImportConfig():Promise<ssh.ImportResult>;
+
+export function SSHOpenTerminal(arg1:string,arg2:string,arg3:number,arg4:number):Promise<void>;
 
 export function SSHResize(arg1:string,arg2:number,arg3:number):Promise<void>;
 

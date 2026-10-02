@@ -74,8 +74,8 @@ export function RestartContainer(arg1) {
   return window['go']['main']['App']['RestartContainer'](arg1);
 }
 
-export function SSHCloseTerminal(arg1) {
-  return window['go']['main']['App']['SSHCloseTerminal'](arg1);
+export function SSHCloseTerminal(arg1, arg2) {
+  return window['go']['main']['App']['SSHCloseTerminal'](arg1, arg2);
 }
 
 export function SSHConfirmHostKey(arg1, arg2) {
@@ -90,8 +90,12 @@ export function SSHDisconnect(arg1) {
   return window['go']['main']['App']['SSHDisconnect'](arg1);
 }
 
-export function SSHOpenTerminal(arg1, arg2, arg3) {
-  return window['go']['main']['App']['SSHOpenTerminal'](arg1, arg2, arg3);
+export function SSHImportConfig() {
+  return window['go']['main']['App']['SSHImportConfig']();
+}
+
+export function SSHOpenTerminal(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['SSHOpenTerminal'](arg1, arg2, arg3, arg4);
 }
 
 export function SSHResize(arg1, arg2, arg3) {

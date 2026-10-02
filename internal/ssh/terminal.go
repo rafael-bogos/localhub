@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	gossh "golang.org/x/crypto/ssh"
@@ -29,9 +30,13 @@ type TerminalEnd struct {
 
 // terminal is one interactive shell on a connection.
 type terminal struct {
-	sess  *gossh.Session
-	stdin io.WriteCloser
-	once  sync.Once
+	session string
+	sess    *gossh.Session
+	stdin   io.WriteCloser
+	once    sync.Once
+	// ended is set once the stream finished; an ended terminal no longer
+	// occupies the single terminal slot.
+	ended atomic.Bool
 }
 
 func (t *terminal) close() {
@@ -42,10 +47,12 @@ func (t *terminal) close() {
 }
 
 // openTerminal starts a PTY shell on conn and streams its output through
-// emit as "ssh:data:<id>" events (base64, because the terminal needs raw
+// emit as "ssh:data:<session>" events (base64, because the terminal needs raw
 // bytes). It returns once the shell is running; the stream ends with a
-// single "ssh:end:<id>" event.
-func openTerminal(conn *Conn, emit Emit, cols, rows int, onEnd func()) (*terminal, error) {
+// single "ssh:end:<session>" event. Events are keyed by a session the caller
+// picks (not by server), so a late event of a closed terminal can never be
+// mistaken for the one that replaced it.
+func openTerminal(conn *Conn, emit Emit, session string, cols, rows int, onEnd func(*terminal)) (*terminal, error) {
 	sess, err := conn.Client.NewSession()
 	if err != nil {
 		return nil, fmt.Errorf("não foi possível abrir a sessão: %w", err)
@@ -75,8 +82,8 @@ func openTerminal(conn *Conn, emit Emit, cols, rows int, onEnd func()) (*termina
 		return nil, fmt.Errorf("o servidor recusou o shell: %w", err)
 	}
 
-	t := &terminal{sess: sess, stdin: stdin}
-	dataEvent, endEvent := "ssh:data:"+conn.ID, "ssh:end:"+conn.ID
+	t := &terminal{session: session, sess: sess, stdin: stdin}
+	dataEvent, endEvent := "ssh:data:"+session, "ssh:end:"+session
 
 	chunks := make(chan []byte, 64)
 	go func() { // reader
@@ -133,7 +140,8 @@ func openTerminal(conn *Conn, emit Emit, cols, rows int, onEnd func()) (*termina
 			}
 		}
 		t.close()
-		onEnd()
+		t.ended.Store(true)
+		onEnd(t)
 		emit(endEvent, end)
 	}()
 

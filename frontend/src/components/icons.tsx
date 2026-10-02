@@ -257,3 +257,25 @@ export function FolderIcon({ size = 14, className }: IconProps) {
         </svg>
     );
 }
+
+export function ServerIcon({ size = 32, className }: IconProps) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 32 32"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <rect x="4" y="6" width="24" height="8" rx="2" />
+            <rect x="4" y="18" width="24" height="8" rx="2" />
+            <path d="M9 10h.01M9 22h.01" />
+            <path d="M14 10h9M14 22h9" />
+        </svg>
+    );
+}
