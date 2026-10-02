@@ -13,15 +13,25 @@ interface SshTabProps {
     connections: SshConnectionsApi;
     /** Connection flow (with its dialogs) owned by the app root. */
     connectFlow: SshConnectApi;
+    /** Opens a data tab (Processos, Containers, Imagens) scrolled to this server's section. */
+    onOpenServerTab: (tab: ServerTab, hostId: string) => void;
     /** The SSH tab is the one on screen (the component stays mounted to keep terminals alive). */
     visible: boolean;
 }
 
 type View = 'list' | 'terminal';
 
+export type ServerTab = 'portas' | 'containers' | 'imagens';
+
+const SERVER_TABS: Array<{ tab: ServerTab; label: string }> = [
+    { tab: 'portas', label: 'Processos' },
+    { tab: 'containers', label: 'Containers' },
+    { tab: 'imagens', label: 'Imagens' },
+];
+
 const STATE_LABEL = { connecting: 'Conectando', connected: 'Conectado', disconnected: '' } as const;
 
-function SshTab({ hostsApi, connections, connectFlow, visible }: SshTabProps) {
+function SshTab({ hostsApi, connections, connectFlow, onOpenServerTab, visible }: SshTabProps) {
     const confirm = useConfirm();
     const { hosts, add, update, remove, addMany } = hostsApi;
     const { conns, disconnect } = connections;
@@ -31,6 +41,8 @@ function SshTab({ hostsApi, connections, connectFlow, visible }: SshTabProps) {
     const [importing, setImporting] = useState(false);
     const [notice, setNotice] = useState('');
     const [info, setInfo] = useState('');
+    // The server that just connected, to point the user at where its data shows up.
+    const [justConnected, setJustConnected] = useState<{ id: string; name: string } | null>(null);
 
     const [view, setView] = useState<View>('list');
     const [terminalHostId, setTerminalHostId] = useState<string | null>(null);
@@ -59,6 +71,19 @@ function SshTab({ hostsApi, connections, connectFlow, visible }: SshTabProps) {
             }
             if (info.state === 'connected') delete lastNotified.current[h.id];
         }
+    }, [conns, hosts]);
+
+    // Say where the server's data is whenever one connects, whichever way it was started.
+    const prevStates = useRef<Record<string, string>>({});
+    useEffect(() => {
+        for (const h of hosts) {
+            const now = connInfo(conns, h.id).state;
+            if (now === 'connected' && prevStates.current[h.id] !== 'connected') {
+                setJustConnected({ id: h.id, name: h.name });
+            }
+            prevStates.current[h.id] = now;
+        }
+        setJustConnected((j) => (j && connInfo(conns, j.id).state !== 'connected' ? null : j));
     }, [conns, hosts]);
 
     const filtered = useMemo(() => {
@@ -137,6 +162,28 @@ function SshTab({ hostsApi, connections, connectFlow, visible }: SshTabProps) {
                         <CloseIcon size={11} />
                     </button>
                 </p>
+            )}
+
+            {justConnected && (
+                <div className="ssh-info ssh-info--connected" role="status">
+                    <span>
+                        <strong>{justConnected.name}</strong> conectado. Veja os dados dele nas abas:
+                    </span>
+                    <span className="ssh-info__links">
+                        {SERVER_TABS.map(({ tab, label }) => (
+                            <button
+                                key={tab}
+                                className="action-key"
+                                onClick={() => onOpenServerTab(tab, justConnected.id)}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </span>
+                    <button className="ssh-notice__close" onClick={() => setJustConnected(null)} aria-label="Dispensar aviso">
+                        <CloseIcon size={11} />
+                    </button>
+                </div>
             )}
 
             {info && (
@@ -235,6 +282,20 @@ function SshTab({ hostsApi, connections, connectFlow, visible }: SshTabProps) {
                                                         >
                                                             {STATE_LABEL[info.state]}
                                                         </span>
+                                                    )}
+                                                    {connected && (
+                                                        <div className="ssh-row__views" aria-label="Ver os dados deste servidor">
+                                                            {SERVER_TABS.map(({ tab, label }) => (
+                                                                <button
+                                                                    key={tab}
+                                                                    className="ssh-link"
+                                                                    onClick={() => onOpenServerTab(tab, h.id)}
+                                                                    title={`Ver ${label.toLowerCase()} de ${h.name}`}
+                                                                >
+                                                                    {label}
+                                                                </button>
+                                                            ))}
+                                                        </div>
                                                     )}
                                                 </td>
                                                 <td>

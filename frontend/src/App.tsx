@@ -29,7 +29,7 @@ const TAB_LABELS: Record<Tab, string> = {
     containers: 'Containers',
     imagens: 'Imagens',
     limpeza: 'Limpeza',
-    ssh: 'SSH',
+    ssh: 'Servidores',
 };
 
 function App() {
@@ -45,6 +45,7 @@ function App() {
     const remoteHosts = sshHosts.hosts.filter((h) => sshConnections.tracked[h.id]);
     const [remoteCounts, setRemoteCounts] = useState<Record<string, Record<string, number>>>({});
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+    const [hintDismissed, setHintDismissed] = useState(false);
     // The SSH tab stays mounted once opened, so open terminals survive tab switches.
     const [sshMounted, setSshMounted] = useState(false);
 
@@ -207,6 +208,12 @@ function App() {
         );
     }
 
+    // From the SSH tab: open a data tab and scroll to one server's section.
+    function openServerTab(tab: 'portas' | 'containers' | 'imagens', hostId: string) {
+        setActiveTab(tab);
+        window.setTimeout(() => jumpToGroup(`${tab}:${hostId}`), 300);
+    }
+
     function toggleGroup(key: string) {
         setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
     }
@@ -226,8 +233,27 @@ function App() {
      */
     function renderGroups(tab: 'portas' | 'containers' | 'imagens', local: ReactNode) {
         const showHeaders = remoteHosts.length > 0;
+        // Servers are saved but none is connected: say where remote data comes from.
+        const showHint = !showHeaders && sshHosts.hosts.length > 0 && !hintDismissed;
         return (
             <>
+                {showHint && (
+                    <p className="host-hint" role="note">
+                        <span>
+                            Para ver processos, containers e imagens de um servidor SSH aqui, conecte-o na aba Servidores.
+                        </span>
+                        <button className="action-key" onClick={() => setActiveTab('ssh')}>
+                            Ir para Servidores
+                        </button>
+                        <button
+                            className="ssh-notice__close"
+                            onClick={() => setHintDismissed(true)}
+                            aria-label="Dispensar dica"
+                        >
+                            <CloseIcon size={11} />
+                        </button>
+                    </p>
+                )}
                 {showHeaders && (
                     <nav className="host-jump" aria-label="Ir para a máquina">
                         <button className="host-jump__btn" onClick={() => jumpToGroup(`${tab}:local`)}>
@@ -455,6 +481,7 @@ function App() {
                                 hostsApi={sshHosts}
                                 connections={sshConnections}
                                 connectFlow={connectFlow}
+                                onOpenServerTab={openServerTab}
                                 visible={activeTab === 'ssh'}
                             />
                         </div>

@@ -224,6 +224,13 @@ func (a *App) SSHResize(id string, cols, rows int) error {
 	return a.ssh.ResizeTerminal(id, cols, rows)
 }
 
+// SSHAck reports how many bytes of a terminal's output the UI has finished
+// processing; the backend pauses reading from the server when too many are
+// outstanding.
+func (a *App) SSHAck(id, session string, n int) {
+	a.ssh.AckTerminal(id, session, n)
+}
+
 // SSHCloseTerminal ends the given terminal session but keeps the connection
 // alive. A session that is no longer the active one is ignored.
 func (a *App) SSHCloseTerminal(id, session string) {

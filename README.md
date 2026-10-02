@@ -27,7 +27,7 @@ rápido que o terminal, sempre, sem sair de uma única janela.
   quais categorias limpar (containers parados, imagens não usadas, redes não
   usadas, cache de build) em vez do tudo-ou-nada da CLI. Volumes nunca são
   tocados, por guardarem dados persistentes.
-- **SSH** — cadastra servidores e abre um terminal SSH dentro do app, sem
+- **Servidores** — cadastra servidores e abre um terminal SSH dentro do app, sem
   terminal externo. Login por chave privada (a passphrase é pedida na hora e
   nunca é salva) ou pelo `ssh-agent`; importa os servidores do seu
   `~/.ssh/config` (só o básico: `Host`, `HostName`, `User`, `Port` e

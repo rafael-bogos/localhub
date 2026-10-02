@@ -245,6 +245,15 @@ func (s *Service) ResizeTerminal(id string, cols, rows int) error {
 	return t.resize(cols, rows)
 }
 
+// AckTerminal reports that the UI has processed n bytes of the session's
+// output, which lets the backend keep reading from the server. An ack for a
+// session that is no longer the active one is ignored.
+func (s *Service) AckTerminal(id, session string, n int) {
+	if t, err := s.activeTerminal(id); err == nil && t.session == session && n > 0 {
+		t.ack(n)
+	}
+}
+
 // CloseTerminal ends the shell but keeps the connection (and its data) alive.
 // It only acts on the given session: a late close of an old terminal must not
 // end the one that replaced it.

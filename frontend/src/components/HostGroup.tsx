@@ -58,11 +58,17 @@ function HostGroup({
             aria-label={remote ? `Servidor ${title}` : 'Esta máquina'}
         >
             {showHeader && (
-                <header className="host-group__header">
+                // The whole bar toggles the section, not just the name. The inner
+                // button stays for the keyboard and screen readers (its click is
+                // kept from bubbling so the bar's handler doesn't toggle twice).
+                <header className="host-group__header" onClick={onToggle}>
                     <button
                         className="host-group__toggle"
                         aria-expanded={!collapsed}
-                        onClick={onToggle}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggle();
+                        }}
                         title={collapsed ? 'Expandir' : 'Recolher'}
                     >
                         <ChevronIcon size={12} className={collapsed ? undefined : 'host-group__chevron--open'} />
@@ -75,7 +81,14 @@ function HostGroup({
                     <span className="host-group__spacer" />
                     {disconnected && <span className="status-chip">Desconectado</span>}
                     {disconnected && onReconnect && (
-                        <button className="action-key" disabled={reconnecting} onClick={onReconnect}>
+                        <button
+                            className="action-key"
+                            disabled={reconnecting}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onReconnect();
+                            }}
+                        >
                             {reconnecting ? 'Conectando' : 'Reconectar'}
                         </button>
                     )}

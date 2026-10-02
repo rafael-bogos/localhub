@@ -110,6 +110,10 @@ export function RestartContainer(arg1) {
   return window['go']['main']['App']['RestartContainer'](arg1);
 }
 
+export function SSHAck(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SSHAck'](arg1, arg2, arg3);
+}
+
 export function SSHCloseTerminal(arg1, arg2) {
   return window['go']['main']['App']['SSHCloseTerminal'](arg1, arg2);
 }

@@ -37,10 +37,15 @@ type terminal struct {
 	// ended is set once the stream finished; an ended terminal no longer
 	// occupies the single terminal slot.
 	ended atomic.Bool
+	// flow holds the reader back when the UI falls behind.
+	flow *flowControl
 }
 
 func (t *terminal) close() {
 	t.once.Do(func() {
+		if t.flow != nil {
+			t.flow.close()
+		}
 		t.stdin.Close()
 		t.sess.Close()
 	})
@@ -82,7 +87,7 @@ func openTerminal(conn *Conn, emit Emit, session string, cols, rows int, onEnd f
 		return nil, fmt.Errorf("o servidor recusou o shell: %w", err)
 	}
 
-	t := &terminal{session: session, sess: sess, stdin: stdin}
+	t := &terminal{session: session, sess: sess, stdin: stdin, flow: newFlowControl()}
 	dataEvent, endEvent := "ssh:data:"+session, "ssh:end:"+session
 
 	chunks := make(chan []byte, 64)
@@ -92,11 +97,13 @@ func openTerminal(conn *Conn, emit Emit, session string, cols, rows int, onEnd f
 		for {
 			n, err := stdout.Read(buf)
 			if n > 0 {
+				t.flow.sent(n)
 				chunks <- append([]byte(nil), buf[:n]...)
 			}
 			if err != nil {
 				return
 			}
+			t.flow.wait(conn.Done()) // pause here while the UI is behind
 		}
 	}()
 
@@ -166,3 +173,6 @@ func clampDim(v, def int) int {
 	}
 	return v
 }
+
+// ack tells the flow control that the UI processed n bytes of output.
+func (t *terminal) ack(n int) { t.flow.ack(n) }

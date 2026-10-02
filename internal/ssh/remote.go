@@ -91,7 +91,7 @@ func (s *Service) ListContainers(ctx context.Context, id string) (RemoteContaine
 		return RemoteContainers{}, err
 	}
 	if res.ExitCode != 0 {
-		if status, msg, ok := dockerProblem(res); ok {
+		if status, msg, ok := dockerProblem(res, conn.User); ok {
 			return RemoteContainers{Status: status, Message: msg, Items: []docker.ContainerInfo{}}, nil
 		}
 		return RemoteContainers{}, failure(res, "falha ao listar os containers do servidor")
@@ -137,7 +137,7 @@ func (s *Service) ListImages(ctx context.Context, id string) (RemoteImages, erro
 		return RemoteImages{}, err
 	}
 	if res.ExitCode != 0 {
-		if status, msg, ok := dockerProblem(res); ok {
+		if status, msg, ok := dockerProblem(res, conn.User); ok {
 			return RemoteImages{Status: status, Message: msg, Items: []docker.ImageInfo{}}, nil
 		}
 		return RemoteImages{}, failure(res, "falha ao listar as imagens do servidor")
@@ -188,7 +188,7 @@ func inspectRunning(ctx context.Context, conn *Conn, containerID string) (runnin
 		if strings.Contains(strings.ToLower(res.Stderr), "no such") {
 			return false, false, nil
 		}
-		if _, msg, ok := dockerProblem(res); ok {
+		if _, msg, ok := dockerProblem(res, conn.User); ok {
 			return false, false, errors.New(msg)
 		}
 		return false, false, failure(res, "falha ao ler o container")

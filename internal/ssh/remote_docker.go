@@ -25,17 +25,28 @@ type RemoteImages struct {
 
 // dockerProblem classifies a failed docker command. ok is false when the
 // failure isn't one of the expected "this server can't do Docker" situations.
-func dockerProblem(res execResult) (status, message string, ok bool) {
+func dockerProblem(res execResult, user string) (status, message string, ok bool) {
 	s := strings.ToLower(res.Stderr)
 	switch {
 	case res.ExitCode == 127 || strings.Contains(s, "docker: not found") || strings.Contains(s, "command not found"):
 		return StatusNoDocker, "O Docker não está instalado neste servidor.", true
 	case strings.Contains(s, "permission denied"):
-		return StatusDenied, "Sem permissão para usar o Docker neste servidor (o usuário precisa estar no grupo docker).", true
+		return StatusDenied, deniedMessage(user), true
 	case strings.Contains(s, "cannot connect to the docker daemon") || strings.Contains(s, "is the docker daemon running"):
 		return StatusDaemonDown, "O serviço do Docker não está em execução neste servidor.", true
 	}
 	return "", "", false
+}
+
+// deniedMessage explains how to give the login user access to the Docker
+// socket. A group change only applies to new sessions, hence the reconnect.
+func deniedMessage(user string) string {
+	if user == "" {
+		user = "SEU_USUARIO"
+	}
+	return "Sem permissão para usar o Docker neste servidor: o usuário " + user +
+		" não está no grupo docker. No servidor, rode: sudo usermod -aG docker " + user +
+		" — depois desconecte e conecte este servidor de novo (o grupo só vale para sessões novas)."
 }
 
 // firstLine is the first non-empty line of s, for error messages.

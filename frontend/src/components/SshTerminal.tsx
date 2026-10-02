@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
-import { SSHCloseTerminal, SSHOpenTerminal, SSHResize, SSHWrite } from '../../wailsjs/go/main/App';
+import { SSHAck, SSHCloseTerminal, SSHOpenTerminal, SSHResize, SSHWrite } from '../../wailsjs/go/main/App';
 import { EventsOn } from '../../wailsjs/runtime/runtime';
 import type { SshHost } from '../useSshHosts';
 
@@ -17,6 +17,12 @@ interface EndEvent {
     reason: string;
     message: string;
 }
+
+// Flow control: the backend pauses reading from the server while too much
+// output is unacknowledged, so what the user types never waits behind a huge
+// backlog. Acks are batched: every ACK_EVERY bytes, or after ACK_DELAY_MS.
+const ACK_EVERY = 32 * 1024;
+const ACK_DELAY_MS = 30;
 
 const OPEN_RETRIES = 10;
 const OPEN_RETRY_MS = 100;
@@ -96,7 +102,25 @@ function SshTerminal({ host, visible, onEnded }: SshTerminalProps) {
         document.fonts?.load('13px "IBM Plex Mono"').then(() => !cancelled && refit()).catch(() => {});
 
         // Subscribe before opening so no early output is lost.
-        const offData = EventsOn(`ssh:data:${session}`, (b64: string) => term.write(decodeBase64(b64)));
+        let ackPending = 0;
+        let ackTimer: ReturnType<typeof setTimeout> | undefined;
+        const flushAck = () => {
+            clearTimeout(ackTimer);
+            ackTimer = undefined;
+            const n = ackPending;
+            ackPending = 0;
+            if (n > 0) SSHAck(id, session, n).catch(() => {});
+        };
+        const queueAck = (n: number) => {
+            ackPending += n;
+            if (ackPending >= ACK_EVERY) flushAck();
+            else if (ackTimer === undefined) ackTimer = setTimeout(flushAck, ACK_DELAY_MS);
+        };
+        const offData = EventsOn(`ssh:data:${session}`, (b64: string) => {
+            const bytes = decodeBase64(b64);
+            // The callback runs once xterm has parsed the chunk.
+            term.write(bytes, () => queueAck(bytes.length));
+        });
         const offEnd = EventsOn(`ssh:end:${session}`, (ev: EndEvent) => {
             const text =
                 ev.reason === 'disconnected'
@@ -108,8 +132,28 @@ function SshTerminal({ host, visible, onEnded }: SshTerminalProps) {
             endedRef.current(ev.reason, ev.message ?? '');
         });
 
+        // Keystrokes go out one call at a time and are coalesced while a call is
+        // in flight: bound calls run concurrently on the Go side, so separate
+        // calls per key could arrive out of order, and a burst (a paste, key
+        // repeat) would otherwise be many round trips.
+        let inputQueue = '';
+        let sending = false;
+        const sendInput = async () => {
+            if (sending) return;
+            sending = true;
+            try {
+                while (inputQueue) {
+                    const data = inputQueue;
+                    inputQueue = '';
+                    await SSHWrite(id, data).catch(() => {});
+                }
+            } finally {
+                sending = false;
+            }
+        };
         const onData = term.onData((d) => {
-            SSHWrite(id, d).catch(() => {});
+            inputQueue += d;
+            void sendInput();
         });
         const onResize = term.onResize(({ cols, rows }) => {
             SSHResize(id, cols, rows).catch(() => {});
@@ -149,6 +193,7 @@ function SshTerminal({ host, visible, onEnded }: SshTerminalProps) {
 
         return () => {
             cancelled = true;
+            clearTimeout(ackTimer);
             box.removeEventListener('keydown', stopKeys);
             observer.disconnect();
             onData.dispose();

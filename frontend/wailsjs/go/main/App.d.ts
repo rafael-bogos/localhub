@@ -59,6 +59,8 @@ export function RemoveNodeModules(arg1:Array<string>):Promise<Array<nodemodules.
 
 export function RestartContainer(arg1:string):Promise<void>;
 
+export function SSHAck(arg1:string,arg2:string,arg3:number):Promise<void>;
+
 export function SSHCloseTerminal(arg1:string,arg2:string):Promise<void>;
 
 export function SSHConfirmHostKey(arg1:string,arg2:boolean):Promise<void>;

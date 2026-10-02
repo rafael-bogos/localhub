@@ -48,7 +48,9 @@ type Config struct {
 
 // Conn is a live connection to one server.
 type Conn struct {
-	ID     string
+	ID string
+	// User is the login the connection was made with.
+	User   string
 	Client *gossh.Client
 
 	done     chan struct{}
@@ -129,7 +131,7 @@ func (m *Manager) Connect(ctx context.Context, cfg Config) (*Conn, error) {
 		return nil, err
 	}
 
-	c := &Conn{ID: cfg.ID, Client: client, done: make(chan struct{})}
+	c := &Conn{ID: cfg.ID, User: cfg.User, Client: client, done: make(chan struct{})}
 	c.onClose = func(err error) {
 		cleanup()
 		m.mu.Lock()

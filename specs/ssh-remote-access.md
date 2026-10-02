@@ -1,4 +1,4 @@
-# Spec: Acesso remoto via SSH (aba SSH, terminal embutido e gestão de máquinas remotas)
+# Spec: Acesso remoto via SSH (aba Servidores, terminal embutido e gestão de máquinas remotas)
 
 <!-- status: implementada (v1) — tarefas e verificações em tasks/ssh-todo.md; o que ficou de fora está em "Fora de escopo" -->
 
@@ -35,7 +35,7 @@ funcionando.
 ## Comportamento
 
 ### Lista de servidores
-- A aba **SSH** lista os servidores como "teclas" (mesmo estilo das outras tabelas):
+- A aba **Servidores** lista os servidores como "teclas" (mesmo estilo das outras tabelas):
   nome, `usuário@host:porta` e método de login.
 - Cadastro/edição por formulário: nome, endereço, porta (padrão 22), usuário,
   método (`chave` ou `agent`) e, para `chave`, o caminho do arquivo (seletor
