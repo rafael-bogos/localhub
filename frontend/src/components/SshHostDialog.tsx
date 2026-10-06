@@ -26,6 +26,11 @@ function SshHostDialog({ initial, onSave, onCancel }: SshHostDialogProps) {
         return () => window.removeEventListener('keydown', onKey);
     }, [onCancel]);
 
+    // An old error no longer applies once the user changes a field.
+    useEffect(() => {
+        setError('');
+    }, [name, address, port, user, method, keyPath]);
+
     async function pickKey() {
         try {
             const path = await PickFile();
@@ -41,7 +46,7 @@ function SshHostDialog({ initial, onSave, onCancel }: SshHostDialogProps) {
         if (!address.trim()) return setError('Informe o endereço do servidor.');
         if (!user.trim()) return setError('Informe o usuário.');
         if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
-            return setError('A porta deve estar entre 1 e 65535.');
+            return setError('A porta SSH deve estar entre 1 e 65535.');
         }
         if (method === 'key' && !keyPath.trim()) return setError('Escolha o arquivo da chave privada.');
 
@@ -91,15 +96,21 @@ function SshHostDialog({ initial, onSave, onCancel }: SshHostDialogProps) {
                         />
                     </label>
                     <label className="ssh-field ssh-field--port">
-                        <span className="ssh-field__label">Porta</span>
+                        <span className="ssh-field__label">Porta SSH</span>
                         <input
                             className="ssh-input ssh-input--mono"
                             value={port}
                             onChange={(e) => setPort(e.target.value.replace(/\D/g, '').slice(0, 5))}
                             inputMode="numeric"
+                            title="A porta em que o servidor aceita conexões SSH (quase sempre 22)"
+                            aria-label="Porta SSH do servidor"
                         />
                     </label>
                 </div>
+                <p className="ssh-field__hint ssh-form__port-hint">
+                    Porta SSH: onde o servidor aceita a conexão SSH. Quase sempre é a 22; mude só se o seu servidor usa outra
+                    (o mesmo número do <code>ssh -p</code>).
+                </p>
 
                 <label className="ssh-field">
                     <span className="ssh-field__label">Usuário</span>

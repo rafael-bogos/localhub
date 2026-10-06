@@ -2171,6 +2171,15 @@ body.is-resizing * {
 
 /* Dialogs */
 
+.ssh-form__port-hint {
+    margin-top: -4px;
+}
+
+.ssh-form__port-hint code {
+    font-family: var(--font-mono);
+    color: var(--ink-primary);
+}
+
 .ssh-form {
     display: flex;
     flex-direction: column;
@@ -2209,7 +2218,7 @@ body.is-resizing * {
 }
 
 .ssh-field--port {
-    width: 84px;
+    width: 96px;
     flex-shrink: 0;
 }
 
