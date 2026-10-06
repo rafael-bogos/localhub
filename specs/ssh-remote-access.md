@@ -113,7 +113,7 @@ funcionando.
 - **Abrir sozinho quando o servidor conectar** (opcional, por túnel), inclusive ao
   reconectar depois de uma queda. Servidor desconectado: "Abrir" fica desabilitado.
 - Os túneis abertos pela aba Containers aparecem na mesma lista, com Fechar.
-- As definições ficam em `localStorage` (`localhub.tunnels.v1`), sem segredos, e
+- As definições ficam no arquivo de configuração (chave `tunnels`), sem segredos, e
   são apagadas junto com o servidor. Desconectar avisa quantos túneis fecha.
 - Backend: `OpenForward` (`internal/ssh/tunnel.go`); evento `tunnels:changed`.
 
@@ -134,7 +134,7 @@ funcionando.
   nome legível do app numa etiqueta. O botão ⓘ de cada container abre os
   detalhes com todas as etiquetas (`docker inspect`, local e remoto); "Usar como
   nome" escolhe a etiqueta cujo valor passa a ser o nome mostrado, para todos os
-  containers que a tiverem (guardado em `localStorage`, `localhub.names.v1`).
+  containers que a tiverem (guardado no arquivo de configuração, chave `names`).
   O nome do Docker continua visível abaixo e é o que identifica o container nas
   ações; confirmações, painel de logs e túnel mostram o nome de exibição.
 
@@ -226,7 +226,7 @@ funcionando.
   suspensos enquanto o terminal tem foco.
 
 **Segurança:**
-- `localStorage` só com metadados (nome, endereço, porta, usuário, método, caminho
+- O arquivo de configuração só com metadados (nome, endereço, porta, usuário, método, caminho
   da chave). Nunca passphrase nem conteúdo de chave.
 - Passphrase só em memória, zerada após o uso, nunca logada.
 - Sem `InsecureIgnoreHostKey`.
@@ -236,7 +236,7 @@ funcionando.
 | Decisão | Motivo |
 |---|---|
 | SSH nativo em Go, sem shell-out ao `ssh` | Igual em Linux/Windows/macOS (o release gera os três); evita PTY local. |
-| Servidores em `localStorage` | Segue `useLogsPrefs`; evita o primeiro arquivo de config no backend. Risco: limpar dados do webview apaga a lista (futuro: exportar/importar JSON). |
+| Servidores, túneis e preferências em um arquivo JSON na pasta de configuração do sistema (`internal/config`), não no `localStorage` | O `localStorage` do webview depende do nome do binário, da origem (porta do `wails dev`) e de limpezas, então atualizar ou trocar de build zerava a lista. O arquivo é atômico, 0600, sem segredos; se não puder ser lido, nada é gravado por cima. |
 | Uma conexão por servidor, vários servidores; um terminal por vez | Dados de vários servidores agregam valor; várias abas de terminal não, na v1. Canais SSH separam terminal e comandos na mesma conexão. |
 | Dados remotos por comandos via SSH (`ss`, `docker … --format json`) | Só exige SSH e o CLI docker no remoto; sem túnel de socket nem agente. Assume remoto Linux. |
 | Seções por máquina na mesma lista | Dá visão conjunta e deixa explícito de qual máquina é cada item. |
@@ -261,7 +261,7 @@ máquina sempre na confirmação); throughput do terminal pela ponte de eventos
    servidor novo, chave do servidor alterada (bloqueio), passphrase errada, timeout, resize
    (`stty size`), `vim`/`htop`, `cat` de arquivo grande.
 4. Fechar o app com sessão ativa não deixa conexão pendurada.
-5. `localStorage` sem passphrase nem conteúdo de chave.
+5. O arquivo de configuração sem passphrase nem conteúdo de chave.
 6. Conectar 2 servidores: as 3 abas mostram "Esta máquina" + 2 grupos; derrubar um
    servidor (parar o sshd) marca só o grupo dele; reconectar restaura.
 7. Remoto sem docker: Processos funciona e Containers/Imagens mostram o motivo.

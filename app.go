@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"localhub/internal/config"
 	"localhub/internal/docker"
 	"localhub/internal/nodemodules"
 	"localhub/internal/ports"
@@ -16,12 +17,18 @@ import (
 // App struct
 type App struct {
 	ctx context.Context
+	cfg *config.Store
 	ssh *lssh.Service
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
-	return &App{}
+	cfg, err := config.New()
+	if err != nil {
+		// No config directory: settings just won't persist (every Save reports it).
+		cfg = config.NewAt("")
+	}
+	return &App{cfg: cfg}
 }
 
 // startup is called when the app starts. The context is saved
@@ -336,4 +343,23 @@ func (a *App) RemoteListTunnels() []lssh.TunnelInfo {
 // "tunnels:changed" event.
 func (a *App) RemoteOpenForward(hostID, savedID, name, remoteHost string, remotePort, localPort int) (lssh.TunnelInfo, error) {
 	return a.ssh.OpenForward(a.ctx, hostID, savedID, name, remoteHost, remotePort, localPort)
+}
+
+// ---- Settings file (servers, tunnels, names, preferences) ----
+
+// LoadConfig returns every saved setting, read from the config file in the
+// system's config directory (not from the webview's storage, which depends on
+// the binary's name and the dev server's port).
+func (a *App) LoadConfig() (map[string]interface{}, error) {
+	return a.cfg.Load()
+}
+
+// SaveConfig stores one setting; value is JSON. Other settings are kept.
+func (a *App) SaveConfig(key, value string) error {
+	return a.cfg.Set(key, value)
+}
+
+// ConfigPath is where the settings file lives, to show the user.
+func (a *App) ConfigPath() string {
+	return a.cfg.Path()
 }

@@ -9,10 +9,11 @@ import {
 import { nodemodules } from '../../wailsjs/go/models';
 import { EventsOn } from '../../wailsjs/runtime/runtime';
 import { formatBytes } from '../format';
+import { readConfig, writeConfig } from '../appConfig';
 import { AlertIcon, BroomIcon, FolderIcon, SearchIcon } from './icons';
 import { useConfirm } from './ConfirmDialog';
 
-const STORAGE_KEY = 'localhub.nodemodules.v1';
+const STORAGE_KEY = 'nodemodules';
 const SIZE_WORKERS = 3;
 
 type Status = 'idle' | 'removing' | 'removed' | 'error';
@@ -34,8 +35,7 @@ interface Summary {
 
 function loadRoot(): string {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        const value = raw ? JSON.parse(raw)?.root : '';
+        const value = (readConfig(STORAGE_KEY) as { root?: unknown } | undefined)?.root;
         return typeof value === 'string' ? value : '';
     } catch {
         return '';
@@ -43,11 +43,7 @@ function loadRoot(): string {
 }
 
 function saveRoot(root: string) {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ root }));
-    } catch {
-        // Storage unavailable: the folder just isn't remembered.
-    }
+    writeConfig(STORAGE_KEY, { root });
 }
 
 interface NodeModulesCleanerProps {

@@ -9,6 +9,8 @@ export function CancelNodeModulesScan():Promise<void>;
 
 export function Cleanup(arg1:docker.CleanupOptions):Promise<docker.CleanupResult>;
 
+export function ConfigPath():Promise<string>;
+
 export function KillProcess(arg1:number):Promise<void>;
 
 export function ListChildProcesses(arg1:number):Promise<Array<ports.PortInfo>>;
@@ -22,6 +24,8 @@ export function ListImages():Promise<Array<docker.ImageInfo>>;
 export function ListPortOwners():Promise<Array<docker.PortOwner>>;
 
 export function ListPorts():Promise<Array<ports.PortInfo>>;
+
+export function LoadConfig():Promise<Record<string, any>>;
 
 export function LoadOlderContainerLogs(arg1:string,arg2:string,arg3:number):Promise<docker.OlderLogs>;
 
@@ -90,6 +94,8 @@ export function SSHOpenTerminal(arg1:string,arg2:string,arg3:number,arg4:number)
 export function SSHResize(arg1:string,arg2:number,arg3:number):Promise<void>;
 
 export function SSHWrite(arg1:string,arg2:string):Promise<void>;
+
+export function SaveConfig(arg1:string,arg2:string):Promise<void>;
 
 export function ScanNodeModules(arg1:string):Promise<nodemodules.ScanResult>;
 

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LEVELS, type Level } from './logLevel';
+import { readConfig, writeConfig } from './appConfig';
 
-// Bump the version in the key when the shape changes: an old or corrupted
-// value is then ignored and the defaults apply.
-const STORAGE_KEY = 'localhub.logs.v1';
+// Kept in the settings file under this key. An unreadable value is ignored and
+// the defaults apply.
+const STORAGE_KEY = 'logs';
 const SAVE_DELAY_MS = 300;
 
 export const MIN_WIDTH = 320;
@@ -63,9 +64,8 @@ function bool(value: unknown, fallback: boolean): boolean {
 
 function load(): LogsPrefs {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return DEFAULT_PREFS;
-        const v = JSON.parse(raw) as Record<string, any>;
+        const v = readConfig(STORAGE_KEY) as Record<string, any> | undefined;
+        if (!v) return DEFAULT_PREFS;
         if (!v || typeof v !== 'object') return DEFAULT_PREFS;
 
         const levels = { ...DEFAULT_PREFS.levels };
@@ -92,11 +92,7 @@ function load(): LogsPrefs {
 }
 
 function save(prefs: LogsPrefs) {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-    } catch {
-        // Storage unavailable (private mode, blocked): prefs just won't persist.
-    }
+    writeConfig(STORAGE_KEY, prefs);
 }
 
 /** A patch, or a function of the latest prefs (safe for several updates in one event). */

@@ -20,7 +20,8 @@ import { useTunnels } from './useTunnels';
 import { useSavedTunnels } from './useSavedTunnels';
 import { useTunnelControl } from './useTunnelControl';
 import { useNameLabel } from './containerName';
-import { RefreshIcon, SearchIcon, CloseIcon } from './components/icons';
+import { configProblem } from './appConfig';
+import { AlertIcon, RefreshIcon, SearchIcon, CloseIcon } from './components/icons';
 import { useConfirm } from './components/ConfirmDialog';
 import logo from './assets/images/localhub-logo.svg';
 
@@ -390,6 +391,13 @@ function App() {
 
     return (
         <div className="app-shell">
+            {configProblem() && (
+                <p className="alert" role="alert">
+                    <AlertIcon size={15} />
+                    Não foi possível ler as configurações salvas ({configProblem()}). Servidores e preferências não serão
+                    salvos nesta sessão; reinicie o app para tentar de novo.
+                </p>
+            )}
             <header className="fascia">
                 <div className="fascia__brand">
                     <img src={logo} className="fascia__logo" alt="" aria-hidden="true" />

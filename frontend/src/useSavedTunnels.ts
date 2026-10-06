@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { readConfig, writeConfig } from './appConfig';
 
 // Tunnels the user defines for a server (a local port that leads to a host and
 // port reachable from that server). Only the definition is saved; whether one
-// is open comes from the backend. Bump the version when the shape changes.
-const STORAGE_KEY = 'localhub.tunnels.v1';
-const SAVE_DELAY_MS = 300;
+// is open comes from the backend. Kept in the settings file under this key.
+const STORAGE_KEY = 'tunnels';
+const SAVE_DELAY_MS = 100;
 
 export interface SavedTunnel {
     id: string;
@@ -53,7 +54,7 @@ export function normalizeTunnel(raw: unknown, withId: boolean): SavedTunnel | nu
 
 function load(): SavedTunnel[] {
     try {
-        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]') as unknown;
+        const parsed = readConfig(STORAGE_KEY);
         if (!Array.isArray(parsed)) return [];
         const seen = new Set<string>();
         const list: SavedTunnel[] = [];
@@ -71,11 +72,7 @@ function load(): SavedTunnel[] {
 }
 
 function save(list: SavedTunnel[]) {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    } catch {
-        // Storage unavailable: the tunnels just won't persist.
-    }
+    writeConfig(STORAGE_KEY, list);
 }
 
 export interface SavedTunnelsApi {

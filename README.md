@@ -70,6 +70,18 @@ rápido que o terminal, sempre, sem sair de uma única janela.
     fechar) e acaba sozinho ao desconectar o servidor. O servidor remoto precisa ser Linux, com
     `ss` e, para Containers e Imagens, o CLI `docker`.
 
+**Onde ficam os seus dados.** Servidores, túneis salvos, o nome de exibição dos
+containers e as preferências ficam num arquivo JSON na pasta de configuração do
+sistema, não no armazenamento do navegador embutido:
+`~/.config/localhub/config.json` (Linux), `%AppData%\localhub\config.json`
+(Windows) ou `~/Library/Application Support/localhub/config.json` (macOS). O
+arquivo tem permissão só do usuário, é gravado de forma atômica e não contém
+senhas, passphrases nem chaves privadas (só o caminho da chave). Por isso
+atualizar o app, renomear o binário ou usar o `wails dev` não faz os dados
+sumirem. Se o arquivo não puder ser lido, o app avisa e **não grava nada** por
+cima; se estiver corrompido, ele é guardado como `config.json.bad-<data>` e o app
+começa limpo.
+
 Containers e imagens locais falam direto com o Docker Engine API via SDK
 oficial (sem shell-out para o binário `docker`); o SSH é nativo em Go (sem
 chamar o `ssh` do sistema). Toda a interface é em português — não é um

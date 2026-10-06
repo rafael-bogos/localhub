@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react';
+import { readConfig, writeConfig } from './appConfig';
 
 // Platforms that give containers generated names (Coolify, Dokku...) keep the
 // readable name of an app in a label. Which label differs per platform, so the
 // user picks it once from a container's labels and it applies to every
 // container that has it.
-const STORAGE_KEY = 'localhub.names.v1';
+const STORAGE_KEY = 'names';
 
 /** Labels worth offering first: where common platforms keep an app's name. */
 export const KNOWN_NAME_LABELS = [
@@ -35,7 +36,7 @@ export function isCustomName(c: Named, nameLabel: string): boolean {
 
 function load(): string {
     try {
-        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
+        const raw = readConfig(STORAGE_KEY) as { label?: unknown } | undefined;
         return raw && typeof raw.label === 'string' ? raw.label.slice(0, 200) : '';
     } catch {
         return '';
@@ -52,11 +53,7 @@ export function useNameLabel(): NameLabelApi {
     const [nameLabel, setState] = useState(load);
     const setNameLabel = useCallback((label: string) => {
         setState(label);
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ label }));
-        } catch {
-            // Storage unavailable: the choice just won't persist.
-        }
+        writeConfig(STORAGE_KEY, { label });
     }, []);
     return { nameLabel, setNameLabel };
 }

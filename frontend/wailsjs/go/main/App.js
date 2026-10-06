@@ -10,6 +10,10 @@ export function Cleanup(arg1) {
   return window['go']['main']['App']['Cleanup'](arg1);
 }
 
+export function ConfigPath() {
+  return window['go']['main']['App']['ConfigPath']();
+}
+
 export function KillProcess(arg1) {
   return window['go']['main']['App']['KillProcess'](arg1);
 }
@@ -36,6 +40,10 @@ export function ListPortOwners() {
 
 export function ListPorts() {
   return window['go']['main']['App']['ListPorts']();
+}
+
+export function LoadConfig() {
+  return window['go']['main']['App']['LoadConfig']();
 }
 
 export function LoadOlderContainerLogs(arg1, arg2, arg3) {
@@ -172,6 +180,10 @@ export function SSHResize(arg1, arg2, arg3) {
 
 export function SSHWrite(arg1, arg2) {
   return window['go']['main']['App']['SSHWrite'](arg1, arg2);
+}
+
+export function SaveConfig(arg1, arg2) {
+  return window['go']['main']['App']['SaveConfig'](arg1, arg2);
 }
 
 export function ScanNodeModules(arg1) {

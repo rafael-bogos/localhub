@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { readConfig, writeConfig } from './appConfig';
 
-// Bump the version in the key when the shape changes: an old or corrupted
-// value is then ignored and the list starts empty.
-const STORAGE_KEY = 'localhub.ssh.v1';
-const SAVE_DELAY_MS = 300;
+// Stored in the settings file under this key. If the shape ever changes
+// incompatibly, use a new key (and migrate): an unreadable value is ignored and
+// the list starts empty.
+const STORAGE_KEY = 'ssh';
+const SAVE_DELAY_MS = 100;
 
 export type SshMethod = 'key' | 'agent';
 
@@ -54,9 +56,7 @@ function normalize(raw: unknown, withId: boolean): SshHost | null {
 
 function load(): SshHost[] {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw) as unknown;
+        const parsed = readConfig(STORAGE_KEY);
         if (!Array.isArray(parsed)) return [];
         const seen = new Set<string>();
         const hosts: SshHost[] = [];
@@ -74,11 +74,7 @@ function load(): SshHost[] {
 }
 
 function save(hosts: SshHost[]) {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(hosts));
-    } catch {
-        // Storage unavailable (private mode, blocked): the list just won't persist.
-    }
+    writeConfig(STORAGE_KEY, hosts);
 }
 
 /** Same machine, port and login: what makes an imported entry a duplicate. */
