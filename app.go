@@ -214,6 +214,13 @@ func (a *App) SSHOpenTerminal(id, session string, cols, rows int) error {
 	return a.ssh.OpenTerminal(id, session, cols, rows)
 }
 
+// SSHOpenContainerTerminal opens a terminal inside a running container of a
+// connected server (docker exec -it). Same events and single slot as
+// SSHOpenTerminal.
+func (a *App) SSHOpenContainerTerminal(id, session, containerID string, cols, rows int) error {
+	return a.ssh.OpenContainerTerminal(a.ctx, id, session, containerID, cols, rows)
+}
+
 // SSHWrite sends keystrokes to the server's terminal.
 func (a *App) SSHWrite(id, data string) error {
 	return a.ssh.WriteTerminal(id, data)

@@ -6,7 +6,7 @@ import PortsTable from './components/PortsTable';
 import ContainersTable from './components/ContainersTable';
 import ImagesTable from './components/ImagesTable';
 import CleanupTab from './components/CleanupTab';
-import SshTab from './components/SshTab';
+import SshTab, { type TerminalRequest } from './components/SshTab';
 import HostGroup from './components/HostGroup';
 import RemotePortsSection from './components/RemotePortsSection';
 import RemoteContainersSection from './components/RemoteContainersSection';
@@ -52,6 +52,7 @@ function App() {
     const connectFlow = useSshConnect(sshConnections, sshHosts.hosts);
     const tunnels = useTunnels();
     const names = useNameLabel();
+    const [terminalRequest, setTerminalRequest] = useState<TerminalRequest | null>(null);
     // Servers with a group in the data tabs, and what each one reported per tab.
     const remoteHosts = sshHosts.hosts.filter((h) => sshConnections.tracked[h.id]);
     const [remoteCounts, setRemoteCounts] = useState<Record<string, Record<string, number>>>({});
@@ -231,6 +232,13 @@ function App() {
         window.setTimeout(() => jumpToGroup(`${tab}:${hostId}`), 300);
     }
 
+    // The "Terminal" button of a server's container: the terminal lives in the Servidores tab.
+    function openContainerTerminal(hostId: string, container: { id: string; name: string }) {
+        setSshMounted(true);
+        setActiveTab('ssh');
+        setTerminalRequest({ nonce: Date.now(), hostId, container });
+    }
+
     function toggleGroup(key: string) {
         setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
     }
@@ -347,6 +355,7 @@ function App() {
                                     refreshKey={refreshKey}
                                     onCount={(n) => reportRemoteCount('containers', h.id, n)}
                                     onOpenLogs={(id, name, label) => openRemoteLogs(h.id, h.name, id, name, label)}
+                                    onOpenTerminal={(c) => openContainerTerminal(h.id, c)}
                                     activeLogsId={logsTarget?.hostId === h.id ? logsTarget.id : null}
                                 />
                             )}
@@ -507,6 +516,8 @@ function App() {
                                 connections={sshConnections}
                                 connectFlow={connectFlow}
                                 tunnels={tunnels}
+                                request={terminalRequest}
+                                onRequestHandled={() => setTerminalRequest(null)}
                                 onOpenServerTab={openServerTab}
                                 visible={activeTab === 'ssh'}
                             />

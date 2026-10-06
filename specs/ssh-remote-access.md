@@ -101,6 +101,18 @@ funcionando.
 - O atalho "Logs" na aba Processos (porta publicada por container) só vale para
   itens locais na v1.
 
+### Terminal dentro de um container
+- Em cada container **rodando** de um servidor, o botão **Terminal** abre, na aba
+  Servidores, um shell dentro dele pela conexão já aberta:
+  `docker exec -it -e TERM=xterm-256color <id>` com `bash` se existir e `sh` caso
+  contrário. Container parado ou inexistente dá erro claro antes de abrir.
+- Usa o mesmo terminal embutido e a mesma vaga única: abrir outro (de outro
+  container ou o shell do servidor) com um aberto pede confirmação citando os
+  dois; clicar de novo no mesmo só o mostra. A barra mostra o container e o
+  servidor, e "Reabrir" volta ao mesmo container.
+- Backend: `OpenContainerTerminal` (`internal/ssh/service.go`), que valida o ID
+  e consulta o estado do container antes de montar o comando.
+
 ### Nome de exibição dos containers
 - Plataformas como Coolify e Dokku dão ao container um nome gerado e guardam o
   nome legível do app numa etiqueta. O botão ⓘ de cada container abre os

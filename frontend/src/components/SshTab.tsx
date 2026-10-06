@@ -18,6 +18,9 @@ interface SshTabProps {
     onOpenServerTab: (tab: ServerTab, hostId: string) => void;
     /** Open tunnels, to warn that disconnecting closes them. */
     tunnels: ssh.TunnelInfo[];
+    /** A request from another tab to open a terminal (optionally inside a container). */
+    request: TerminalRequest | null;
+    onRequestHandled: () => void;
     /** The SSH tab is the one on screen (the component stays mounted to keep terminals alive). */
     visible: boolean;
 }
@@ -25,6 +28,12 @@ interface SshTabProps {
 type View = 'list' | 'terminal';
 
 export type ServerTab = 'portas' | 'containers' | 'imagens';
+
+export interface TerminalRequest {
+    nonce: number;
+    hostId: string;
+    container?: { id: string; name: string };
+}
 
 const SERVER_TABS: Array<{ tab: ServerTab; label: string }> = [
     { tab: 'portas', label: 'Processos' },
@@ -34,7 +43,16 @@ const SERVER_TABS: Array<{ tab: ServerTab; label: string }> = [
 
 const STATE_LABEL = { connecting: 'Conectando', connected: 'Conectado', disconnected: '' } as const;
 
-function SshTab({ hostsApi, connections, connectFlow, onOpenServerTab, tunnels, visible }: SshTabProps) {
+function SshTab({
+    hostsApi,
+    connections,
+    connectFlow,
+    onOpenServerTab,
+    tunnels,
+    request,
+    onRequestHandled,
+    visible,
+}: SshTabProps) {
     const confirm = useConfirm();
     const { hosts, add, update, remove, addMany } = hostsApi;
     const { conns, disconnect } = connections;
@@ -49,6 +67,7 @@ function SshTab({ hostsApi, connections, connectFlow, onOpenServerTab, tunnels, 
 
     const [view, setView] = useState<View>('list');
     const [terminalHostId, setTerminalHostId] = useState<string | null>(null);
+    const [terminalContainer, setTerminalContainer] = useState<{ id: string; name: string } | null>(null);
     const [terminalRun, setTerminalRun] = useState(0);
     const [terminalEnded, setTerminalEnded] = useState(false);
 
@@ -106,27 +125,39 @@ function SshTab({ hostsApi, connections, connectFlow, onOpenServerTab, tunnels, 
         return connectFlow.connectHost(host, openTerminal ? () => startTerminal(host) : undefined);
     }
 
-    function startTerminal(host: SshHost) {
+    function startTerminal(host: SshHost, container?: { id: string; name: string } | null) {
         setTerminalHostId(host.id);
+        setTerminalContainer(container ?? null);
         setTerminalEnded(false);
         setTerminalRun((n) => n + 1);
         setView('terminal');
     }
 
-    async function handleOpenTerminal(host: SshHost) {
-        if (terminalHostId === host.id) {
+    async function handleOpenTerminal(host: SshHost, container?: { id: string; name: string }) {
+        // The terminal that is already open is the one asked for: just show it.
+        if (terminalHostId === host.id && (terminalContainer?.id ?? '') === (container?.id ?? '') && !terminalEnded) {
             setView('terminal');
             return;
         }
-        if (terminalHostId && terminalHost) {
+        if (terminalHostId && terminalHost && !terminalEnded) {
+            const where = (h: SshHost, c?: { name: string } | null) => (c ? `${c.name}" em "${h.name}` : h.name);
             const ok = await confirm(
-                `Já existe um terminal aberto em "${terminalHost.name}". Fechá-lo e abrir um em "${host.name}"?`
+                `Já existe um terminal aberto em "${where(terminalHost, terminalContainer)}". Fechá-lo e abrir um em "${where(host, container)}"?`
             );
             if (!ok) return;
         }
-        if (connInfo(conns, host.id).state === 'connected') startTerminal(host);
+        if (connInfo(conns, host.id).state === 'connected') startTerminal(host, container);
         else await connectHost(host, true);
     }
+
+    // A terminal asked for from another tab (the "Terminal" button of a container).
+    useEffect(() => {
+        if (!request) return;
+        const host = hosts.find((h) => h.id === request.hostId);
+        onRequestHandled();
+        if (host) void handleOpenTerminal(host, request.container);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [request]);
 
     async function handleDisconnect(host: SshHost) {
         const effects: string[] = [];
@@ -147,6 +178,7 @@ function SshTab({ hostsApi, connections, connectFlow, onOpenServerTab, tunnels, 
 
     function closeTerminal() {
         setTerminalHostId(null);
+        setTerminalContainer(null);
         setTerminalEnded(false);
         setView('list');
     }
@@ -375,9 +407,13 @@ function SshTab({ hostsApi, connections, connectFlow, onOpenServerTab, tunnels, 
                             <ChevronIcon size={12} className="ssh-back-icon" /> Servidores
                         </button>
                         <div className="ssh-terminal-bar__id">
-                            <span className="ssh-terminal-bar__name">{terminalHost.name}</span>
+                            <span className="ssh-terminal-bar__name">
+                                {terminalContainer ? terminalContainer.name : terminalHost.name}
+                            </span>
                             <span className="ssh-terminal-bar__addr">
-                                {terminalHost.user}@{terminalHost.address}
+                                {terminalContainer
+                                    ? `container em ${terminalHost.name} · ${terminalHost.user}@${terminalHost.address}`
+                                    : `${terminalHost.user}@${terminalHost.address}`}
                             </span>
                         </div>
                         <span
@@ -387,7 +423,10 @@ function SshTab({ hostsApi, connections, connectFlow, onOpenServerTab, tunnels, 
                         </span>
                         <div className="row-actions ssh-terminal-bar__actions">
                             {terminalEnded && termInfo?.state === 'connected' && (
-                                <button className="action-key ssh-primary" onClick={() => startTerminal(terminalHost)}>
+                                <button
+                                    className="action-key ssh-primary"
+                                    onClick={() => startTerminal(terminalHost, terminalContainer)}
+                                >
                                     Reabrir
                                 </button>
                             )}
@@ -402,8 +441,9 @@ function SshTab({ hostsApi, connections, connectFlow, onOpenServerTab, tunnels, 
                         </div>
                     </div>
                     <SshTerminal
-                        key={`${terminalHost.id}:${terminalRun}`}
+                        key={`${terminalHost.id}:${terminalContainer?.id ?? ''}:${terminalRun}`}
                         host={terminalHost}
+                        container={terminalContainer}
                         visible={visible && view === 'terminal'}
                         onEnded={() => setTerminalEnded(true)}
                     />

@@ -182,6 +182,42 @@ func (s *Service) Disconnect(id string) { s.mgr.Disconnect(id) }
 // can be open at a time; the caller closes the previous one first. Output
 // goes to "ssh:data:<session>" and the end to "ssh:end:<session>".
 func (s *Service) OpenTerminal(id, session string, cols, rows int) error {
+	return s.openTerminalWith(id, session, "", cols, rows)
+}
+
+// OpenContainerTerminal opens a terminal inside a running container of the
+// server (`docker exec -it`), bash when the container has it and sh otherwise.
+// It takes the same single terminal slot as OpenTerminal.
+func (s *Service) OpenContainerTerminal(ctx context.Context, id, session, containerID string, cols, rows int) error {
+	if err := validID(containerID); err != nil {
+		return err
+	}
+	conn, err := s.remoteConn(id)
+	if err != nil {
+		return err
+	}
+	running, found, err := inspectRunning(ctx, conn, containerID)
+	switch {
+	case err != nil:
+		return err
+	case !found:
+		return errors.New("container não encontrado — talvez já tenha sido removido")
+	case !running:
+		return errors.New("inicie o container antes de abrir um terminal nele")
+	}
+	return s.openTerminalWith(id, session, containerShellCommand(containerID), cols, rows)
+}
+
+// containerShellCommand runs an interactive shell in a container. The ID has
+// been validated; it is quoted anyway, and the command is quoted for the
+// server's login shell whatever it is.
+func containerShellCommand(containerID string) string {
+	pick := "command -v bash >/dev/null 2>&1 && exec bash || exec sh"
+	inner := "exec docker exec -it -e TERM=xterm-256color " + shQuote(containerID) + " sh -c " + shQuote(pick)
+	return "sh -c " + shQuote(inner)
+}
+
+func (s *Service) openTerminalWith(id, session, command string, cols, rows int) error {
 	conn, ok := s.mgr.Get(id)
 	if !ok {
 		return errors.New("este servidor não está conectado")
@@ -199,7 +235,7 @@ func (s *Service) OpenTerminal(id, session string, cols, rows int) error {
 	s.termID, s.term = id, placeholder
 	s.mu.Unlock()
 
-	t, err := openTerminal(conn, s.emit, session, cols, rows, s.releaseTerminal)
+	t, err := openTerminal(conn, s.emit, session, command, cols, rows, s.releaseTerminal)
 	if err != nil {
 		s.releaseTerminal(placeholder)
 		return err

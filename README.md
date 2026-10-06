@@ -50,6 +50,10 @@ rápido que o terminal, sempre, sem sair de uma única janela.
     imagem, logs ao vivo). Toda ação destrutiva em um servidor pede confirmação
     citando o nome dele. Vários servidores podem ficar conectados ao mesmo
     tempo; o terminal é um por vez.
+  - **Terminal dentro do container** — o botão **Terminal**, em cada container
+    rodando de um servidor, abre um shell dentro dele (`docker exec -it`, com
+    `bash` quando o container tem e `sh` quando não), na aba Servidores. É o
+    mesmo terminal embutido: um por vez, com Reabrir depois de `exit`.
   - **Túnel para containers** — o botão **Túnel**, em cada container rodando de
     um servidor, abre uma porta neste computador que leva a uma porta do
     container (o equivalente a `ssh -fN -L 33061:172.18.3.23:3306 usuario@servidor`,

@@ -2,12 +2,21 @@ import { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
-import { SSHAck, SSHCloseTerminal, SSHOpenTerminal, SSHResize, SSHWrite } from '../../wailsjs/go/main/App';
+import {
+    SSHAck,
+    SSHCloseTerminal,
+    SSHOpenContainerTerminal,
+    SSHOpenTerminal,
+    SSHResize,
+    SSHWrite,
+} from '../../wailsjs/go/main/App';
 import { EventsOn } from '../../wailsjs/runtime/runtime';
 import type { SshHost } from '../useSshHosts';
 
 interface SshTerminalProps {
     host: SshHost;
+    /** Open a shell inside this container of the server instead of the server's own shell. */
+    container?: { id: string; name: string } | null;
     /** The SSH tab is the visible one; the terminal is refitted when it becomes visible. */
     visible: boolean;
     onEnded: (reason: string, message: string) => void;
@@ -43,7 +52,7 @@ function cssVar(name: string, fallback: string): string {
  * The interactive shell of one connected server. It owns the remote terminal:
  * mounting opens it, unmounting closes it (the connection stays up).
  */
-function SshTerminal({ host, visible, onEnded }: SshTerminalProps) {
+function SshTerminal({ host, container, visible, onEnded }: SshTerminalProps) {
     const boxRef = useRef<HTMLDivElement>(null);
     const fitRef = useRef<FitAddon | null>(null);
     const endedRef = useRef(onEnded);
@@ -53,6 +62,7 @@ function SshTerminal({ host, visible, onEnded }: SshTerminalProps) {
         const box = boxRef.current;
         if (!box) return;
         const id = host.id;
+        const containerId = container?.id ?? '';
         // Events are keyed by this session (not the server), so a late event of a
         // previous terminal can never reach this one.
         const session = crypto.randomUUID();
@@ -165,7 +175,8 @@ function SshTerminal({ host, visible, onEnded }: SshTerminalProps) {
             for (let attempt = 0; attempt < OPEN_RETRIES; attempt++) {
                 if (cancelled) return;
                 try {
-                    await SSHOpenTerminal(id, session, term.cols, term.rows);
+                    if (containerId) await SSHOpenContainerTerminal(id, session, containerId, term.cols, term.rows);
+                    else await SSHOpenTerminal(id, session, term.cols, term.rows);
                     if (cancelled) SSHCloseTerminal(id, session).catch(() => {});
                     else term.focus();
                     return;
@@ -204,7 +215,7 @@ function SshTerminal({ host, visible, onEnded }: SshTerminalProps) {
             fitRef.current = null;
             term.dispose();
         };
-    }, [host.id]);
+    }, [host.id, container?.id]);
 
     useEffect(() => {
         if (visible) fitRef.current?.fit();

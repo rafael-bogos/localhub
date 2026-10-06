@@ -26,6 +26,8 @@ interface RemoteContainersSectionProps {
     refreshKey: number;
     onCount: (n: number) => void;
     onOpenLogs: (id: string, name: string, label?: string) => void;
+    /** Opens a terminal inside the container (shown in the Servidores tab). */
+    onOpenTerminal: (container: { id: string; name: string }) => void;
     /** Container whose logs are open for this server, to mark its row. */
     activeLogsId: string | null;
 }
@@ -41,6 +43,7 @@ function RemoteContainersSection({
     refreshKey,
     onCount,
     onOpenLogs,
+    onOpenTerminal,
     activeLogsId,
 }: RemoteContainersSectionProps) {
     const confirm = useConfirm();
@@ -209,6 +212,13 @@ function RemoteContainersSection({
                                             </button>
                                             {isRunning ? (
                                                 <>
+                                                    <button
+                                                        className="action-key"
+                                                        title="Abrir um terminal dentro deste container"
+                                                        onClick={() => onOpenTerminal({ id: c.id, name: shown })}
+                                                    >
+                                                        Terminal
+                                                    </button>
                                                     <button
                                                         className="action-key"
                                                         title="Abrir um túnel para uma porta deste container"

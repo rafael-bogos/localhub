@@ -51,13 +51,14 @@ func (t *terminal) close() {
 	})
 }
 
-// openTerminal starts a PTY shell on conn and streams its output through
+// openTerminal starts a PTY on conn running command (the login shell when it
+// is empty) and streams its output through
 // emit as "ssh:data:<session>" events (base64, because the terminal needs raw
 // bytes). It returns once the shell is running; the stream ends with a
 // single "ssh:end:<session>" event. Events are keyed by a session the caller
 // picks (not by server), so a late event of a closed terminal can never be
 // mistaken for the one that replaced it.
-func openTerminal(conn *Conn, emit Emit, session string, cols, rows int, onEnd func(*terminal)) (*terminal, error) {
+func openTerminal(conn *Conn, emit Emit, session, command string, cols, rows int, onEnd func(*terminal)) (*terminal, error) {
 	sess, err := conn.Client.NewSession()
 	if err != nil {
 		return nil, fmt.Errorf("não foi possível abrir a sessão: %w", err)
@@ -82,9 +83,13 @@ func openTerminal(conn *Conn, emit Emit, session string, cols, rows int, onEnd f
 		sess.Close()
 		return nil, err
 	}
-	if err := sess.Shell(); err != nil {
+	start := sess.Shell
+	if command != "" {
+		start = func() error { return sess.Start(command) }
+	}
+	if err := start(); err != nil {
 		sess.Close()
-		return nil, fmt.Errorf("o servidor recusou o shell: %w", err)
+		return nil, fmt.Errorf("o servidor recusou o terminal: %w", err)
 	}
 
 	t := &terminal{session: session, sess: sess, stdin: stdin, flow: newFlowControl()}

@@ -154,6 +154,10 @@ export function SSHImportConfig() {
   return window['go']['main']['App']['SSHImportConfig']();
 }
 
+export function SSHOpenContainerTerminal(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['SSHOpenContainerTerminal'](arg1, arg2, arg3, arg4, arg5);
+}
+
 export function SSHOpenTerminal(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['SSHOpenTerminal'](arg1, arg2, arg3, arg4);
 }
