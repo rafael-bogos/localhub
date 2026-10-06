@@ -8,7 +8,8 @@ import {
     StopContainer,
 } from '../../wailsjs/go/main/App';
 import { docker } from '../../wailsjs/go/models';
-import { AlertIcon, BoxIcon, InfoIcon, SearchIcon } from './icons';
+import { AlertIcon, BoxIcon, InfoIcon, PlayIcon, RestartIcon, SearchIcon, StopIcon, TrashIcon, LogsIcon } from './icons';
+import IconButton from './IconButton';
 import { matchesSearch } from '../search';
 import ContainerDetailsDialog from './ContainerDetailsDialog';
 import { displayName, isCustomName, type NameLabelApi } from '../containerName';
@@ -319,54 +320,54 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, activeLogsId
                                     </td>
                                     <td>
                                         <div className="row-actions">
-                                            <button
-                                                className="action-key"
-                                                aria-pressed={activeLogsId === c.id}
+                                            <IconButton
+                                                icon={<LogsIcon />}
+                                                label="Logs"
                                                 title="Ver os logs deste container"
+                                                pressed={activeLogsId === c.id}
                                                 onClick={() => onOpenLogs(c.id, c.name, shown)}
-                                            >
-                                                Logs
-                                            </button>
+                                            />
                                             {isRunning ? (
                                                 <>
-                                                    <button
-                                                        className="action-key"
+                                                    <IconButton
+                                                        icon={<StopIcon />}
+                                                        label={isPending && pendingAction === 'stop' ? 'Parando…' : 'Parar'}
+                                                        busy={isPending && pendingAction === 'stop'}
                                                         disabled={isPending}
                                                         onClick={() => handleStop(c)}
-                                                    >
-                                                        {isPending && pendingAction === 'stop' ? 'Parando' : 'Parar'}
-                                                    </button>
-                                                    <button
-                                                        className="action-key"
+                                                    />
+                                                    <IconButton
+                                                        icon={<RestartIcon />}
+                                                        label={isPending && pendingAction === 'restart' ? 'Reiniciando…' : 'Reiniciar'}
+                                                        busy={isPending && pendingAction === 'restart'}
                                                         disabled={isPending}
                                                         onClick={() => handleRestart(c)}
-                                                    >
-                                                        {isPending && pendingAction === 'restart' ? 'Reiniciando' : 'Reiniciar'}
-                                                    </button>
-                                                    <button
-                                                        className="kill-key"
-                                                        disabled
+                                                    />
+                                                    <IconButton
+                                                        danger
+                                                        icon={<TrashIcon />}
+                                                        label="Remover"
                                                         title="Pare o container antes de removê-lo"
-                                                    >
-                                                        Remover
-                                                    </button>
+                                                        disabled
+                                                    />
                                                 </>
                                             ) : (
                                                 <>
-                                                    <button
-                                                        className="action-key"
+                                                    <IconButton
+                                                        icon={<PlayIcon />}
+                                                        label={isPending && pendingAction === 'start' ? 'Iniciando…' : 'Iniciar'}
+                                                        busy={isPending && pendingAction === 'start'}
                                                         disabled={isPending}
                                                         onClick={() => handleStart(c)}
-                                                    >
-                                                        {isPending && pendingAction === 'start' ? 'Iniciando' : 'Iniciar'}
-                                                    </button>
-                                                    <button
-                                                        className="kill-key"
+                                                    />
+                                                    <IconButton
+                                                        danger
+                                                        icon={<TrashIcon />}
+                                                        label={isPending && pendingAction === 'remove' ? 'Removendo…' : 'Remover'}
+                                                        busy={isPending && pendingAction === 'remove'}
                                                         disabled={isPending}
                                                         onClick={() => handleRemove(c)}
-                                                    >
-                                                        {isPending && pendingAction === 'remove' ? 'Removendo' : 'Remover'}
-                                                    </button>
+                                                    />
                                                 </>
                                             )}
                                         </div>

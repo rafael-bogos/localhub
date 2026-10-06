@@ -27,9 +27,9 @@ funcionando.
   só local na v1.
 - Remoto que não seja Linux; `sudo` interativo para ver/encerrar processos de
   outros usuários.
-- Port forwarding para destinos arbitrários (`-R`, `-D`, `-L` livre), túnel
-  que aceite conexões de outras máquinas (só `127.0.0.1`), SFTP, X11, agent
-  forwarding. (Túnel local para uma porta de **container** existe: ver abaixo.)
+- Port forwarding reverso e dinâmico (`-R`, `-D`), túnel que aceite conexões de
+  outras máquinas (só `127.0.0.1`), SFTP, X11, agent forwarding. (Túnel local
+  livre e túnel para container existem: ver abaixo.)
 - Guardar segredos (senha/passphrase) em keychain.
 - Testes automatizados (o projeto não tem; verificação por build + teste
   manual, como em `tasks/plan.md`).
@@ -100,6 +100,22 @@ funcionando.
   que **cita o nome da máquina** ("Remover container X em `prod-01`?").
 - O atalho "Logs" na aba Processos (porta publicada por container) só vale para
   itens locais na v1.
+
+### Túneis salvos (local port forward livre)
+- Na aba Servidores, uma seção **Túneis** lista, por servidor conectado (ou com
+  túneis salvos), as definições: **nome**, **porta neste computador**, **IP ou
+  host de destino** e **porta de destino**. É o `ssh -fN -L local:destino:porta
+  usuário@servidor`, mostrado no formulário como "Equivale a".
+- Cada túnel tem **Abrir/Fechar**, **Editar** (só fechado) e **Excluir**. O destino
+  é resolvido e alcançado pelo servidor (pode ser um IP da rede privada dele ou
+  um nome de host). Só escuta em `127.0.0.1`. Porta local em uso ou privilegiada,
+  e destino inválido, dão erro claro na linha do túnel.
+- **Abrir sozinho quando o servidor conectar** (opcional, por túnel), inclusive ao
+  reconectar depois de uma queda. Servidor desconectado: "Abrir" fica desabilitado.
+- Os túneis abertos pela aba Containers aparecem na mesma lista, com Fechar.
+- As definições ficam em `localStorage` (`localhub.tunnels.v1`), sem segredos, e
+  são apagadas junto com o servidor. Desconectar avisa quantos túneis fecha.
+- Backend: `OpenForward` (`internal/ssh/tunnel.go`); evento `tunnels:changed`.
 
 ### Terminal dentro de um container
 - Em cada container **rodando** de um servidor, o botão **Terminal** abre, na aba

@@ -1,7 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RemoteCloseTunnel, RemoteContainerAction, RemoteListContainers } from '../../wailsjs/go/main/App';
 import { docker, ssh } from '../../wailsjs/go/models';
-import { AlertIcon, CloseIcon, InfoIcon } from './icons';
+import {
+    AlertIcon,
+    CloseIcon,
+    InfoIcon,
+    LogsIcon,
+    PlayIcon,
+    RestartIcon,
+    StopIcon,
+    TerminalIcon,
+    TrashIcon,
+    TunnelIcon,
+} from './icons';
+import IconButton from './IconButton';
 import { matchesSearch } from '../search';
 import ContainerDetailsDialog from './ContainerDetailsDialog';
 import { displayName, isCustomName, type NameLabelApi } from '../containerName';
@@ -202,63 +214,67 @@ function RemoteContainersSection({
                                     </td>
                                     <td>
                                         <div className="row-actions">
-                                            <button
-                                                className="action-key"
-                                                aria-pressed={activeLogsId === c.id}
+                                            <IconButton
+                                                icon={<LogsIcon />}
+                                                label="Logs"
                                                 title="Ver os logs deste container"
+                                                pressed={activeLogsId === c.id}
                                                 onClick={() => onOpenLogs(c.id, c.name, shown)}
-                                            >
-                                                Logs
-                                            </button>
+                                            />
                                             {isRunning ? (
                                                 <>
-                                                    <button
-                                                        className="action-key"
+                                                    <IconButton
+                                                        icon={<TerminalIcon />}
+                                                        label="Terminal"
                                                         title="Abrir um terminal dentro deste container"
                                                         onClick={() => onOpenTerminal({ id: c.id, name: shown })}
-                                                    >
-                                                        Terminal
-                                                    </button>
-                                                    <button
-                                                        className="action-key"
+                                                    />
+                                                    <IconButton
+                                                        icon={<TunnelIcon />}
+                                                        label="Túnel"
                                                         title="Abrir um túnel para uma porta deste container"
                                                         onClick={() => setTunnelFor(c)}
-                                                    >
-                                                        Túnel
-                                                    </button>
-                                                    <button
-                                                        className="action-key"
+                                                    />
+                                                    <IconButton
+                                                        icon={<StopIcon />}
+                                                        label={isPending && pendingAction === 'stop' ? 'Parando…' : 'Parar'}
+                                                        busy={isPending && pendingAction === 'stop'}
                                                         disabled={isPending}
                                                         onClick={() =>
                                                             run(c, 'stop', `Parar o container "${shown}" em "${hostName}"?`)
                                                         }
-                                                    >
-                                                        {isPending && pendingAction === 'stop' ? 'Parando' : 'Parar'}
-                                                    </button>
-                                                    <button
-                                                        className="action-key"
+                                                    />
+                                                    <IconButton
+                                                        icon={<RestartIcon />}
+                                                        label={isPending && pendingAction === 'restart' ? 'Reiniciando…' : 'Reiniciar'}
+                                                        busy={isPending && pendingAction === 'restart'}
                                                         disabled={isPending}
                                                         onClick={() =>
                                                             run(c, 'restart', `Reiniciar o container "${shown}" em "${hostName}"?`)
                                                         }
-                                                    >
-                                                        {isPending && pendingAction === 'restart' ? 'Reiniciando' : 'Reiniciar'}
-                                                    </button>
-                                                    <button className="kill-key" disabled title="Pare o container antes de removê-lo">
-                                                        Remover
-                                                    </button>
+                                                    />
+                                                    <IconButton
+                                                        danger
+                                                        icon={<TrashIcon />}
+                                                        label="Remover"
+                                                        title="Pare o container antes de removê-lo"
+                                                        disabled
+                                                    />
                                                 </>
                                             ) : (
                                                 <>
-                                                    <button
-                                                        className="action-key"
+                                                    <IconButton
+                                                        icon={<PlayIcon />}
+                                                        label={isPending && pendingAction === 'start' ? 'Iniciando…' : 'Iniciar'}
+                                                        busy={isPending && pendingAction === 'start'}
                                                         disabled={isPending}
                                                         onClick={() => run(c, 'start')}
-                                                    >
-                                                        {isPending && pendingAction === 'start' ? 'Iniciando' : 'Iniciar'}
-                                                    </button>
-                                                    <button
-                                                        className="kill-key"
+                                                    />
+                                                    <IconButton
+                                                        danger
+                                                        icon={<TrashIcon />}
+                                                        label={isPending && pendingAction === 'remove' ? 'Removendo…' : 'Remover'}
+                                                        busy={isPending && pendingAction === 'remove'}
                                                         disabled={isPending}
                                                         onClick={() =>
                                                             run(
@@ -267,9 +283,7 @@ function RemoteContainersSection({
                                                                 `Remover o container "${shown}" em "${hostName}"? Essa ação não pode ser desfeita.`
                                                             )
                                                         }
-                                                    >
-                                                        {isPending && pendingAction === 'remove' ? 'Removendo' : 'Remover'}
-                                                    </button>
+                                                    />
                                                 </>
                                             )}
                                         </div>

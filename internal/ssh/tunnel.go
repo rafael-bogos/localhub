@@ -43,9 +43,23 @@ type ContainerNet struct {
 	Ports []int `json:"ports"`
 }
 
+// Kinds of tunnel.
+const (
+	// TunnelContainer is opened from a container (the IP is looked up on the server).
+	TunnelContainer = "container"
+	// TunnelForward is a free local forward to a host and port the user typed.
+	TunnelForward = "forward"
+)
+
 // TunnelInfo describes an open tunnel for the UI.
 type TunnelInfo struct {
-	ID            string `json:"id"`
+	ID   string `json:"id"`
+	Kind string `json:"kind"`
+	// Name and SavedID belong to forwards: the name the user gave and the id of
+	// the saved definition the UI opened it from.
+	Name    string `json:"name"`
+	SavedID string `json:"savedId"`
+
 	HostID        string `json:"hostId"`
 	ContainerID   string `json:"containerId"`
 	ContainerName string `json:"containerName"`
@@ -236,15 +250,9 @@ func (s *Service) OpenTunnel(ctx context.Context, hostID, containerID, network s
 		return TunnelInfo{}, err
 	}
 
-	ln, err := net.Listen("tcp", net.JoinHostPort(loopback, strconv.Itoa(localPort)))
+	ln, err := listenLocal(localPort)
 	if err != nil {
-		if strings.Contains(err.Error(), "address already in use") {
-			return TunnelInfo{}, fmt.Errorf("a porta %d já está em uso neste computador", localPort)
-		}
-		if strings.Contains(err.Error(), "permission denied") {
-			return TunnelInfo{}, fmt.Errorf("sem permissão para usar a porta %d (portas abaixo de 1024 exigem privilégio)", localPort)
-		}
-		return TunnelInfo{}, fmt.Errorf("não foi possível abrir a porta %d: %w", localPort, err)
+		return TunnelInfo{}, err
 	}
 	actual := ln.Addr().(*net.TCPAddr).Port
 
@@ -256,6 +264,7 @@ func (s *Service) OpenTunnel(ctx context.Context, hostID, containerID, network s
 		open:    map[net.Conn]struct{}{},
 		info: TunnelInfo{
 			ID:            newTunnelID(),
+			Kind:          TunnelContainer,
 			HostID:        hostID,
 			ContainerID:   containerID,
 			ContainerName: cn.Name,
@@ -267,19 +276,7 @@ func (s *Service) OpenTunnel(ctx context.Context, hostID, containerID, network s
 		},
 	}
 
-	s.tmu.Lock()
-	if s.tunnels == nil {
-		s.tunnels = map[string]*tunnel{}
-	}
-	s.tunnels[t.info.ID] = t
-	s.tmu.Unlock()
-
-	go t.serve(s)
-	go func() { // the tunnel ends with its connection
-		<-conn.Done()
-		s.closeTunnel(t.info.ID)
-	}()
-	s.emitTunnels()
+	s.registerTunnel(t)
 	return t.info, nil
 }
 
@@ -313,8 +310,9 @@ func (t *tunnel) untrack(c net.Conn) {
 	t.mu.Unlock()
 }
 
-// dial reaches the container through the server; if the container's IP changed
-// since the tunnel opened it looks the IP up again once.
+// dial reaches the destination through the server. For a container tunnel, if
+// the container's IP changed since the tunnel opened it looks the IP up again
+// once.
 func (t *tunnel) dial() (net.Conn, error) {
 	port := strconv.Itoa(t.info.RemotePort)
 	t.mu.Lock()
@@ -322,8 +320,8 @@ func (t *tunnel) dial() (net.Conn, error) {
 	t.mu.Unlock()
 
 	c, err := t.conn.Client.Dial("tcp", net.JoinHostPort(ip, port))
-	if err == nil {
-		return c, nil
+	if err == nil || t.resolve == nil {
+		return c, err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), listTimeout)
 	defer cancel()
@@ -411,3 +409,101 @@ func (s *Service) ListTunnels() []TunnelInfo {
 }
 
 func (s *Service) emitTunnels() { s.emit("tunnels:changed", s.ListTunnels()) }
+
+// hostPattern matches a DNS name or an IPv4 address; IPv6 goes through net.ParseIP.
+var hostPattern = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9._-]{0,251}[A-Za-z0-9])?$`)
+
+func validForwardHost(h string) bool {
+	return hostPattern.MatchString(h) || net.ParseIP(h) != nil
+}
+
+// OpenForward starts a free local port forward over the server's connection,
+// like `ssh -fN -L localPort:remoteHost:remotePort`: 127.0.0.1:localPort
+// (0 = any free port) is carried through the server to remoteHost:remotePort,
+// which the server resolves and reaches itself (so it can be a private address
+// the user's computer can't see). name and savedID only label the tunnel for
+// the UI. It listens on loopback only.
+func (s *Service) OpenForward(ctx context.Context, hostID, savedID, name, remoteHost string, remotePort, localPort int) (TunnelInfo, error) {
+	remoteHost = strings.TrimSpace(remoteHost)
+	if !validForwardHost(remoteHost) {
+		return TunnelInfo{}, errors.New("o destino deve ser um IP ou um nome de host válido (sem espaços nem barras)")
+	}
+	if remotePort < 1 || remotePort > 65535 {
+		return TunnelInfo{}, errors.New("a porta de destino deve estar entre 1 e 65535")
+	}
+	if localPort < 0 || localPort > 65535 {
+		return TunnelInfo{}, errors.New("a porta local deve estar entre 1 e 65535")
+	}
+	if len(name) > 120 || len(savedID) > 100 {
+		return TunnelInfo{}, errors.New("nome ou identificador grande demais")
+	}
+	conn, err := s.remoteConn(hostID)
+	if err != nil {
+		return TunnelInfo{}, err
+	}
+	// Opening the same saved tunnel twice would only fail on the port; say so.
+	if savedID != "" {
+		for _, t := range s.ListTunnels() {
+			if t.SavedID == savedID {
+				return TunnelInfo{}, errors.New("este túnel já está aberto")
+			}
+		}
+	}
+
+	ln, err := listenLocal(localPort)
+	if err != nil {
+		return TunnelInfo{}, err
+	}
+	actual := ln.Addr().(*net.TCPAddr).Port
+	t := &tunnel{
+		conn: conn,
+		ln:   ln,
+		ip:   remoteHost, // for a forward this is the typed host, used as is
+		open: map[net.Conn]struct{}{},
+		info: TunnelInfo{
+			ID:         newTunnelID(),
+			Kind:       TunnelForward,
+			Name:       name,
+			SavedID:    savedID,
+			HostID:     hostID,
+			RemoteIP:   remoteHost,
+			RemotePort: remotePort,
+			LocalPort:  actual,
+			LocalAddr:  net.JoinHostPort(loopback, strconv.Itoa(actual)),
+		},
+	}
+	s.registerTunnel(t)
+	return t.info, nil
+}
+
+// listenLocal opens the loopback listener of a tunnel with readable errors.
+func listenLocal(localPort int) (net.Listener, error) {
+	ln, err := net.Listen("tcp", net.JoinHostPort(loopback, strconv.Itoa(localPort)))
+	if err != nil {
+		if strings.Contains(err.Error(), "address already in use") {
+			return nil, fmt.Errorf("a porta %d já está em uso neste computador", localPort)
+		}
+		if strings.Contains(err.Error(), "permission denied") {
+			return nil, fmt.Errorf("sem permissão para usar a porta %d (portas abaixo de 1024 exigem privilégio)", localPort)
+		}
+		return nil, fmt.Errorf("não foi possível abrir a porta %d: %w", localPort, err)
+	}
+	return ln, nil
+}
+
+// registerTunnel starts serving a tunnel and ties its life to the connection's.
+func (s *Service) registerTunnel(t *tunnel) {
+	s.tmu.Lock()
+	if s.tunnels == nil {
+		s.tunnels = map[string]*tunnel{}
+	}
+	s.tunnels[t.info.ID] = t
+	s.tmu.Unlock()
+
+	go t.serve(s)
+	go func() { // the tunnel ends with its connection
+		<-t.conn.Done()
+		s.closeTunnel(t.info.ID)
+	}()
+	s.emitTunnels()
+}

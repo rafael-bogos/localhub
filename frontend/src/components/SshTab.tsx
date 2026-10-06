@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SshHostDialog from './SshHostDialog';
 import SshImportDialog from './SshImportDialog';
+import TunnelsPanel from './TunnelsPanel';
 import SshTerminal from './SshTerminal';
 import { useConfirm } from './ConfirmDialog';
 import { AlertIcon, ChevronIcon, CloseIcon, SearchIcon, ServerIcon } from './icons';
 import { connInfo, type SshConnectionsApi } from '../useSshConnections';
 import type { SshHost, SshHostsApi } from '../useSshHosts';
 import type { SshConnectApi } from '../useSshConnect';
+import type { SavedTunnelsApi } from '../useSavedTunnels';
+import type { TunnelControl } from '../useTunnelControl';
 import type { ssh } from '../../wailsjs/go/models';
 
 interface SshTabProps {
@@ -18,6 +21,9 @@ interface SshTabProps {
     onOpenServerTab: (tab: ServerTab, hostId: string) => void;
     /** Open tunnels, to warn that disconnecting closes them. */
     tunnels: ssh.TunnelInfo[];
+    /** Saved tunnels per server and what opens and closes them. */
+    savedTunnels: SavedTunnelsApi;
+    tunnelControl: TunnelControl;
     /** A request from another tab to open a terminal (optionally inside a container). */
     request: TerminalRequest | null;
     onRequestHandled: () => void;
@@ -49,6 +55,8 @@ function SshTab({
     connectFlow,
     onOpenServerTab,
     tunnels,
+    savedTunnels,
+    tunnelControl,
     request,
     onRequestHandled,
     visible,
@@ -172,7 +180,12 @@ function SshTab({
     }
 
     async function handleDelete(host: SshHost) {
-        const ok = await confirm(`Excluir o servidor "${host.name}" da lista? Isso não afeta a máquina remota.`);
+        const nTunnels = savedTunnels.saved.filter((t) => t.hostId === host.id).length;
+        const ok = await confirm(
+            `Excluir o servidor "${host.name}" da lista${
+                nTunnels > 0 ? ` e seus ${nTunnels} túnel${nTunnels === 1 ? ' salvo' : 'is salvos'}` : ''
+            }? Isso não afeta a máquina remota.`
+        );
         if (ok) remove(host.id);
     }
 
@@ -396,6 +409,14 @@ function SshTab({
                                 </tbody>
                             </table>
                         )}
+
+                        <TunnelsPanel
+                            hosts={hosts}
+                            conns={conns}
+                            tunnelsApi={savedTunnels}
+                            live={tunnels}
+                            control={tunnelControl}
+                        />
                     </>
                 )}
             </div>

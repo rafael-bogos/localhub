@@ -536,6 +536,9 @@ export namespace ssh {
 	}
 	export class TunnelInfo {
 	    id: string;
+	    kind: string;
+	    name: string;
+	    savedId: string;
 	    hostId: string;
 	    containerId: string;
 	    containerName: string;
@@ -552,6 +555,9 @@ export namespace ssh {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
+	        this.kind = source["kind"];
+	        this.name = source["name"];
+	        this.savedId = source["savedId"];
 	        this.hostId = source["hostId"];
 	        this.containerId = source["containerId"];
 	        this.containerName = source["containerName"];

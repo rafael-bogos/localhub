@@ -3127,3 +3127,117 @@ body.is-resizing * {
 .details-dialog__labels .action-key {
     grid-area: action;
 }
+
+/* Tunnels panel (Servidores tab) */
+
+.tunnels-panel {
+    margin-top: 22px;
+}
+
+.tunnels-panel__title {
+    margin: 0 0 10px;
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+}
+
+.tunnel-group + .tunnel-group {
+    margin-top: 18px;
+}
+
+.tunnel-group__header {
+    margin-bottom: 4px;
+}
+
+.tunnel-row__addr {
+    color: var(--key-ink-muted);
+    overflow-wrap: anywhere;
+}
+
+.tunnel-row__error {
+    display: block;
+    margin-top: 5px;
+    max-width: 280px;
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: var(--orange-strong);
+}
+
+.tunnel-dialog__check {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    color: var(--ink-primary);
+    cursor: pointer;
+}
+
+.tunnel-dialog__check input {
+    accent-color: var(--amber);
+}
+
+/* Icon-only action keys (container rows): the label is the tooltip. */
+
+.icon-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 30px;
+    padding: 0;
+}
+
+.icon-key svg {
+    pointer-events: none;
+}
+
+.action-key.icon-key[aria-pressed="true"] {
+    background: var(--key-surface-hover);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--amber-dim);
+}
+
+.icon-key--busy svg {
+    animation: icon-key-pulse 900ms ease-in-out infinite;
+}
+
+@keyframes icon-key-pulse {
+    50% {
+        opacity: 0.35;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .icon-key--busy svg {
+        animation: none;
+        opacity: 0.5;
+    }
+}
+
+/* In table mode the actions column is only as wide as its icons, on one line;
+   the card layouts (narrow panel) keep their own wrapping. */
+@container (min-width: 1101px) {
+    .containers-table td:last-child {
+        width: 1%;
+        white-space: nowrap;
+    }
+
+    .containers-table td:last-child .row-actions {
+        flex-wrap: nowrap;
+    }
+}
+
+@container (min-width: 721px) {
+    .remote-table--containers td:last-child {
+        width: 1%;
+        white-space: nowrap;
+    }
+
+    .remote-table--containers td:last-child .row-actions {
+        flex-wrap: nowrap;
+    }
+}

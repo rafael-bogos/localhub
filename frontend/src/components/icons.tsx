@@ -1,3 +1,4 @@
+import type React from 'react';
 interface IconProps {
     size?: number;
     className?: string;
@@ -298,5 +299,90 @@ export function InfoIcon({ size = 14, className }: IconProps) {
             <path d="M12 11v5" />
             <path d="M12 8h.01" />
         </svg>
+    );
+}
+
+function Glyph({ size, className, children }: { size: number; className?: string; children: React.ReactNode }) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            {children}
+        </svg>
+    );
+}
+
+export function LogsIcon({ size = 16, className }: IconProps) {
+    return (
+        <Glyph size={size} className={className}>
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+            <path d="M14 3v5h5" />
+            <path d="M9 13h6M9 17h6" />
+        </Glyph>
+    );
+}
+
+export function TerminalIcon({ size = 16, className }: IconProps) {
+    return (
+        <Glyph size={size} className={className}>
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="m7 10 3 2-3 2" />
+            <path d="M13 15h4" />
+        </Glyph>
+    );
+}
+
+export function TunnelIcon({ size = 16, className }: IconProps) {
+    return (
+        <Glyph size={size} className={className}>
+            <path d="M3 12h18" />
+            <path d="m7 8-4 4 4 4" />
+            <path d="m17 8 4 4-4 4" />
+        </Glyph>
+    );
+}
+
+export function StopIcon({ size = 16, className }: IconProps) {
+    return (
+        <Glyph size={size} className={className}>
+            <rect x="6" y="6" width="12" height="12" rx="2" />
+        </Glyph>
+    );
+}
+
+export function PlayIcon({ size = 16, className }: IconProps) {
+    return (
+        <Glyph size={size} className={className}>
+            <path d="M7 5v14l12-7z" />
+        </Glyph>
+    );
+}
+
+export function RestartIcon({ size = 16, className }: IconProps) {
+    return (
+        <Glyph size={size} className={className}>
+            <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+            <path d="M20 4v5h-5" />
+        </Glyph>
+    );
+}
+
+export function TrashIcon({ size = 16, className }: IconProps) {
+    return (
+        <Glyph size={size} className={className}>
+            <path d="M4 7h16" />
+            <path d="M9 7V4h6v3" />
+            <path d="M6 7l1 13h10l1-13" />
+            <path d="M10 11v6M14 11v6" />
+        </Glyph>
     );
 }

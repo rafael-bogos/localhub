@@ -51,6 +51,8 @@ export function RemoteListTunnels():Promise<Array<ssh.TunnelInfo>>;
 
 export function RemoteLoadOlderLogs(arg1:string,arg2:string,arg3:string,arg4:number):Promise<docker.OlderLogs>;
 
+export function RemoteOpenForward(arg1:string,arg2:string,arg3:string,arg4:string,arg5:number,arg6:number):Promise<ssh.TunnelInfo>;
+
 export function RemoteOpenTunnel(arg1:string,arg2:string,arg3:string,arg4:number,arg5:number):Promise<ssh.TunnelInfo>;
 
 export function RemoteRemoveImage(arg1:string,arg2:string):Promise<void>;

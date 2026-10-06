@@ -54,6 +54,13 @@ rápido que o terminal, sempre, sem sair de uma única janela.
     rodando de um servidor, abre um shell dentro dele (`docker exec -it`, com
     `bash` quando o container tem e `sh` quando não), na aba Servidores. É o
     mesmo terminal embutido: um por vez, com Reabrir depois de `exit`.
+  - **Túneis** — na aba Servidores, cada servidor tem seus túneis salvos: nome,
+    porta neste computador, IP (ou nome) e porta de destino, como em
+    `ssh -fN -L 33062:172.18.3.125:3306 ubuntu@201.23.69.55`, mas com um clique
+    para abrir e fechar. O destino é alcançado pelo servidor (então pode ser um
+    endereço da rede privada dele), o túnel só aceita conexões de `127.0.0.1`, e
+    há a opção de abrir sozinho quando o servidor conectar. As definições ficam
+    salvas; os túneis fecham quando o servidor desconecta.
   - **Túnel para containers** — o botão **Túnel**, em cada container rodando de
     um servidor, abre uma porta neste computador que leva a uma porta do
     container (o equivalente a `ssh -fN -L 33061:172.18.3.23:3306 usuario@servidor`,

@@ -17,6 +17,8 @@ import { useSshHosts } from './useSshHosts';
 import { connInfo, useSshConnections } from './useSshConnections';
 import { useSshConnect } from './useSshConnect';
 import { useTunnels } from './useTunnels';
+import { useSavedTunnels } from './useSavedTunnels';
+import { useTunnelControl } from './useTunnelControl';
 import { useNameLabel } from './containerName';
 import { RefreshIcon, SearchIcon, CloseIcon } from './components/icons';
 import { useConfirm } from './components/ConfirmDialog';
@@ -51,6 +53,8 @@ function App() {
     const sshConnections = useSshConnections();
     const connectFlow = useSshConnect(sshConnections, sshHosts.hosts);
     const tunnels = useTunnels();
+    const savedTunnels = useSavedTunnels(sshHosts.hosts.map((h) => h.id));
+    const tunnelControl = useTunnelControl(savedTunnels.saved, tunnels, sshConnections.conns);
     const names = useNameLabel();
     const [terminalRequest, setTerminalRequest] = useState<TerminalRequest | null>(null);
     // Servers with a group in the data tabs, and what each one reported per tab.
@@ -516,6 +520,8 @@ function App() {
                                 connections={sshConnections}
                                 connectFlow={connectFlow}
                                 tunnels={tunnels}
+                                savedTunnels={savedTunnels}
+                                tunnelControl={tunnelControl}
                                 request={terminalRequest}
                                 onRequestHandled={() => setTerminalRequest(null)}
                                 onOpenServerTab={openServerTab}

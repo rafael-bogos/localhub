@@ -94,6 +94,10 @@ export function RemoteLoadOlderLogs(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['RemoteLoadOlderLogs'](arg1, arg2, arg3, arg4);
 }
 
+export function RemoteOpenForward(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['main']['App']['RemoteOpenForward'](arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
 export function RemoteOpenTunnel(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['RemoteOpenTunnel'](arg1, arg2, arg3, arg4, arg5);
 }

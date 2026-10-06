@@ -329,3 +329,11 @@ func (a *App) RemoteCloseTunnel(id string) {
 func (a *App) RemoteListTunnels() []lssh.TunnelInfo {
 	return a.ssh.ListTunnels()
 }
+
+// RemoteOpenForward opens a free local forward through a connected server, like
+// `ssh -fN -L localPort:remoteHost:remotePort`. savedID and name label it for
+// the UI; localPort 0 picks a free port. Changes are announced with the
+// "tunnels:changed" event.
+func (a *App) RemoteOpenForward(hostID, savedID, name, remoteHost string, remotePort, localPort int) (lssh.TunnelInfo, error) {
+	return a.ssh.OpenForward(a.ctx, hostID, savedID, name, remoteHost, remotePort, localPort)
+}
