@@ -15,6 +15,10 @@ import ContainerDetailsDialog from './ContainerDetailsDialog';
 import { displayName, isCustomName, type NameLabelApi } from '../containerName';
 import { useConfirm } from './ConfirmDialog';
 import { formatBytes, formatPercent } from '../format';
+import { useSelection, clickedControl } from '../useSelection';
+import { runBatch } from '../batch';
+import RowCheck from './RowCheck';
+import BatchBar from './BatchBar';
 
 const COOL_DOWN_MS = 340;
 const STATS_INTERVAL_MS = 2000;
@@ -44,6 +48,8 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, activeLogsId
     const [stats, setStats] = useState<Record<string, docker.ContainerStats>>({});
     const [details, setDetails] = useState<docker.ContainerInfo | null>(null);
     const countReported = useRef(false);
+    const selection = useSelection<string>();
+    const [batchBusy, setBatchBusy] = useState(false);
 
     async function load() {
         setLoading(true);
@@ -163,6 +169,30 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, activeLogsId
         }
     }
 
+    // Batch actions over the containers picked in the table (or, for "stop
+    // all", every running one on this machine, filtered out or not).
+    async function runContainerBatch(
+        verb: string,
+        targets: docker.ContainerInfo[],
+        action: (id: string) => Promise<void>,
+        warning = ''
+    ) {
+        if (targets.length === 0) return;
+        const confirmed = await confirm(`${verb} ${targets.length} container(es)?${warning}`);
+        if (!confirmed) return;
+
+        setError('');
+        setBatchBusy(true);
+        try {
+            const failures = await runBatch(targets, (c) => action(c.id), (c) => displayName(c, names.nameLabel));
+            selection.clear();
+            await load();
+            if (failures) setError(failures);
+        } finally {
+            setBatchBusy(false);
+        }
+    }
+
     async function handleRemove(c: docker.ContainerInfo) {
         const confirmed = await confirm(`Remover o container "${displayName(c, names.nameLabel)}"? Essa ação não pode ser desfeita.`);
         if (!confirmed) return;
@@ -184,6 +214,14 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, activeLogsId
             setCoolingId(null);
         }
     }
+
+    const picked = containers.filter((c) => selection.selected.has(c.id));
+    const pickedRunning = picked.filter((c) => c.state === 'running');
+    const pickedStopped = picked.filter((c) => c.state !== 'running');
+    const visibleIds = visible.map((c) => c.id);
+    const allVisiblePicked = visibleIds.length > 0 && visibleIds.every((id) => selection.selected.has(id));
+    const someVisiblePicked = visibleIds.some((id) => selection.selected.has(id));
+    const running = containers.filter((c) => c.state === 'running');
 
     if (!loading && containers.length === 0 && !error) {
         return (
@@ -227,6 +265,62 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, activeLogsId
                 </dl>
             )}
 
+            {containers.length > 0 && picked.length === 0 && hasRunning && (
+                <div className="batch-toolbar">
+                    <button
+                        className="kill-key"
+                        disabled={batchBusy}
+                        title="Para todos os containers em execução nesta máquina"
+                        onClick={() => runContainerBatch('Parar', running, StopContainer)}
+                    >
+                        {batchBusy ? 'Parando' : `Parar todos (${runningCount})`}
+                    </button>
+                </div>
+            )}
+
+            {picked.length > 0 && (
+                <BatchBar count={picked.length} noun="container(es)" onClear={selection.clear}>
+                    {pickedRunning.length > 0 && (
+                        <>
+                            <button
+                                className="action-key"
+                                disabled={batchBusy}
+                                onClick={() => runContainerBatch('Parar', pickedRunning, StopContainer)}
+                            >
+                                Parar ({pickedRunning.length})
+                            </button>
+                            <button
+                                className="action-key"
+                                disabled={batchBusy}
+                                onClick={() => runContainerBatch('Reiniciar', pickedRunning, RestartContainer)}
+                            >
+                                Reiniciar ({pickedRunning.length})
+                            </button>
+                        </>
+                    )}
+                    {pickedStopped.length > 0 && (
+                        <>
+                            <button
+                                className="action-key"
+                                disabled={batchBusy}
+                                onClick={() => runContainerBatch('Iniciar', pickedStopped, StartContainer)}
+                            >
+                                Iniciar ({pickedStopped.length})
+                            </button>
+                            <button
+                                className="kill-key"
+                                disabled={batchBusy}
+                                onClick={() =>
+                                    runContainerBatch('Remover', pickedStopped, RemoveContainer, ' Essa ação não pode ser desfeita.')
+                                }
+                            >
+                                Remover ({pickedStopped.length})
+                            </button>
+                        </>
+                    )}
+                </BatchBar>
+            )}
+
             {containers.length > 0 && visible.length === 0 && (
                 <div className="empty-state">
                     <SearchIcon size={32} />
@@ -238,7 +332,15 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, activeLogsId
                 <table className="containers-table">
                     <thead>
                         <tr>
-                            <th>Nome</th>
+                            <th>
+                                <RowCheck
+                                    checked={allVisiblePicked}
+                                    indeterminate={someVisiblePicked}
+                                    label="Selecionar todos os containers listados"
+                                    onChange={() => selection.setMany(visibleIds, !allVisiblePicked)}
+                                />
+                                Nome
+                            </th>
                             <th>Imagem</th>
                             <th>Portas</th>
                             <th>CPU</th>
@@ -263,12 +365,22 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, activeLogsId
                                         !isRunning ? '' : 'container-row--protected',
                                         isCooling ? 'container-row--cooling' : '',
                                         activeLogsId === c.id ? 'container-row--logs' : '',
+                                        'row--selectable',
+                                        selection.selected.has(c.id) ? 'row--selected' : '',
                                     ]
                                         .filter(Boolean)
                                         .join(' ')}
+                                    onClick={(e) => {
+                                        if (!clickedControl(e)) selection.toggle(c.id);
+                                    }}
                                 >
                                     <td className="container-row__name">
                                         <span className="container-row__title">
+                                            <RowCheck
+                                                checked={selection.selected.has(c.id)}
+                                                label={`Selecionar ${shown}`}
+                                                onChange={() => selection.toggle(c.id)}
+                                            />
                                             <span>{shown}</span>
                                             <button
                                                 className="container-row__info"

@@ -20,6 +20,7 @@ import { useTunnels } from './useTunnels';
 import { useSavedTunnels } from './useSavedTunnels';
 import { useTunnelControl } from './useTunnelControl';
 import { useNameLabel } from './containerName';
+import { runBatch } from './batch';
 import { configProblem } from './appConfig';
 import { AlertIcon, RefreshIcon, SearchIcon, CloseIcon } from './components/icons';
 import { useConfirm } from './components/ConfirmDialog';
@@ -167,6 +168,20 @@ function App() {
             setKillingPid(null);
             setCoolingPid(null);
         }
+    }
+
+    // Batch kill from the Processos tab: one confirmation, every PID in parallel.
+    async function handleKillMany(pids: number[]) {
+        const confirmed = await confirm(
+            `Matar ${pids.length} processo(s)? Isso também pode encerrar os processos filhos deles.`
+        );
+        if (!confirmed) return;
+
+        setError('');
+        const failures = await runBatch(pids, (pid) => KillProcess(pid), (pid) => `PID ${pid}`);
+        await new Promise((resolve) => setTimeout(resolve, COOL_DOWN_MS));
+        await loadPorts();
+        if (failures) setError(failures);
     }
 
     async function handleKill(port: ports.PortInfo) {
@@ -490,6 +505,7 @@ function App() {
                                 searchQuery={portSearch}
                                 onKill={handleKill}
                                 onKillParent={handleKillParent}
+                                onKillMany={handleKillMany}
                                 portOwners={portOwners}
                                 onOpenLogs={openLogs}
                                 killingPid={killingPid}

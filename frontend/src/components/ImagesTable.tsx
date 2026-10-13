@@ -4,8 +4,16 @@ import { docker } from '../../wailsjs/go/models';
 import { AlertIcon, LayersIcon, SearchIcon } from './icons';
 import { matchesSearch } from '../search';
 import { useConfirm } from './ConfirmDialog';
+import { useSelection, clickedControl } from '../useSelection';
+import { runBatch } from '../batch';
+import RowCheck from './RowCheck';
+import BatchBar from './BatchBar';
 
 const COOL_DOWN_MS = 340;
+
+function imageLabel(img: docker.ImageInfo): string {
+    return img.repository === '<none>' ? img.id : `${img.repository}:${img.tag}`;
+}
 
 interface ImagesTableProps {
     /** The header search box: matches repository, tag and ID. */
@@ -23,6 +31,8 @@ function ImagesTable({ query, onCountChange }: ImagesTableProps) {
     const [pruning, setPruning] = useState(false);
     const [pruneMessage, setPruneMessage] = useState('');
     const countReported = useRef(false);
+    const selection = useSelection<string>();
+    const [batchBusy, setBatchBusy] = useState(false);
 
     async function load() {
         setLoading(true);
@@ -48,8 +58,7 @@ function ImagesTable({ query, onCountChange }: ImagesTableProps) {
     }, []);
 
     async function handleRemove(img: docker.ImageInfo) {
-        const label = img.repository === '<none>' ? img.id : `${img.repository}:${img.tag}`;
-        const confirmed = await confirm(`Remover a imagem "${label}"? Essa ação não pode ser desfeita.`);
+        const confirmed = await confirm(`Remover a imagem "${imageLabel(img)}"? Essa ação não pode ser desfeita.`);
         if (!confirmed) return;
 
         setError('');
@@ -90,9 +99,31 @@ function ImagesTable({ query, onCountChange }: ImagesTableProps) {
         }
     }
 
+    async function handleRemoveMany(targets: docker.ImageInfo[]) {
+        const confirmed = await confirm(`Remover ${targets.length} imagem(ns)? Essa ação não pode ser desfeita.`);
+        if (!confirmed) return;
+
+        setError('');
+        setPruneMessage('');
+        setBatchBusy(true);
+        try {
+            const failures = await runBatch(targets, (img) => RemoveImage(img.id), imageLabel);
+            selection.clear();
+            await load();
+            if (failures) setError(failures);
+        } finally {
+            setBatchBusy(false);
+        }
+    }
+
     const visible = images.filter((img) =>
         matchesSearch(query, img.repository, img.tag, `${img.repository}:${img.tag}`, img.id)
     );
+
+    const picked = images.filter((img) => selection.selected.has(img.id));
+    const visibleIds = visible.map((img) => img.id);
+    const allVisiblePicked = visibleIds.length > 0 && visibleIds.every((id) => selection.selected.has(id));
+    const someVisiblePicked = visibleIds.some((id) => selection.selected.has(id));
 
     if (!loading && images.length === 0 && !error) {
         return (
@@ -121,6 +152,14 @@ function ImagesTable({ query, onCountChange }: ImagesTableProps) {
                         {pruneMessage && <span className="prune-result">{pruneMessage}</span>}
                     </div>
 
+                    {picked.length > 0 && (
+                        <BatchBar count={picked.length} noun="imagem(ns)" onClear={selection.clear}>
+                            <button className="kill-key" disabled={batchBusy} onClick={() => handleRemoveMany(picked)}>
+                                {batchBusy ? 'Removendo' : `Remover (${picked.length})`}
+                            </button>
+                        </BatchBar>
+                    )}
+
                     {visible.length === 0 && (
                         <div className="empty-state">
                             <SearchIcon size={32} />
@@ -132,7 +171,15 @@ function ImagesTable({ query, onCountChange }: ImagesTableProps) {
                     <table className="images-table">
                         <thead>
                             <tr>
-                                <th>Repositório</th>
+                                <th>
+                                    <RowCheck
+                                        checked={allVisiblePicked}
+                                        indeterminate={someVisiblePicked}
+                                        label="Selecionar todas as imagens listadas"
+                                        onChange={() => selection.setMany(visibleIds, !allVisiblePicked)}
+                                    />
+                                    Repositório
+                                </th>
                                 <th>Tag</th>
                                 <th>ID</th>
                                 <th>Tamanho</th>
@@ -148,11 +195,26 @@ function ImagesTable({ query, onCountChange }: ImagesTableProps) {
                                 return (
                                     <tr
                                         key={img.id}
-                                        className={['image-row', isCooling ? 'image-row--cooling' : '']
+                                        className={[
+                                            'image-row',
+                                            isCooling ? 'image-row--cooling' : '',
+                                            'row--selectable',
+                                            selection.selected.has(img.id) ? 'row--selected' : '',
+                                        ]
                                             .filter(Boolean)
                                             .join(' ')}
+                                        onClick={(e) => {
+                                            if (!clickedControl(e)) selection.toggle(img.id);
+                                        }}
                                     >
-                                        <td className="image-row__repo">{img.repository}</td>
+                                        <td className="image-row__repo">
+                                            <RowCheck
+                                                checked={selection.selected.has(img.id)}
+                                                label={`Selecionar ${imageLabel(img)}`}
+                                                onChange={() => selection.toggle(img.id)}
+                                            />
+                                            {img.repository}
+                                        </td>
                                         <td className="image-row__tag">{img.tag}</td>
                                         <td className="image-row__id" data-label="ID">{img.id}</td>
                                         <td className="image-row__size" data-label="Tamanho">{img.size}</td>

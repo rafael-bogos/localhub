@@ -2,12 +2,17 @@ import { useState } from 'react';
 import { ListChildProcesses } from '../../wailsjs/go/main/App';
 import { ports } from '../../wailsjs/go/models';
 import { AlertIcon, ChevronIcon, UnplugIcon } from './icons';
+import { useSelection } from '../useSelection';
+import RowCheck from './RowCheck';
+import BatchBar from './BatchBar';
 
 interface PortsTableProps {
     ports: ports.PortInfo[];
     searchQuery?: string;
     onKill: (port: ports.PortInfo) => void;
     onKillParent: (pid: number, processName: string) => void;
+    /** Kills every given PID after one confirmation; resolves when done. */
+    onKillMany: (pids: number[]) => Promise<void>;
     /** Container that publishes each port, keyed "protocol:port". */
     portOwners: Record<string, { id: string; name: string }>;
     onOpenLogs: (id: string, name: string) => void;
@@ -21,6 +26,7 @@ function PortsTable({
     searchQuery,
     onKill,
     onKillParent,
+    onKillMany,
     portOwners,
     onOpenLogs,
     killingPid,
@@ -31,6 +37,24 @@ function PortsTable({
     const [children, setChildren] = useState<Record<number, ports.PortInfo[]>>({});
     const [loadingParent, setLoadingParent] = useState<number | null>(null);
     const [childError, setChildError] = useState<Record<number, string>>({});
+    const selection = useSelection<number>();
+    const [batchBusy, setBatchBusy] = useState(false);
+
+    // Selection is by PID: a process holding several ports is one entry.
+    const selectablePids = [...new Set(ports.filter((p) => p.pid > 0).map((p) => p.pid))];
+    const allPicked = selectablePids.length > 0 && selectablePids.every((pid) => selection.selected.has(pid));
+    const somePicked = selectablePids.some((pid) => selection.selected.has(pid));
+    const pickedPids = [...selection.selected];
+
+    async function killPicked() {
+        setBatchBusy(true);
+        try {
+            await onKillMany(pickedPids);
+            selection.clear();
+        } finally {
+            setBatchBusy(false);
+        }
+    }
 
     async function toggle(parentPid: number) {
         if (expanded.has(parentPid)) {
@@ -79,7 +103,15 @@ function PortsTable({
                     .filter(Boolean)
                     .join(' ')}
             >
-                <td className="port-row__port">{p.port}</td>
+                <td className="port-row__port">
+                    <RowCheck
+                        checked={selection.selected.has(p.pid)}
+                        disabled={!canKill}
+                        label={`Selecionar ${p.processName || 'processo'} (PID ${p.pid})`}
+                        onChange={() => selection.toggle(p.pid)}
+                    />
+                    {p.port}
+                </td>
                 <td className="port-row__protocol">{p.protocol.toUpperCase()}</td>
                 <td
                     className="port-row__process"
@@ -147,6 +179,11 @@ function PortsTable({
                 >
                     <td className="port-row__port" colSpan={2}>
                         <span className="port-row__expand">
+                            <RowCheck
+                                checked={selection.selected.has(group.pid)}
+                                label={`Selecionar ${group.processName || 'processo'} (PID ${group.pid})`}
+                                onChange={() => selection.toggle(group.pid)}
+                            />
                             <ChevronIcon size={12} className={isOpen ? 'port-row__expand-icon--open' : undefined} />
                             {isLoading
                                 ? 'Buscando…'
@@ -218,10 +255,27 @@ function PortsTable({
                     </p>
                 </div>
             ) : (
+                <>
+                {pickedPids.length > 0 && (
+                    <BatchBar count={pickedPids.length} noun="processo(s)" onClear={selection.clear}>
+                        <button className="kill-key" disabled={batchBusy} onClick={killPicked}>
+                            {batchBusy ? 'Matando' : `Matar (${pickedPids.length})`}
+                        </button>
+                    </BatchBar>
+                )}
                 <table className="ports-table">
                     <thead>
                         <tr>
-                            <th>Porta</th>
+                            <th>
+                                <RowCheck
+                                    checked={allPicked}
+                                    indeterminate={somePicked}
+                                    disabled={selectablePids.length === 0}
+                                    label="Selecionar todos os processos listados"
+                                    onChange={() => selection.setMany(selectablePids, !allPicked)}
+                                />
+                                Porta
+                            </th>
                             <th>Protocolo</th>
                             <th>Processo</th>
                             <th>PID</th>
@@ -235,6 +289,7 @@ function PortsTable({
                         )}
                     </tbody>
                 </table>
+                </>
             )}
         </>
     );
