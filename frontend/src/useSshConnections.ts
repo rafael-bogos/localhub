@@ -108,6 +108,7 @@ export function useSshConnections(): SshConnectionsApi {
             try {
                 result = await SSHConnect(
                     ssh.HostSpec.createFrom({
+                        name: host.name,
                         id: host.id,
                         address: host.address,
                         port: host.port,

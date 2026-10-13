@@ -378,6 +378,7 @@ export namespace ssh {
 	
 	export class HostSpec {
 	    id: string;
+	    name: string;
 	    address: string;
 	    port: number;
 	    user: string;
@@ -391,6 +392,7 @@ export namespace ssh {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
+	        this.name = source["name"];
 	        this.address = source["address"];
 	        this.port = source["port"];
 	        this.user = source["user"];

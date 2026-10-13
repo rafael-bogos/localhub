@@ -31,7 +31,9 @@ const trustTimeout = 2 * time.Minute
 // HostSpec is what the UI sends to connect: a saved server's metadata. It
 // never carries secrets; the passphrase travels separately.
 type HostSpec struct {
-	ID      string `json:"id"`
+	ID string `json:"id"`
+	// Name is what the user called the server; used in notifications.
+	Name    string `json:"name"`
 	Address string `json:"address"`
 	Port    int    `json:"port"`
 	User    string `json:"user"`
@@ -142,7 +144,11 @@ func (s *Service) Connect(ctx context.Context, spec HostSpec, passphrase []byte)
 		return ConnectResult{Code: ResultError, Message: err.Error()}
 	}
 	if s.OnContainerStop != nil {
-		s.WatchStops(conn, spec.User+"@"+spec.Address, s.OnContainerStop)
+		name := spec.Name
+		if name == "" {
+			name = spec.User + "@" + spec.Address
+		}
+		s.WatchStops(conn, name, s.OnContainerStop)
 	}
 	return ConnectResult{Code: ResultOK}
 }

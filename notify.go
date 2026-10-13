@@ -102,17 +102,24 @@ type stopNotice struct {
 }
 
 // describeStop classifies an exit code. 137 (SIGKILL) and 143 (SIGTERM) mean
-// the container was ended from outside, not that the program failed.
+// the container was ended from outside, not that the program failed; the text
+// avoids signal jargon, since what matters is what the user can do next.
 func describeStop(code int) (kind, detail string) {
 	switch code {
 	case 0:
-		return "stopped", "Saiu normalmente"
-	case 137:
-		return "killed", "Encerrado à força (SIGKILL, código 137)"
-	case 143:
-		return "killed", "Encerrado (SIGTERM, código 143)"
+		return "stopped", "Terminou sem erros."
+	case 137, 143:
+		return "killed", "Foi parado por um comando (stop, compose down, kill) ou por falta de memória."
 	}
-	return "failed", fmt.Sprintf("Saiu com erro (código %d)", code)
+	return "failed", fmt.Sprintf("Terminou com erro (código %d). Veja os logs.", code)
+}
+
+// location says where the container ran, in words.
+func location(hostName string) string {
+	if hostName == "" {
+		return "Neste computador"
+	}
+	return "Servidor " + hostName
 }
 
 func (n *stopNotifier) notify(hostID, hostName string, ev docker.StopEvent) {
@@ -127,7 +134,7 @@ func (n *stopNotifier) notify(hostID, hostName string, ev docker.StopEvent) {
 	title := name + " parou"
 	switch kind {
 	case "killed":
-		title = name + " foi encerrado"
+		title = name + " foi desligado"
 	case "failed":
 		title = name + " falhou"
 	}
@@ -150,12 +157,9 @@ func (n *stopNotifier) notify(hostID, hostName string, ev docker.StopEvent) {
 	if !n.ready {
 		return
 	}
-	where := "Local"
-	if hostName != "" {
-		where = hostName
-	}
+	where := location(hostName)
 	if ev.Image != "" {
-		where += " · " + ev.Image
+		where += " · imagem " + ev.Image
 	}
 	if err := wruntime.SendNotification(n.ctx, wruntime.NotificationOptions{
 		ID:    notice.ID,

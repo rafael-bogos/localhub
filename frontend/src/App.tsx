@@ -412,8 +412,8 @@ function App() {
     }
 
     function noticeHostLabel(n: StopNotice) {
-        if (!n.hostId) return 'Local';
-        return sshHosts.hosts.find((h) => h.id === n.hostId)?.name ?? n.hostName ?? 'Servidor';
+        if (!n.hostId) return 'Neste computador';
+        return `Servidor ${sshHosts.hosts.find((h) => h.id === n.hostId)?.name ?? n.hostName}`;
     }
 
     function goToNotice(n: StopNotice) {

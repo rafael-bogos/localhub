@@ -45,7 +45,7 @@ function NoticeText({ notice, hostLabel }: NoticeTextProps) {
             <span className="notice-text__detail">{notice.detail}</span>
             <span className="notice-text__where">
                 {hostLabel}
-                {notice.image ? ` · ${notice.image}` : ''}
+                {notice.image ? ` · imagem ${notice.image}` : ''}
             </span>
         </span>
     );
