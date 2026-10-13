@@ -386,3 +386,23 @@ export function TrashIcon({ size = 16, className }: IconProps) {
         </Glyph>
     );
 }
+
+export function BellIcon({ size = 16, className }: IconProps) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z" />
+            <path d="M10 20a2 2 0 0 0 4 0" />
+        </svg>
+    );
+}

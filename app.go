@@ -19,6 +19,9 @@ type App struct {
 	ctx context.Context
 	cfg *config.Store
 	ssh *lssh.Service
+
+	notifier  *stopNotifier
+	stopWatch context.CancelFunc
 }
 
 // NewApp creates a new App application struct
@@ -28,7 +31,7 @@ func NewApp() *App {
 		// No config directory: settings just won't persist (every Save reports it).
 		cfg = config.NewAt("")
 	}
-	return &App{cfg: cfg}
+	return &App{cfg: cfg, notifier: newStopNotifier()}
 }
 
 // startup is called when the app starts. The context is saved
@@ -38,10 +41,20 @@ func (a *App) startup(ctx context.Context) {
 	a.ssh = lssh.NewService(func(event string, data any) {
 		wruntime.EventsEmit(ctx, event, data)
 	})
+
+	a.notifier.start(ctx)
+	a.ssh.OnContainerStop = a.notifier.remote
+	watchCtx, cancel := context.WithCancel(ctx)
+	a.stopWatch = cancel
+	go docker.WatchStops(watchCtx, a.notifier.local)
 }
 
 // shutdown is called when the app exits; it closes every SSH connection.
 func (a *App) shutdown(ctx context.Context) {
+	if a.stopWatch != nil {
+		a.stopWatch()
+	}
+	a.notifier.stop()
 	if a.ssh != nil {
 		a.ssh.Shutdown()
 	}
@@ -114,16 +127,19 @@ func (a *App) StartContainer(id string) error {
 
 // StopContainer stops a running container.
 func (a *App) StopContainer(id string) error {
+	a.notifier.mute("", id)
 	return docker.StopContainer(a.ctx, id)
 }
 
 // RestartContainer stops and starts a container again.
 func (a *App) RestartContainer(id string) error {
+	a.notifier.mute("", id)
 	return docker.RestartContainer(a.ctx, id)
 }
 
 // RemoveContainer removes a stopped container.
 func (a *App) RemoveContainer(id string) error {
+	a.notifier.mute("", id)
 	return docker.RemoveContainer(a.ctx, id)
 }
 
@@ -277,6 +293,9 @@ func (a *App) RemoteListContainers(hostID string) (lssh.RemoteContainers, error)
 // RemoteContainerAction runs "start", "stop", "restart" or "remove" on a
 // container of a connected SSH server.
 func (a *App) RemoteContainerAction(hostID, containerID, action string) error {
+	if action != "start" {
+		a.notifier.mute(hostID, containerID)
+	}
 	return a.ssh.ContainerAction(a.ctx, hostID, containerID, action)
 }
 

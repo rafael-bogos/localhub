@@ -6,6 +6,8 @@ import PortsTable from './components/PortsTable';
 import ContainersTable from './components/ContainersTable';
 import ImagesTable from './components/ImagesTable';
 import CleanupTab from './components/CleanupTab';
+import NotificationCenter from './components/NotificationCenter';
+import { useStopNotices, type StopNotice } from './useStopNotices';
 import SshTab, { type TerminalRequest } from './components/SshTab';
 import HostGroup from './components/HostGroup';
 import RemotePortsSection from './components/RemotePortsSection';
@@ -54,6 +56,8 @@ function App() {
     const sshHosts = useSshHosts();
     const sshConnections = useSshConnections();
     const connectFlow = useSshConnect(sshConnections, sshHosts.hosts);
+    const [notifOpen, setNotifOpen] = useState(false);
+    const stopNotices = useStopNotices(notifOpen);
     const tunnels = useTunnels();
     const savedTunnels = useSavedTunnels(sshHosts.hosts.map((h) => h.id));
     const tunnelControl = useTunnelControl(savedTunnels.saved, tunnels, sshConnections.conns);
@@ -407,6 +411,16 @@ function App() {
         scrollTimer.current = window.setTimeout(() => el.classList.remove('instrument-panel--scrolling'), 120);
     }
 
+    function noticeHostLabel(n: StopNotice) {
+        if (!n.hostId) return 'Local';
+        return sshHosts.hosts.find((h) => h.id === n.hostId)?.name ?? n.hostName ?? 'Servidor';
+    }
+
+    function goToNotice(n: StopNotice) {
+        if (n.hostId) openServerTab('containers', n.hostId);
+        else setActiveTab('containers');
+    }
+
     function handleRefresh() {
         if (activeTab === 'portas') {
             loadPorts();
@@ -447,7 +461,50 @@ function App() {
                 </nav>
 
                 <div className="fascia__controls">
-                    {(activeTab === 'portas' || activeTab === 'containers' || activeTab === 'imagens') && (
+                    <div
+                        className="port-counter"
+                        title={
+                            activeTab === 'limpeza'
+                                ? 'Itens selecionados para limpeza'
+                                : activeTab === 'ssh'
+                                  ? 'Servidores salvos'
+                                  : activeTab === 'portas'
+                                  ? 'Processos listados agora'
+                                  : `${TAB_LABELS[activeTab]} listadas agora`
+                        }
+                    >
+                        <span className={`port-counter__value${tick ? ' port-counter__value--tick' : ''}`}>
+                            {activeCount}
+                        </span>
+                        <span className="port-counter__label">
+                            {activeTab === 'limpeza' ? 'Selecionadas' : activeTab === 'ssh' ? 'Servidores' : TAB_LABELS[activeTab]}
+                        </span>
+                    </div>
+                    <NotificationCenter
+                        api={stopNotices}
+                        open={notifOpen}
+                        onOpenChange={setNotifOpen}
+                        hostLabel={noticeHostLabel}
+                        onGoTo={goToNotice}
+                    />
+                    <button
+                        className={`refresh-btn${loading && activeTab === 'portas' ? ' refresh-btn--loading' : ''}`}
+                        onClick={handleRefresh}
+                        disabled={(loading && activeTab === 'portas') || activeTab === 'limpeza' || activeTab === 'ssh'}
+                        title={
+                            activeTab === 'limpeza' || activeTab === 'ssh'
+                                ? 'Nada para atualizar aqui'
+                                : loading && activeTab === 'portas'
+                                  ? 'Atualizando...'
+                                  : 'Atualizar'
+                        }
+                        aria-label={loading && activeTab === 'portas' ? 'Atualizando' : 'Atualizar'}
+                    >
+                        <RefreshIcon />
+                    </button>
+                </div>
+                {(activeTab === 'portas' || activeTab === 'containers' || activeTab === 'imagens') && (
+                    <div className="fascia__search">
                         <div className="port-search">
                             <SearchIcon size={14} className="port-search__icon" />
                             <input
@@ -469,42 +526,8 @@ function App() {
                                 </button>
                             )}
                         </div>
-                    )}
-                    <div
-                        className="port-counter"
-                        title={
-                            activeTab === 'limpeza'
-                                ? 'Itens selecionados para limpeza'
-                                : activeTab === 'ssh'
-                                  ? 'Servidores salvos'
-                                  : activeTab === 'portas'
-                                  ? 'Processos listados agora'
-                                  : `${TAB_LABELS[activeTab]} listadas agora`
-                        }
-                    >
-                        <span className={`port-counter__value${tick ? ' port-counter__value--tick' : ''}`}>
-                            {activeCount}
-                        </span>
-                        <span className="port-counter__label">
-                            {activeTab === 'limpeza' ? 'Selecionadas' : activeTab === 'ssh' ? 'Servidores' : TAB_LABELS[activeTab]}
-                        </span>
                     </div>
-                    <button
-                        className={`refresh-btn${loading && activeTab === 'portas' ? ' refresh-btn--loading' : ''}`}
-                        onClick={handleRefresh}
-                        disabled={(loading && activeTab === 'portas') || activeTab === 'limpeza' || activeTab === 'ssh'}
-                        title={
-                            activeTab === 'limpeza' || activeTab === 'ssh'
-                                ? 'Nada para atualizar aqui'
-                                : loading && activeTab === 'portas'
-                                  ? 'Atualizando...'
-                                  : 'Atualizar'
-                        }
-                        aria-label={loading && activeTab === 'portas' ? 'Atualizando' : 'Atualizar'}
-                    >
-                        <RefreshIcon />
-                    </button>
-                </div>
+                )}
             </header>
 
             <div className={`workspace${logsTarget ? ' workspace--logs' : ''}`}>

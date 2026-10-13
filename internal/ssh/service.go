@@ -69,6 +69,10 @@ type Service struct {
 	mgr  *Manager
 	emit Emit
 
+	// OnContainerStop, when set before the first Connect, is called for every
+	// container that stops on a connected server.
+	OnContainerStop func(StopEvent)
+
 	mu     sync.Mutex
 	trust  map[string]chan bool
 	termID string
@@ -118,7 +122,7 @@ func (s *Service) Connect(ctx context.Context, spec HostSpec, passphrase []byte)
 		return ConnectResult{Code: ResultError, Message: "método de login desconhecido"}
 	}
 
-	_, err := s.mgr.Connect(ctx, Config{
+	conn, err := s.mgr.Connect(ctx, Config{
 		ID:      spec.ID,
 		Address: spec.Address,
 		Port:    spec.Port,
@@ -136,6 +140,9 @@ func (s *Service) Connect(ctx context.Context, spec HostSpec, passphrase []byte)
 	})
 	if err != nil {
 		return ConnectResult{Code: ResultError, Message: err.Error()}
+	}
+	if s.OnContainerStop != nil {
+		s.WatchStops(conn, spec.User+"@"+spec.Address, s.OnContainerStop)
 	}
 	return ConnectResult{Code: ResultOK}
 }
