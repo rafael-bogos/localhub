@@ -3614,3 +3614,307 @@ body.is-resizing * {
         animation: none;
     }
 }
+
+/* ---- Databases tab: connection list reuses the Servidores table; schema view is a split ---- */
+
+.db-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--ink-secondary);
+    cursor: pointer;
+}
+
+.db-muted {
+    margin: 0;
+    padding: 12px 4px;
+    color: var(--ink-tertiary);
+    font-size: 0.82rem;
+}
+
+.db-schema {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+}
+
+.db-split {
+    display: grid;
+    grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.db-tables {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.db-tables .port-search {
+    width: 100%;
+}
+
+.db-tables__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.db-tables__item {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: var(--radius-chip);
+    background: var(--key-surface);
+    color: var(--key-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 var(--key-highlight), 0 1px 0 var(--key-shadow);
+}
+
+.db-tables__item:hover {
+    background: var(--key-surface-hover);
+}
+
+.db-tables__item--on {
+    background: var(--bezel);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.db-tables__name {
+    font-family: var(--font-mono);
+    font-size: 0.84rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.db-tables__meta {
+    font-size: 0.7rem;
+    color: var(--key-ink-muted);
+}
+
+.db-detail {
+    min-width: 0;
+}
+
+.db-detail__title {
+    margin: 0 0 10px;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.db-detail__sub {
+    margin: 18px 0 8px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-secondary);
+}
+
+.db-chip {
+    margin-left: 8px;
+}
+
+.db-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.db-list li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    padding: 8px 12px;
+    background: var(--key-surface);
+    border-radius: var(--radius-chip);
+    font-size: 0.82rem;
+}
+
+.db-list__name {
+    font-family: var(--font-mono);
+}
+
+.db-list__meta {
+    color: var(--key-ink-muted);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+}
+
+@media (max-width: 720px) {
+    .db-split {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ---- Bancos: dados reais ---- */
+.db-detail__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 14px;
+    margin-bottom: 10px;
+}
+
+.db-detail__head .db-detail__title {
+    margin: 0;
+}
+
+.db-tabs {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.db-tabs__tab {
+    padding: 5px 12px;
+    border: 0;
+    border-radius: var(--radius-chip);
+    background: var(--key-surface);
+    color: var(--key-ink-muted);
+    font: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 var(--key-highlight), 0 1px 0 var(--key-shadow);
+}
+
+.db-tabs__tab:hover {
+    background: var(--key-surface-hover);
+}
+
+.db-tabs__tab--on {
+    background: var(--bezel);
+    color: var(--key-ink);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.db-data {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.db-data__bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.db-data__search {
+    flex: 1;
+    min-width: 0;
+}
+
+.db-data__scroll {
+    overflow: auto;
+    max-height: 62vh;
+    border-radius: var(--radius-chip);
+    background: var(--key-surface);
+}
+
+.db-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+}
+
+.db-grid thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 0;
+    background: var(--bezel);
+    border-bottom: 1px solid var(--chassis-seam);
+    text-align: left;
+}
+
+.db-grid__sort {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 0;
+    background: none;
+    color: var(--ink-secondary);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.db-grid__sort:hover {
+    color: var(--key-ink);
+}
+
+.db-grid__pk {
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    color: var(--ink-tertiary);
+}
+
+.db-grid__arrow {
+    font-size: 0.6rem;
+    min-width: 0.7em;
+}
+
+.db-grid td {
+    max-width: 320px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--chassis-seam);
+    color: var(--key-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.db-grid tbody tr:hover td {
+    background: var(--key-surface-hover);
+}
+
+.db-grid__num,
+.db-grid__num .db-grid__sort {
+    text-align: right;
+    justify-content: flex-end;
+}
+
+.db-grid__null {
+    color: var(--ink-tertiary);
+    font-style: italic;
+}
+
+.db-grid--loading {
+    opacity: 0.5;
+}
+
+.db-data__empty {
+    padding: 18px 12px;
+    margin: 0;
+}
+
+.db-data__pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}

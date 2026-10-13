@@ -8,6 +8,7 @@ import (
 	"localhub/internal/config"
 	"localhub/internal/docker"
 	"localhub/internal/nodemodules"
+	"localhub/internal/orm"
 	"localhub/internal/ports"
 	lssh "localhub/internal/ssh"
 
@@ -19,6 +20,7 @@ type App struct {
 	ctx context.Context
 	cfg *config.Store
 	ssh *lssh.Service
+	db  *orm.Manager
 
 	notifier  *stopNotifier
 	stopWatch context.CancelFunc
@@ -31,7 +33,7 @@ func NewApp() *App {
 		// No config directory: settings just won't persist (every Save reports it).
 		cfg = config.NewAt("")
 	}
-	return &App{cfg: cfg, notifier: newStopNotifier()}
+	return &App{cfg: cfg, db: orm.NewManager(), notifier: newStopNotifier()}
 }
 
 // startup is called when the app starts. The context is saved
@@ -55,6 +57,7 @@ func (a *App) shutdown(ctx context.Context) {
 		a.stopWatch()
 	}
 	a.notifier.stop()
+	a.db.CloseAll()
 	if a.ssh != nil {
 		a.ssh.Shutdown()
 	}
@@ -381,4 +384,37 @@ func (a *App) SaveConfig(key, value string) error {
 // ConfigPath is where the settings file lives, to show the user.
 func (a *App) ConfigPath() string {
 	return a.cfg.Path()
+}
+
+// ---- Databases ----
+
+// DBTest checks that a connection profile can reach its database.
+func (a *App) DBTest(p orm.Profile) error {
+	return a.db.Test(a.ctx, p)
+}
+
+// DBConnect opens a database and keeps it until DBDisconnect.
+func (a *App) DBConnect(p orm.Profile) error {
+	return a.db.Connect(a.ctx, p)
+}
+
+// DBDisconnect closes one database connection.
+func (a *App) DBDisconnect(id string) {
+	a.db.Disconnect(id)
+}
+
+// DBConnected lists the IDs of the open database connections.
+func (a *App) DBConnected() []string {
+	return a.db.Connected()
+}
+
+// DBIntrospect reads the tables, columns, indexes and foreign keys of an open
+// database.
+func (a *App) DBIntrospect(id string) (*orm.Schema, error) {
+	return a.db.Introspect(a.ctx, id)
+}
+
+// DBBrowse reads one page of rows of a table of an open database. Read-only.
+func (a *App) DBBrowse(id string, req orm.BrowseRequest) (*orm.Page, error) {
+	return a.db.Browse(a.ctx, id, req)
 }

@@ -6,6 +6,8 @@ import PortsTable from './components/PortsTable';
 import ContainersTable from './components/ContainersTable';
 import ImagesTable from './components/ImagesTable';
 import CleanupTab from './components/CleanupTab';
+import DatabasesTab from './components/DatabasesTab';
+import { useDbConnections } from './useDbConnections';
 import NotificationCenter from './components/NotificationCenter';
 import { useStopNotices, type StopNotice } from './useStopNotices';
 import SshTab, { type TerminalRequest } from './components/SshTab';
@@ -37,7 +39,7 @@ const SEARCH_UI = {
     imagens: { placeholder: 'Buscar nome, tag ou ID', label: 'Buscar imagens por nome, tag ou ID' },
 } as const;
 
-type Tab = 'portas' | 'containers' | 'imagens' | 'limpeza' | 'ssh';
+type Tab = 'portas' | 'containers' | 'imagens' | 'limpeza' | 'ssh' | 'bancos';
 
 const TAB_LABELS: Record<Tab, string> = {
     portas: 'Processos',
@@ -45,15 +47,17 @@ const TAB_LABELS: Record<Tab, string> = {
     imagens: 'Imagens',
     limpeza: 'Limpeza',
     ssh: 'Servidores',
+    bancos: 'Bancos',
 };
 
 function App() {
     const confirm = useConfirm();
     const [activeTab, setActiveTab] = useState<Tab>('portas');
-    const [counts, setCounts] = useState<Record<Tab, number>>({ portas: 0, containers: 0, imagens: 0, limpeza: 0, ssh: 0 });
+    const [counts, setCounts] = useState<Record<Tab, number>>({ portas: 0, containers: 0, imagens: 0, limpeza: 0, ssh: 0, bancos: 0 });
     const [refreshKey, setRefreshKey] = useState(0);
 
     const sshHosts = useSshHosts();
+    const dbConnections = useDbConnections();
     const sshConnections = useSshConnections();
     const connectFlow = useSshConnect(sshConnections, sshHosts.hosts);
     const [notifOpen, setNotifOpen] = useState(false);
@@ -230,7 +234,9 @@ function App() {
     const activeCount =
         activeTab === 'ssh'
             ? sshHosts.hosts.length
-            : activeTab === 'portas' || activeTab === 'containers' || activeTab === 'imagens'
+            : activeTab === 'bancos'
+              ? dbConnections.profiles.length
+              : activeTab === 'portas' || activeTab === 'containers' || activeTab === 'imagens'
               ? counts[activeTab] + remoteTotal(activeTab)
               : counts[activeTab];
     // Matches the port number or the process name (case-insensitive). A row
@@ -425,7 +431,7 @@ function App() {
         if (activeTab === 'portas') {
             loadPorts();
             setRefreshKey((k) => k + 1); // reloads the remote sections too
-        } else if (activeTab !== 'limpeza' && activeTab !== 'ssh') {
+        } else if (activeTab !== 'limpeza' && activeTab !== 'ssh' && activeTab !== 'bancos') {
             setRefreshKey((k) => k + 1);
         }
     }
@@ -466,6 +472,8 @@ function App() {
                         title={
                             activeTab === 'limpeza'
                                 ? 'Itens selecionados para limpeza'
+                                : activeTab === 'bancos'
+                                  ? 'Conexões de banco salvas'
                                 : activeTab === 'ssh'
                                   ? 'Servidores salvos'
                                   : activeTab === 'portas'
@@ -477,7 +485,7 @@ function App() {
                             {activeCount}
                         </span>
                         <span className="port-counter__label">
-                            {activeTab === 'limpeza' ? 'Selecionadas' : activeTab === 'ssh' ? 'Servidores' : TAB_LABELS[activeTab]}
+                            {activeTab === 'limpeza' ? 'Selecionadas' : activeTab === 'ssh' ? 'Servidores' : activeTab === 'bancos' ? 'Conexões' : TAB_LABELS[activeTab]}
                         </span>
                     </div>
                     <NotificationCenter
@@ -490,9 +498,9 @@ function App() {
                     <button
                         className={`refresh-btn${loading && activeTab === 'portas' ? ' refresh-btn--loading' : ''}`}
                         onClick={handleRefresh}
-                        disabled={(loading && activeTab === 'portas') || activeTab === 'limpeza' || activeTab === 'ssh'}
+                        disabled={(loading && activeTab === 'portas') || activeTab === 'limpeza' || activeTab === 'ssh' || activeTab === 'bancos'}
                         title={
-                            activeTab === 'limpeza' || activeTab === 'ssh'
+                            activeTab === 'limpeza' || activeTab === 'ssh' || activeTab === 'bancos'
                                 ? 'Nada para atualizar aqui'
                                 : loading && activeTab === 'portas'
                                   ? 'Atualizando...'
@@ -576,6 +584,7 @@ function App() {
                     {activeTab === 'limpeza' && (
                         <CleanupTab onCountChange={(n) => setCounts((prev) => ({ ...prev, limpeza: n }))} />
                     )}
+                    {activeTab === 'bancos' && <DatabasesTab api={dbConnections} />}
                     {sshMounted && (
                         <div className="ssh-host" hidden={activeTab !== 'ssh'}>
                             <SshTab

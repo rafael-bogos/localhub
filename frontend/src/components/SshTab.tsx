@@ -90,7 +90,8 @@ function SshTab({
         }
     }, [terminalHostId, terminalHost]);
 
-    // Surface why a connection failed or dropped, once per distinct message.
+    // Surface why a connection failed or dropped. A new attempt resets the
+    // dedupe, so retrying into the same error shows it again.
     const lastNotified = useRef<Record<string, string>>({});
     useEffect(() => {
         for (const h of hosts) {
@@ -99,7 +100,7 @@ function SshTab({
                 lastNotified.current[h.id] = info.message;
                 setNotice(`${h.name}: ${info.message}`);
             }
-            if (info.state === 'connected') delete lastNotified.current[h.id];
+            if (info.state === 'connected' || info.state === 'connecting') delete lastNotified.current[h.id];
         }
     }, [conns, hosts]);
 

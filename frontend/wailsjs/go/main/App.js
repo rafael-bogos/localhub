@@ -14,6 +14,30 @@ export function ConfigPath() {
   return window['go']['main']['App']['ConfigPath']();
 }
 
+export function DBBrowse(arg1, arg2) {
+  return window['go']['main']['App']['DBBrowse'](arg1, arg2);
+}
+
+export function DBConnect(arg1) {
+  return window['go']['main']['App']['DBConnect'](arg1);
+}
+
+export function DBConnected() {
+  return window['go']['main']['App']['DBConnected']();
+}
+
+export function DBDisconnect(arg1) {
+  return window['go']['main']['App']['DBDisconnect'](arg1);
+}
+
+export function DBIntrospect(arg1) {
+  return window['go']['main']['App']['DBIntrospect'](arg1);
+}
+
+export function DBTest(arg1) {
+  return window['go']['main']['App']['DBTest'](arg1);
+}
+
 export function KillProcess(arg1) {
   return window['go']['main']['App']['KillProcess'](arg1);
 }

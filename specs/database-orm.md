@@ -1,6 +1,6 @@
 # Spec: ORM nativo do localhub (aba Bancos: studio, schema e migrations)
 
-<!-- status: rascunho — aguardando revisão antes de qualquer código -->
+<!-- status: em andamento — Fase 1 (conexões + introspecção) e navegação de dados (Fase 2, parte leitura) implementadas; edição de linhas e fases 3–5 pendentes -->
 
 ## Objective
 
@@ -141,16 +141,16 @@ O usuário pode editar o arquivo à mão **ou** pela UI (a UI reescreve o arquiv
 
 Cada fase vira uma lista em `tasks/database-orm-todo.md` quando a spec for aprovada.
 
-## Decisões abertas (preciso da sua opinião)
+## Decisões tomadas
 
-1. **Onde mora o `schema.localhub`?** Opção recomendada: por **projeto** (o
-   usuário escolhe a pasta com `PickDirectory`, como no `node_modules`), para
-   versionar no git do projeto dele. Alternativa: dentro do `config` do
-   localhub, por conexão.
-2. **Senhas:** manter em `config.json` (0600) na v1, ou já usar o keychain do
-   sistema (`go-keyring`)? Recomendo config na v1 por consistência com o SSH.
-3. **Nome/sintaxe:** seguir a sintaxe do Prisma (familiar, mas pode gerar
-   expectativa de compatibilidade total) ou uma sintaxe própria mais enxuta?
-   Recomendo "inspirada no Prisma", declarando a v1 como subconjunto.
-4. **Dependências novas:** `github.com/jackc/pgx/v5` e
-   `github.com/go-sql-driver/mysql` (ambos puro Go, sem CGO).
+1. **`schema.localhub` por projeto** (pasta escolhida com `PickDirectory`), para versionar no git do projeto. Vale a partir da Fase 4.
+2. **Senhas em `config.json`** (texto, sem keychain) na v1; o formulário avisa isso. Revisitar com keychain depois.
+3. **Sintaxe "inspirada no Prisma"**, declarada como subconjunto.
+4. **Dependências:** `github.com/jackc/pgx/v5` (via `database/sql`) e `github.com/go-sql-driver/mysql`, ambas puro Go.
+
+## Status das fases
+
+- **Fase 1 — feita.** `internal/orm` (`schema`, `profile`, `errors`, `introspect_pg`, `introspect_mysql`, `conn`), bindings `DBTest/DBConnect/DBDisconnect/DBConnected/DBIntrospect`, aba **Bancos** (lista de conexões, formulário com "Testar conexão", árvore de tabelas com colunas, índices e chaves estrangeiras). Testes em `internal/orm/orm_test.go`; os de integração rodam com `ORM_TEST_PG` e `ORM_TEST_MYSQL` (`host:porta:usuario:senha:banco`) e foram verificados em PostgreSQL 16 e MySQL 8.
+- **Limites da Fase 1:** só tabelas (views ficam de fora); `ReadOnly` só vale no Postgres (parâmetro da sessão) e ainda não há escrita para bloquear no MySQL; MariaDB não foi testado de fato.
+- **Fase 2 — parte leitura feita.** `internal/orm/data.go` (`Manager.Browse`), binding `DBBrowse`, componente `DataGrid` na aba **Bancos** (abas "Dados"/"Estrutura" por tabela): paginação de 50 linhas, ordenação por coluna, busca em todas as colunas, NULL destacado. Roda sempre em transação somente leitura; tabela e coluna vêm validadas contra a estrutura lida e citadas pelo dialeto; valores da busca vão por parâmetro. Sem `COUNT(*)`: a paginação lê uma linha a mais para saber se há próxima página. Testes unitários (`TestBuildBrowse`) e de integração em PostgreSQL 16 e MySQL 8. **Pendente na Fase 2:** editar célula, inserir e excluir linha (só tabelas com PK, com confirmação mostrando o SQL) e filtro por coluna.
+- Fases 3 (detecção em containers e via SSH), 4 (DSL + diff + SQL) e 5 (migrations): pendentes.

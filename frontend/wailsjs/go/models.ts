@@ -260,6 +260,215 @@ export namespace nodemodules {
 
 }
 
+export namespace orm {
+	
+	export class BrowseRequest {
+	    schema: string;
+	    table: string;
+	    limit: number;
+	    offset: number;
+	    orderBy: string;
+	    desc: boolean;
+	    search: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new BrowseRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.schema = source["schema"];
+	        this.table = source["table"];
+	        this.limit = source["limit"];
+	        this.offset = source["offset"];
+	        this.orderBy = source["orderBy"];
+	        this.desc = source["desc"];
+	        this.search = source["search"];
+	    }
+	}
+	export class Column {
+	    name: string;
+	    type: string;
+	    nullable: boolean;
+	    default: string;
+	    hasDefault: boolean;
+	    autoIncrement: boolean;
+	    primaryKey: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Column(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.type = source["type"];
+	        this.nullable = source["nullable"];
+	        this.default = source["default"];
+	        this.hasDefault = source["hasDefault"];
+	        this.autoIncrement = source["autoIncrement"];
+	        this.primaryKey = source["primaryKey"];
+	    }
+	}
+	export class ForeignKey {
+	    name: string;
+	    columns: string[];
+	    refSchema: string;
+	    refTable: string;
+	    refColumns: string[];
+	    onDelete: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ForeignKey(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.columns = source["columns"];
+	        this.refSchema = source["refSchema"];
+	        this.refTable = source["refTable"];
+	        this.refColumns = source["refColumns"];
+	        this.onDelete = source["onDelete"];
+	    }
+	}
+	export class Index {
+	    name: string;
+	    columns: string[];
+	    unique: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Index(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.columns = source["columns"];
+	        this.unique = source["unique"];
+	    }
+	}
+	export class Page {
+	    columns: string[];
+	    rows: string[][];
+	    hasMore: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Page(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.columns = source["columns"];
+	        this.rows = source["rows"];
+	        this.hasMore = source["hasMore"];
+	    }
+	}
+	export class Profile {
+	    id: string;
+	    name: string;
+	    kind: string;
+	    host: string;
+	    port: number;
+	    database: string;
+	    user: string;
+	    password: string;
+	    ssl: string;
+	    readOnly: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Profile(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.kind = source["kind"];
+	        this.host = source["host"];
+	        this.port = source["port"];
+	        this.database = source["database"];
+	        this.user = source["user"];
+	        this.password = source["password"];
+	        this.ssl = source["ssl"];
+	        this.readOnly = source["readOnly"];
+	    }
+	}
+	export class Table {
+	    schema: string;
+	    name: string;
+	    columns: Column[];
+	    primaryKey: string[];
+	    indexes: Index[];
+	    foreignKeys: ForeignKey[];
+	    rowEstimate: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Table(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.schema = source["schema"];
+	        this.name = source["name"];
+	        this.columns = this.convertValues(source["columns"], Column);
+	        this.primaryKey = source["primaryKey"];
+	        this.indexes = this.convertValues(source["indexes"], Index);
+	        this.foreignKeys = this.convertValues(source["foreignKeys"], ForeignKey);
+	        this.rowEstimate = source["rowEstimate"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class Schema {
+	    tables: Table[];
+	
+	    static createFrom(source: any = {}) {
+	        return new Schema(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.tables = this.convertValues(source["tables"], Table);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
+}
+
 export namespace ports {
 	
 	export class PortInfo {
