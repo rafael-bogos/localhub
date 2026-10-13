@@ -34,6 +34,10 @@ export function DBIntrospect(arg1) {
   return window['go']['main']['App']['DBIntrospect'](arg1);
 }
 
+export function DBOpenContainer(arg1, arg2) {
+  return window['go']['main']['App']['DBOpenContainer'](arg1, arg2);
+}
+
 export function DBTest(arg1) {
   return window['go']['main']['App']['DBTest'](arg1);
 }

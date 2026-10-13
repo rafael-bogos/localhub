@@ -341,6 +341,16 @@ export function TerminalIcon({ size = 16, className }: IconProps) {
     );
 }
 
+export function DatabaseIcon({ size = 16, className }: IconProps) {
+    return (
+        <Glyph size={size} className={className}>
+            <ellipse cx="12" cy="5.5" rx="7.5" ry="2.75" />
+            <path d="M4.5 5.5v13c0 1.5 3.4 2.75 7.5 2.75s7.5-1.25 7.5-2.75v-13" />
+            <path d="M4.5 12c0 1.5 3.4 2.75 7.5 2.75s7.5-1.25 7.5-2.75" />
+        </Glyph>
+    );
+}
+
 export function TunnelIcon({ size = 16, className }: IconProps) {
     return (
         <Glyph size={size} className={className}>

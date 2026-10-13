@@ -8,7 +8,8 @@ import {
     StopContainer,
 } from '../../wailsjs/go/main/App';
 import { docker } from '../../wailsjs/go/models';
-import { AlertIcon, BoxIcon, InfoIcon, PlayIcon, RestartIcon, SearchIcon, StopIcon, TrashIcon, LogsIcon } from './icons';
+import { AlertIcon, BoxIcon, InfoIcon, PlayIcon, RestartIcon, SearchIcon, StopIcon, TrashIcon, LogsIcon, DatabaseIcon } from './icons';
+import { looksLikeDbImage } from '../dbImage';
 import IconButton from './IconButton';
 import { matchesSearch } from '../search';
 import ContainerDetailsDialog from './ContainerDetailsDialog';
@@ -34,16 +35,18 @@ interface ContainersTableProps {
     names: NameLabelApi;
     onCountChange: (count: number) => void;
     onOpenLogs: (id: string, name: string, label?: string) => void;
+    /** Opens the database in this container in the Bancos tab; rejects with the message to show. */
+    onAccessDb: (containerName: string) => Promise<void>;
     activeLogsId: string | null;
 }
 
-function ContainersTable({ query, names, onCountChange, onOpenLogs, activeLogsId }: ContainersTableProps) {
+function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, activeLogsId }: ContainersTableProps) {
     const confirm = useConfirm();
     const [containers, setContainers] = useState<docker.ContainerInfo[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [pendingId, setPendingId] = useState<string | null>(null);
-    const [pendingAction, setPendingAction] = useState<'start' | 'stop' | 'restart' | 'remove' | null>(null);
+    const [pendingAction, setPendingAction] = useState<'start' | 'stop' | 'restart' | 'remove' | 'db' | null>(null);
     const [coolingId, setCoolingId] = useState<string | null>(null);
     const [stats, setStats] = useState<Record<string, docker.ContainerStats>>({});
     const [details, setDetails] = useState<docker.ContainerInfo | null>(null);
@@ -117,6 +120,20 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, activeLogsId
             clearTimeout(timer);
         };
     }, [hasRunning]);
+
+    async function handleAccessDb(c: docker.ContainerInfo) {
+        setError('');
+        setPendingId(c.id);
+        setPendingAction('db');
+        try {
+            await onAccessDb(c.name);
+        } catch (err) {
+            setError(String(err).replace(/^Error:\s*/, ''));
+        } finally {
+            setPendingId(null);
+            setPendingAction(null);
+        }
+    }
 
     async function handleStart(c: docker.ContainerInfo) {
         setError('');
@@ -441,6 +458,16 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, activeLogsId
                                             />
                                             {isRunning ? (
                                                 <>
+                                                    {looksLikeDbImage(c.image) && (
+                                                        <IconButton
+                                                            icon={<DatabaseIcon />}
+                                                            label={isPending && pendingAction === 'db' ? 'Acessando…' : 'Acessar banco'}
+                                                            title="Abrir o banco deste container na aba Bancos"
+                                                            busy={isPending && pendingAction === 'db'}
+                                                            disabled={isPending}
+                                                            onClick={() => handleAccessDb(c)}
+                                                        />
+                                                    )}
                                                     <IconButton
                                                         icon={<StopIcon />}
                                                         label={isPending && pendingAction === 'stop' ? 'Parando…' : 'Parar'}

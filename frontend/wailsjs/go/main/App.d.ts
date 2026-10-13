@@ -22,6 +22,8 @@ export function DBDisconnect(arg1:string):Promise<void>;
 
 export function DBIntrospect(arg1:string):Promise<orm.Schema>;
 
+export function DBOpenContainer(arg1:string,arg2:string):Promise<orm.Profile>;
+
 export function DBTest(arg1:orm.Profile):Promise<void>;
 
 export function KillProcess(arg1:number):Promise<void>;

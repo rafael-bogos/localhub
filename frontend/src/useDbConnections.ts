@@ -25,6 +25,18 @@ export interface DbProfile {
     password: string;
     ssl: DbSsl;
     readOnly: boolean;
+    /**
+     * Set when the connection was made from a container: hostId is the server
+     * ("" for this machine) and container the container's name. Opening it
+     * again re-reads where the container is reachable (a tunnel's port changes
+     * between sessions).
+     */
+    origin?: DbOrigin;
+}
+
+export interface DbOrigin {
+    hostId: string;
+    container: string;
 }
 
 export type DbProfileDraft = Omit<DbProfile, 'id'>;
@@ -66,7 +78,15 @@ function normalize(raw: unknown, withId: boolean): DbProfile | null {
         password: str(v.password, 512),
         ssl: v.ssl === 'require' ? 'require' : 'off',
         readOnly: v.readOnly === true,
+        origin: normalizeOrigin(v.origin),
     };
+}
+
+function normalizeOrigin(raw: unknown): DbOrigin | undefined {
+    if (!raw || typeof raw !== 'object') return undefined;
+    const o = raw as Record<string, unknown>;
+    const container = str(o.container, 255).trim();
+    return container ? { hostId: str(o.hostId, 128), container } : undefined;
 }
 
 function load(): DbProfile[] {
@@ -93,6 +113,12 @@ export interface DbConnectionsApi {
     add: (draft: DbProfileDraft) => DbProfile | null;
     update: (id: string, draft: DbProfileDraft) => void;
     remove: (id: string) => void;
+    /**
+     * Saves the connection of a container, or refreshes where an existing one
+     * reaches it (host and port only: what the user edited stays). Returns the
+     * resulting profile.
+     */
+    upsertFromContainer: (origin: DbOrigin, found: DbProfileDraft) => DbProfile | null;
 }
 
 export function useDbConnections(): DbConnectionsApi {
@@ -114,6 +140,18 @@ export function useDbConnections(): DbConnectionsApi {
 
     const remove = useCallback((id: string) => setProfiles((prev) => prev.filter((p) => p.id !== id)), []);
 
+    const upsertFromContainer = useCallback((origin: DbOrigin, found: DbProfileDraft) => {
+        const existing = latest.current.find((p) => p.origin?.hostId === origin.hostId && p.origin.container === origin.container);
+        const next = existing
+            ? normalize({ ...existing, host: found.host, port: found.port }, true)
+            : normalize({ ...found, origin }, false);
+        if (!next) return null;
+        setProfiles((prev) => (existing ? prev.map((p) => (p.id === existing.id ? next : p)) : [...prev, next]));
+        // Keep the ref current so a second call before the next render sees it.
+        latest.current = existing ? latest.current.map((p) => (p.id === existing.id ? next : p)) : [...latest.current, next];
+        return next;
+    }, []);
+
     useEffect(() => {
         clearTimeout(timer.current);
         timer.current = setTimeout(() => writeConfig(STORAGE_KEY, profiles), SAVE_DELAY_MS);
@@ -130,5 +168,5 @@ export function useDbConnections(): DbConnectionsApi {
         };
     }, []);
 
-    return { profiles, add, update, remove };
+    return { profiles, add, update, remove, upsertFromContainer };
 }

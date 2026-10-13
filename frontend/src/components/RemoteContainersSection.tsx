@@ -4,6 +4,7 @@ import { docker, ssh } from '../../wailsjs/go/models';
 import {
     AlertIcon,
     CloseIcon,
+    DatabaseIcon,
     InfoIcon,
     LogsIcon,
     PlayIcon,
@@ -14,6 +15,7 @@ import {
     TunnelIcon,
 } from './icons';
 import IconButton from './IconButton';
+import { looksLikeDbImage } from '../dbImage';
 import { matchesSearch } from '../search';
 import ContainerDetailsDialog from './ContainerDetailsDialog';
 import { displayName, isCustomName, type NameLabelApi } from '../containerName';
@@ -24,7 +26,7 @@ import { useConfirm } from './ConfirmDialog';
 
 const COOL_DOWN_MS = 340;
 
-type Action = 'start' | 'stop' | 'restart' | 'remove';
+type Action = 'start' | 'stop' | 'restart' | 'remove' | 'db';
 
 interface RemoteContainersSectionProps {
     /** The header search box: matches names, IDs, images and Compose service/project. */
@@ -40,6 +42,8 @@ interface RemoteContainersSectionProps {
     onOpenLogs: (id: string, name: string, label?: string) => void;
     /** Opens a terminal inside the container (shown in the Servidores tab). */
     onOpenTerminal: (container: { id: string; name: string }) => void;
+    /** Opens the database in this container in the Bancos tab; rejects with the message to show. */
+    onAccessDb: (containerName: string) => Promise<void>;
     /** Container whose logs are open for this server, to mark its row. */
     activeLogsId: string | null;
 }
@@ -56,6 +60,7 @@ function RemoteContainersSection({
     onCount,
     onOpenLogs,
     onOpenTerminal,
+    onAccessDb,
     activeLogsId,
 }: RemoteContainersSectionProps) {
     const confirm = useConfirm();
@@ -84,6 +89,20 @@ function RemoteContainersSection({
     useEffect(() => {
         load();
     }, [load, refreshKey]);
+
+    async function accessDb(c: docker.ContainerInfo) {
+        setError('');
+        setPendingId(c.id);
+        setPendingAction('db');
+        try {
+            await onAccessDb(c.name);
+        } catch (err) {
+            setError(String(err).replace(/^Error:\s*/, ''));
+        } finally {
+            setPendingId(null);
+            setPendingAction(null);
+        }
+    }
 
     async function run(c: docker.ContainerInfo, action: Action, confirmMessage?: string) {
         if (confirmMessage && !(await confirm(confirmMessage))) return;
@@ -229,6 +248,16 @@ function RemoteContainersSection({
                                                         title="Abrir um terminal dentro deste container"
                                                         onClick={() => onOpenTerminal({ id: c.id, name: shown })}
                                                     />
+                                                    {looksLikeDbImage(c.image) && (
+                                                        <IconButton
+                                                            icon={<DatabaseIcon />}
+                                                            label={isPending && pendingAction === 'db' ? 'Acessando…' : 'Acessar banco'}
+                                                            title="Abrir o banco deste container na aba Bancos (por túnel SSH)"
+                                                            busy={isPending && pendingAction === 'db'}
+                                                            disabled={isPending}
+                                                            onClick={() => accessDb(c)}
+                                                        />
+                                                    )}
                                                     <IconButton
                                                         icon={<TunnelIcon />}
                                                         label="Túnel"

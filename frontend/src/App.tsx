@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import './App.css';
-import { KillProcess, ListContainers, ListPortOwners, ListPorts } from '../wailsjs/go/main/App';
+import { DBOpenContainer, KillProcess, ListContainers, ListPortOwners, ListPorts } from '../wailsjs/go/main/App';
 import { ports } from '../wailsjs/go/models';
 import PortsTable from './components/PortsTable';
 import ContainersTable from './components/ContainersTable';
 import ImagesTable from './components/ImagesTable';
 import CleanupTab from './components/CleanupTab';
 import DatabasesTab from './components/DatabasesTab';
-import { useDbConnections } from './useDbConnections';
+import { useDbConnections, type DbProfile } from './useDbConnections';
 import NotificationCenter from './components/NotificationCenter';
 import { useStopNotices, type StopNotice } from './useStopNotices';
 import SshTab, { type TerminalRequest } from './components/SshTab';
@@ -58,6 +58,34 @@ function App() {
 
     const sshHosts = useSshHosts();
     const dbConnections = useDbConnections();
+    const [dbRequest, setDbRequest] = useState<DbProfile | null>(null);
+
+    // "Acessar banco" on a container row: work out the connection, save it in
+    // Bancos and open it there. Throws the user-facing message on failure.
+    const accessContainerDb = useCallback(
+        async (hostId: string, hostName: string, containerName: string) => {
+            const found = await DBOpenContainer(hostId, containerName);
+            const name = hostId ? `${containerName} · ${hostName}` : containerName;
+            const profile = dbConnections.upsertFromContainer(
+                { hostId, container: containerName },
+                {
+                    name,
+                    kind: found.kind === 'mysql' ? 'mysql' : 'postgres',
+                    host: found.host,
+                    port: found.port,
+                    database: found.database,
+                    user: found.user,
+                    password: found.password,
+                    ssl: found.ssl === 'require' ? 'require' : 'off',
+                    readOnly: found.readOnly,
+                }
+            );
+            if (!profile) throw new Error('Não foi possível montar a conexão com este banco.');
+            setDbRequest(profile);
+            setActiveTab('bancos');
+        },
+        [dbConnections.upsertFromContainer]
+    );
     const sshConnections = useSshConnections();
     const connectFlow = useSshConnect(sshConnections, sshHosts.hosts);
     const [notifOpen, setNotifOpen] = useState(false);
@@ -388,6 +416,7 @@ function App() {
                                     onCount={(n) => reportRemoteCount('containers', h.id, n)}
                                     onOpenLogs={(id, name, label) => openRemoteLogs(h.id, h.name, id, name, label)}
                                     onOpenTerminal={(c) => openContainerTerminal(h.id, c)}
+                                    onAccessDb={(c) => accessContainerDb(h.id, h.name, c)}
                                     activeLogsId={logsTarget?.hostId === h.id ? logsTarget.id : null}
                                 />
                             )}
@@ -569,6 +598,7 @@ function App() {
                                 key={refreshKey}
                                 activeLogsId={logsTarget && !logsTarget.hostId ? logsTarget.id : null}
                                 onOpenLogs={openLogs}
+                                onAccessDb={(c) => accessContainerDb('', '', c)}
                                 onCountChange={(n) => setCounts((prev) => ({ ...prev, containers: n }))}
                             />
                         )}
@@ -584,7 +614,7 @@ function App() {
                     {activeTab === 'limpeza' && (
                         <CleanupTab onCountChange={(n) => setCounts((prev) => ({ ...prev, limpeza: n }))} />
                     )}
-                    {activeTab === 'bancos' && <DatabasesTab api={dbConnections} />}
+                    {activeTab === 'bancos' && <DatabasesTab api={dbConnections} request={dbRequest} onRequestHandled={() => setDbRequest(null)} />}
                     {sshMounted && (
                         <div className="ssh-host" hidden={activeTab !== 'ssh'}>
                             <SshTab

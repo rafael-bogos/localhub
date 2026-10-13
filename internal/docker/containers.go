@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	cerrdefs "github.com/containerd/errdefs"
@@ -171,4 +172,68 @@ func RemoveContainer(ctx context.Context, id string) error {
 		}
 	}
 	return nil
+}
+
+// DBContainer is what is needed to reach a database running in a container.
+type DBContainer struct {
+	Name    string
+	Image   string
+	Env     []string
+	Running bool
+	// Published maps a container TCP port to the port it is published on in
+	// this machine.
+	Published map[int]int
+	// IP is the container's address on a Docker network, "" when it has none.
+	IP string
+}
+
+// InspectForDB reads image, environment and addresses of one container.
+func InspectForDB(ctx context.Context, ref string) (DBContainer, error) {
+	cli, err := newClient(ctx)
+	if err != nil {
+		return DBContainer{}, err
+	}
+	defer cli.Close()
+
+	res, err := cli.ContainerInspect(ctx, ref, client.ContainerInspectOptions{})
+	if err != nil {
+		if cerrdefs.IsNotFound(err) {
+			return DBContainer{}, fmt.Errorf("container não encontrado")
+		}
+		return DBContainer{}, fmt.Errorf("falha ao ler o container")
+	}
+	c := res.Container
+	out := DBContainer{Name: strings.TrimPrefix(c.Name, "/"), Published: map[int]int{}}
+	if c.State != nil {
+		out.Running = c.State.Running
+	}
+	if c.Config != nil {
+		out.Image = c.Config.Image
+		out.Env = c.Config.Env
+	}
+	if c.NetworkSettings != nil {
+		for port, binds := range c.NetworkSettings.Ports {
+			if port.Proto() != "tcp" {
+				continue
+			}
+			for _, b := range binds {
+				if hp, err := strconv.Atoi(b.HostPort); err == nil && hp > 0 {
+					out.Published[int(port.Num())] = hp
+					break
+				}
+			}
+		}
+		names := make([]string, 0, len(c.NetworkSettings.Networks))
+		for n := range c.NetworkSettings.Networks {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		for _, n := range names {
+			if ep := c.NetworkSettings.Networks[n]; ep != nil && ep.IPAddress.IsValid() {
+				out.IP = ep.IPAddress.String()
+				break
+			}
+		}
+	}
+	return out, nil
 }

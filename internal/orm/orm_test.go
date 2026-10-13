@@ -244,3 +244,40 @@ func TestIntegrationPostgres(t *testing.T) {
 func TestIntegrationMySQL(t *testing.T) {
 	runIntegration(t, integrationProfile(t, "ORM_TEST_MYSQL", MySQL), mysqlSetup)
 }
+
+func TestKindFromImage(t *testing.T) {
+	cases := map[string]string{
+		"postgres:16":                        Postgres,
+		"docker.io/library/postgres":         Postgres,
+		"bitnami/postgresql:15.2":            Postgres,
+		"postgis/postgis:16-3.4":             Postgres,
+		"registry.local:5000/team/mysql:8.0": MySQL,
+		"mariadb:11":                         MySQL,
+		"redis:7":                            "",
+		"nginx@sha256:abc":                   "",
+		"myorg/postgres-exporter":            Postgres, // name match is deliberately loose; Detect + connect decide
+	}
+	for img, want := range cases {
+		if got := KindFromImage(img); got != want {
+			t.Errorf("KindFromImage(%q)=%q, quero %q", img, got, want)
+		}
+	}
+}
+
+func TestDetect(t *testing.T) {
+	f, err := Detect(ContainerSpec{Image: "postgres:16", Env: []string{"POSTGRES_PASSWORD=s3", "POSTGRES_USER=app"}})
+	if err != nil || f.User != "app" || f.Password != "s3" || f.Database != "app" || f.Port != 5432 {
+		t.Errorf("pg: %+v %v", f, err)
+	}
+	f, _ = Detect(ContainerSpec{Image: "mysql:8", Env: []string{"MYSQL_ROOT_PASSWORD=r", "MYSQL_DATABASE=shop"}})
+	if f.User != "root" || f.Password != "r" || f.Database != "shop" || f.Port != 3306 {
+		t.Errorf("mysql root: %+v", f)
+	}
+	f, _ = Detect(ContainerSpec{Image: "mariadb", Env: []string{"MARIADB_USER=u", "MARIADB_PASSWORD=p", "MARIADB_ROOT_PASSWORD=r"}})
+	if f.User != "u" || f.Password != "p" || f.Database != "mysql" {
+		t.Errorf("mariadb user: %+v", f)
+	}
+	if _, err := Detect(ContainerSpec{Image: "redis:7"}); err == nil {
+		t.Error("redis não deve ser aceito")
+	}
+}

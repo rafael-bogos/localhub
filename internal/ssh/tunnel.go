@@ -89,6 +89,8 @@ type inspectDoc struct {
 		Running bool `json:"Running"`
 	} `json:"State"`
 	Config struct {
+		Image        string              `json:"Image"`
+		Env          []string            `json:"Env"`
 		ExposedPorts map[string]struct{} `json:"ExposedPorts"`
 	} `json:"Config"`
 	HostConfig struct {
@@ -102,37 +104,56 @@ type inspectDoc struct {
 	} `json:"NetworkSettings"`
 }
 
-// ContainerNetworks reads a container's networks, IPs and TCP ports.
-func (s *Service) ContainerNetworks(ctx context.Context, hostID, containerID string) (ContainerNet, error) {
+// inspect runs `docker inspect` for one container on a server.
+func (s *Service) inspect(ctx context.Context, hostID, containerID string) (inspectDoc, error) {
 	if err := validID(containerID); err != nil {
-		return ContainerNet{}, err
+		return inspectDoc{}, err
 	}
 	conn, err := s.remoteConn(hostID)
 	if err != nil {
-		return ContainerNet{}, err
+		return inspectDoc{}, err
 	}
 	res, err := runScript(ctx, conn, "docker inspect "+shQuote(containerID), listTimeout)
 	if err != nil {
-		return ContainerNet{}, err
+		return inspectDoc{}, err
 	}
 	if res.ExitCode != 0 {
 		if _, msg, ok := dockerProblem(res, conn.User); ok {
-			return ContainerNet{}, errors.New(msg)
+			return inspectDoc{}, errors.New(msg)
 		}
 		if strings.Contains(strings.ToLower(res.Stderr), "no such") {
-			return ContainerNet{}, errors.New("container não encontrado")
+			return inspectDoc{}, errors.New("container não encontrado")
 		}
-		return ContainerNet{}, failure(res, "falha ao ler o container")
+		return inspectDoc{}, failure(res, "falha ao ler o container")
 	}
-	return parseContainerNet(res.Stdout)
+	var docs []inspectDoc
+	if err := json.Unmarshal([]byte(res.Stdout), &docs); err != nil || len(docs) == 0 {
+		return inspectDoc{}, errors.New("resposta inesperada do Docker no servidor")
+	}
+	return docs[0], nil
 }
 
-func parseContainerNet(out string) (ContainerNet, error) {
-	var docs []inspectDoc
-	if err := json.Unmarshal([]byte(out), &docs); err != nil || len(docs) == 0 {
-		return ContainerNet{}, errors.New("resposta inesperada do Docker no servidor")
+// ContainerNetworks reads a container's networks, IPs and TCP ports.
+func (s *Service) ContainerNetworks(ctx context.Context, hostID, containerID string) (ContainerNet, error) {
+	d, err := s.inspect(ctx, hostID, containerID)
+	if err != nil {
+		return ContainerNet{}, err
 	}
-	d := docs[0]
+	return netFromDoc(d), nil
+}
+
+// ContainerImageEnv reads a container's image reference and environment, for
+// guessing how to reach a database in it. The environment never goes to the UI
+// as is: the caller extracts what it needs.
+func (s *Service) ContainerImageEnv(ctx context.Context, hostID, containerID string) (image string, env []string, cn ContainerNet, err error) {
+	d, err := s.inspect(ctx, hostID, containerID)
+	if err != nil {
+		return "", nil, ContainerNet{}, err
+	}
+	return d.Config.Image, d.Config.Env, netFromDoc(d), nil
+}
+
+func netFromDoc(d inspectDoc) ContainerNet {
 	cn := ContainerNet{Running: d.State.Running, Name: strings.TrimPrefix(d.Name, "/")}
 
 	if d.HostConfig.NetworkMode == "host" {
@@ -165,7 +186,7 @@ func parseContainerNet(out string) (ContainerNet, error) {
 		add(k)
 	}
 	sort.Ints(cn.Ports)
-	return cn, nil
+	return cn
 }
 
 // pickNetwork chooses the network (and IP) for a tunnel.

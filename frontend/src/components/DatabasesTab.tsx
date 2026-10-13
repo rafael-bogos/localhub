@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DBConnect, DBConnected, DBDisconnect, DBIntrospect } from '../../wailsjs/go/main/App';
+import { DBConnect, DBConnected, DBDisconnect, DBIntrospect, DBOpenContainer } from '../../wailsjs/go/main/App';
 import type { orm } from '../../wailsjs/go/models';
 import { DB_KIND_LABEL, type DbConnectionsApi, type DbProfile } from '../useDbConnections';
 import { matchesSearch } from '../search';
@@ -21,10 +21,13 @@ function rowsLabel(n: number): string {
 
 interface DatabasesTabProps {
     api: DbConnectionsApi;
+    /** A container's database to open right away (from the Containers tab). */
+    request?: DbProfile | null;
+    onRequestHandled?: () => void;
 }
 
 /** Saved database connections, and the structure of the one that is open. */
-function DatabasesTab({ api }: DatabasesTabProps) {
+function DatabasesTab({ api, request, onRequestHandled }: DatabasesTabProps) {
     const confirm = useConfirm();
     const { profiles } = api;
     const [editing, setEditing] = useState<DbProfile | 'new' | null>(null);
@@ -66,9 +69,38 @@ function DatabasesTab({ api }: DatabasesTabProps) {
     }, []);
 
     async function open(p: DbProfile) {
-        if (!connected.has(p.id) && !(await connect(p))) return;
-        setOpenId(p.id);
+        let target = p;
+        if (p.origin) {
+            // A container's address changes (tunnel port, published port): ask again.
+            setBusy(p.id);
+            setNotice('');
+            try {
+                const found = await DBOpenContainer(p.origin.hostId, p.origin.container);
+                target = api.upsertFromContainer(p.origin, { ...p, host: found.host, port: found.port }) ?? p;
+            } catch (err) {
+                setNotice(`${p.name}: ${errText(err)}`);
+                setBusy(null);
+                return;
+            }
+            setBusy(null);
+        }
+        // The address may have changed under an open connection: reconnect then.
+        if (target.host !== p.host || target.port !== p.port || !connected.has(target.id)) {
+            if (!(await connect(target))) return;
+        }
+        setOpenId(target.id);
     }
+
+    // The Containers tab asked to open one of its databases.
+    useEffect(() => {
+        if (!request) return;
+        onRequestHandled?.();
+        (async () => {
+            if (!connected.has(request.id) && !(await connect(request))) return;
+            setOpenId(request.id);
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [request]);
 
     async function remove(p: DbProfile) {
         if (!(await confirm(`Remover a conexão "${p.name}"? O banco em si não é alterado.`))) return;
@@ -82,7 +114,7 @@ function DatabasesTab({ api }: DatabasesTabProps) {
         } else if (editing) {
             // Edited settings only apply to a fresh connection.
             if (connected.has(editing.id)) disconnect(editing.id);
-            api.update(editing.id, draft);
+            api.update(editing.id, { ...draft, origin: editing.origin });
         }
         setEditing(null);
     }
@@ -142,6 +174,7 @@ function DatabasesTab({ api }: DatabasesTabProps) {
                                         </td>
                                         <td className="ssh-row__method" data-label="Tipo">
                                             {DB_KIND_LABEL[p.kind]}
+                                            {p.origin ? (p.origin.hostId ? ' · servidor' : ' · container') : ''}
                                             {p.readOnly ? ' · leitura' : ''}
                                         </td>
                                         <td data-label="Estado">

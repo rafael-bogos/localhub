@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 
@@ -417,4 +418,85 @@ func (a *App) DBIntrospect(id string) (*orm.Schema, error) {
 // DBBrowse reads one page of rows of a table of an open database. Read-only.
 func (a *App) DBBrowse(id string, req orm.BrowseRequest) (*orm.Page, error) {
 	return a.db.Browse(a.ctx, id, req)
+}
+
+// DBOpenContainer works out how to reach the database running in a container
+// and returns a connection profile for it (without an ID: the UI keeps it).
+// hostID "" is a container on this machine, reached through its published
+// port; otherwise it is a container of that server, reached through an SSH
+// tunnel opened here (or reused). The credentials come from the container's
+// own environment.
+func (a *App) DBOpenContainer(hostID, ref string) (orm.Profile, error) {
+	if hostID == "" {
+		return a.dbLocalContainer(ref)
+	}
+	return a.dbRemoteContainer(hostID, ref)
+}
+
+func (a *App) dbLocalContainer(ref string) (orm.Profile, error) {
+	c, err := docker.InspectForDB(a.ctx, ref)
+	if err != nil {
+		return orm.Profile{}, err
+	}
+	if !c.Running {
+		return orm.Profile{}, errors.New("Inicie o container antes de acessar o banco.")
+	}
+	found, err := orm.Detect(orm.ContainerSpec{Name: c.Name, Image: c.Image, Env: c.Env})
+	if err != nil {
+		return orm.Profile{}, err
+	}
+	host, port := "127.0.0.1", 0
+	if hp, ok := c.Published[found.Port]; ok {
+		port = hp
+	} else if c.IP != "" {
+		// Not published: the container is still reachable by its network
+		// address from this machine on Linux.
+		host, port = c.IP, found.Port
+	} else {
+		return orm.Profile{}, errors.New("O container não publica a porta do banco. Publique a porta (-p) para acessá-lo.")
+	}
+	return orm.Profile{
+		Name: c.Name, Kind: found.Kind, Host: host, Port: port, Database: found.Database,
+		User: found.User, Password: found.Password, SSL: orm.SSLOff,
+	}, nil
+}
+
+func (a *App) dbRemoteContainer(hostID, ref string) (orm.Profile, error) {
+	image, env, cn, err := a.ssh.ContainerImageEnv(a.ctx, hostID, ref)
+	if err != nil {
+		return orm.Profile{}, err
+	}
+	if !cn.Running {
+		return orm.Profile{}, errors.New("Inicie o container antes de acessar o banco.")
+	}
+	found, err := orm.Detect(orm.ContainerSpec{Name: cn.Name, Image: image, Env: env})
+	if err != nil {
+		return orm.Profile{}, err
+	}
+
+	// Reuse the tunnel if one already goes to this container's database port.
+	local := 0
+	for _, t := range a.ssh.ListTunnels() {
+		if t.Kind == lssh.TunnelContainer && t.HostID == hostID && t.ContainerName == cn.Name && t.RemotePort == found.Port {
+			local = t.LocalPort
+			break
+		}
+	}
+	if local == 0 {
+		network := ""
+		if len(cn.Networks) > 1 {
+			network = cn.Networks[0].Name
+		}
+		t, err := a.ssh.OpenTunnel(a.ctx, hostID, ref, network, found.Port, a.ssh.SuggestLocalPort(found.Port))
+		if err != nil {
+			return orm.Profile{}, err
+		}
+		local = t.LocalPort
+	}
+	return orm.Profile{
+		Name: cn.Name, Kind: found.Kind, Host: "127.0.0.1", Port: local, Database: found.Database,
+		User: found.User, Password: found.Password, SSL: orm.SSLOff,
+		// A server's database is read-only until the user says otherwise.
+		ReadOnly: true,
+	}, nil
 }
