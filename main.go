@@ -6,6 +6,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
 )
 
 //go:embed all:frontend/dist
@@ -26,6 +27,11 @@ func main() {
 		BackgroundColour: &options.RGBA{R: 20, G: 22, B: 26, A: 1},
 		OnStartup:        app.startup,
 		OnShutdown:       app.shutdown,
+		// Without an explicit Linux block Wails forces software rendering
+		// (WebviewGpuPolicyNever), which makes scrolling the shadowed rows laggy.
+		Linux: &linux.Options{
+			WebviewGpuPolicy: linux.WebviewGpuPolicyAlways,
+		},
 		Bind: []interface{}{
 			app,
 		},

@@ -3355,3 +3355,8 @@ body.is-resizing * {
     justify-content: flex-end;
     margin: 0 0 10px;
 }
+
+/* While scrolling, no row reacts to the cursor: no hover repaint per row. */
+.instrument-panel--scrolling * {
+    pointer-events: none;
+}

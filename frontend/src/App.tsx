@@ -77,6 +77,8 @@ function App() {
     const [coolingPid, setCoolingPid] = useState<number | null>(null);
     const [tick, setTick] = useState(false);
     const prevCount = useRef(0);
+    const panelRef = useRef<HTMLElement>(null);
+    const scrollTimer = useRef<number | undefined>(undefined);
 
     const [logsPrefs, updateLogsPrefs] = useLogsPrefs();
     const [logsTarget, setLogsTarget] = useState<LogsTarget | null>(null);
@@ -395,6 +397,16 @@ function App() {
         );
     }
 
+    // While the list scrolls, rows passing under the cursor would each repaint
+    // for their hover transition; the class turns hover off until scrolling stops.
+    function handlePanelScroll() {
+        const el = panelRef.current;
+        if (!el) return;
+        el.classList.add('instrument-panel--scrolling');
+        window.clearTimeout(scrollTimer.current);
+        scrollTimer.current = window.setTimeout(() => el.classList.remove('instrument-panel--scrolling'), 120);
+    }
+
     function handleRefresh() {
         if (activeTab === 'portas') {
             loadPorts();
@@ -496,7 +508,11 @@ function App() {
             </header>
 
             <div className={`workspace${logsTarget ? ' workspace--logs' : ''}`}>
-                <main className={`instrument-panel${logsTarget && logsPrefs.expanded ? ' instrument-panel--hidden' : ''}`}>
+                <main
+                    ref={panelRef}
+                    onScroll={handlePanelScroll}
+                    className={`instrument-panel${logsTarget && logsPrefs.expanded ? ' instrument-panel--hidden' : ''}`}
+                >
                     {activeTab === 'portas' &&
                         renderGroups(
                             'portas',
