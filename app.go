@@ -500,3 +500,9 @@ func (a *App) dbRemoteContainer(hostID, ref string) (orm.Profile, error) {
 		ReadOnly: true,
 	}, nil
 }
+
+// DBUpdate saves edits to rows of a table, found by primary key, in one
+// transaction. Refused on read-only connections. Returns how many rows changed.
+func (a *App) DBUpdate(id string, req orm.UpdateRequest) (int, error) {
+	return a.db.Update(a.ctx, id, req)
+}

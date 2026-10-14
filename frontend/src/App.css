@@ -3918,3 +3918,117 @@ body.is-resizing * {
     justify-content: space-between;
     gap: 10px;
 }
+
+/* Bancos: colunas redimensionáveis e edição de células */
+.db-grid {
+    table-layout: fixed;
+    width: max-content;
+    min-width: 100%;
+}
+
+.db-grid thead th {
+    overflow: visible;
+}
+
+.db-grid__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.db-grid__resize {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    width: 8px;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+.db-grid__resize::after {
+    content: '';
+    position: absolute;
+    top: 25%;
+    bottom: 25%;
+    right: 0;
+    width: 1px;
+    background: var(--chassis-seam);
+}
+
+.db-grid__resize:hover::after {
+    width: 2px;
+    right: 0;
+    background: var(--ink-secondary);
+}
+
+.db-grid__cell--editable {
+    cursor: text;
+}
+
+.db-grid__cell--editable:hover {
+    background: var(--key-surface-hover);
+    box-shadow: inset 0 0 0 1px var(--chassis-seam);
+}
+
+.db-grid td.db-grid__cell--changed {
+    background: var(--key-surface-hover);
+    box-shadow: inset 3px 0 0 var(--ink-secondary);
+}
+
+.db-grid td.db-grid__cell--editing {
+    padding: 0;
+    overflow: visible;
+    background: var(--bezel);
+    box-shadow: inset 0 0 0 1px var(--ink-secondary);
+}
+
+.db-cell-edit {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+}
+
+.db-cell-edit__input {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 12px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--key-ink);
+    font: inherit;
+}
+
+.db-cell-edit__null {
+    padding: 0 8px;
+    border: 0;
+    border-left: 1px solid var(--chassis-seam);
+    background: none;
+    color: var(--ink-tertiary);
+    font: inherit;
+    font-size: 0.64rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+}
+
+.db-cell-edit__null:hover {
+    color: var(--key-ink);
+}
+
+.db-save {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: var(--radius-chip);
+    background: var(--key-surface);
+    box-shadow: inset 3px 0 0 var(--ink-secondary);
+    font-size: 0.82rem;
+}
+
+.db-data__hint {
+    margin: 0;
+    font-size: 0.78rem;
+}

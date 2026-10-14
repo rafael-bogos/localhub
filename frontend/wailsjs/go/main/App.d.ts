@@ -26,6 +26,8 @@ export function DBOpenContainer(arg1:string,arg2:string):Promise<orm.Profile>;
 
 export function DBTest(arg1:orm.Profile):Promise<void>;
 
+export function DBUpdate(arg1:string,arg2:orm.UpdateRequest):Promise<number>;
+
 export function KillProcess(arg1:number):Promise<void>;
 
 export function ListChildProcesses(arg1:number):Promise<Array<ports.PortInfo>>;

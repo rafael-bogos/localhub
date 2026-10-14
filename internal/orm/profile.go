@@ -93,6 +93,9 @@ func (p Profile) dsn() string {
 		cfg.User, cfg.Passwd = p.User, p.Password
 		cfg.Net, cfg.Addr, cfg.DBName = "tcp", addr, p.Database
 		cfg.ParseTime = true
+		// UPDATE reports matched rows, not changed ones: setting a value to what it
+		// already is must not look like "row not found".
+		cfg.ClientFoundRows = true
 		cfg.Timeout = connectTimeout
 		cfg.TLSConfig = "false"
 		if p.SSL == SSLRequire {

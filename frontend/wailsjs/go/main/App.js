@@ -42,6 +42,10 @@ export function DBTest(arg1) {
   return window['go']['main']['App']['DBTest'](arg1);
 }
 
+export function DBUpdate(arg1, arg2) {
+  return window['go']['main']['App']['DBUpdate'](arg1, arg2);
+}
+
 export function KillProcess(arg1) {
   return window['go']['main']['App']['KillProcess'](arg1);
 }

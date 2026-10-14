@@ -213,6 +213,57 @@ func runIntegration(t *testing.T, p Profile, setup string) {
 	if _, err := m.Browse(ctx, p.ID, BrowseRequest{Table: "users\"; DROP TABLE users; --"}); err == nil {
 		t.Error("tabela inexistente deveria falhar")
 	}
+
+	// Update: values by primary key, NULL, atomic batch, and the guard rails.
+	str := func(v string) *string { return &v }
+	n, err := m.Update(ctx, p.ID, UpdateRequest{Table: "users", Schema: users.Schema, Changes: []RowChange{
+		{Key: map[string]string{"id": "1"}, Set: []CellValue{{"name", str("Editado")}, {"email", str("novo@x.dev")}}},
+		{Key: map[string]string{"id": "2"}, Set: []CellValue{{"name", nil}}},
+	}})
+	if err != nil || n != 2 {
+		t.Fatalf("update: n=%d err=%v", n, err)
+	}
+	ed, _ := m.Browse(ctx, p.ID, BrowseRequest{Table: "users", Schema: users.Schema, Limit: 2})
+	if *ed.Rows[0][2] != "Editado" || *ed.Rows[0][1] != "novo@x.dev" || ed.Rows[1][2] != nil {
+		t.Errorf("valores após update: %v %v %v", *ed.Rows[0][2], *ed.Rows[0][1], ed.Rows[1][2])
+	}
+	// Same value again must not look like "row not found" (MySQL counts changed rows by default).
+	if _, err := m.Update(ctx, p.ID, UpdateRequest{Table: "users", Schema: users.Schema, Changes: []RowChange{
+		{Key: map[string]string{"id": "1"}, Set: []CellValue{{"name", str("Editado")}}}}}); err != nil {
+		t.Errorf("regravar o mesmo valor: %v", err)
+	}
+	// One bad edit rolls the whole batch back.
+	_, err = m.Update(ctx, p.ID, UpdateRequest{Table: "users", Schema: users.Schema, Changes: []RowChange{
+		{Key: map[string]string{"id": "3"}, Set: []CellValue{{"name", str("Não deve ficar")}}},
+		{Key: map[string]string{"id": "999999"}, Set: []CellValue{{"name", str("x")}}},
+	}})
+	if err == nil {
+		t.Error("linha inexistente deveria falhar")
+	}
+	chk, _ := m.Browse(ctx, p.ID, BrowseRequest{Table: "users", Schema: users.Schema, Limit: 3})
+	if chk.Rows[2][2] != nil && *chk.Rows[2][2] == "Não deve ficar" {
+		t.Error("o lote não foi desfeito")
+	}
+	// Unique violation is explained, not echoed.
+	_, err = m.Update(ctx, p.ID, UpdateRequest{Table: "users", Schema: users.Schema, Changes: []RowChange{
+		{Key: map[string]string{"id": "5"}, Set: []CellValue{{"email", str("novo@x.dev")}}}}})
+	if err == nil || strings.Contains(err.Error(), "novo@x.dev") || !strings.Contains(err.Error(), "já existe") {
+		t.Errorf("violação de unicidade: %v", err)
+	}
+	// PK edit and unknown column are refused.
+	for name, set := range map[string][]CellValue{"pk": {{"id", str("77")}}, "coluna": {{"nope", str("x")}}} {
+		if _, err := m.Update(ctx, p.ID, UpdateRequest{Table: "users", Schema: users.Schema, Changes: []RowChange{
+			{Key: map[string]string{"id": "5"}, Set: set}}}); err == nil {
+			t.Errorf("%s: deveria falhar", name)
+		}
+	}
+	// Read-only connection: refused in Go.
+	s.profile.ReadOnly = true
+	if _, err := m.Update(ctx, p.ID, UpdateRequest{Table: "users", Schema: users.Schema, Changes: []RowChange{
+		{Key: map[string]string{"id": "5"}, Set: []CellValue{{"name", str("x")}}}}}); err == nil || !strings.Contains(err.Error(), "somente leitura") {
+		t.Errorf("somente leitura: %v", err)
+	}
+	s.profile.ReadOnly = false
 }
 
 func TestBuildBrowse(t *testing.T) {
@@ -235,6 +286,31 @@ func TestBuildBrowse(t *testing.T) {
 	}
 	if _, _, err := buildBrowse(Postgres, tb, BrowseRequest{OrderBy: "nope"}); err == nil {
 		t.Error("ordenação por coluna desconhecida deve falhar")
+	}
+}
+
+func TestBuildUpdate(t *testing.T) {
+	tb := &Table{Schema: "public", Name: "u", PrimaryKey: []string{"id"},
+		Columns: []Column{{Name: "id", Type: "integer"}, {Name: "name", Type: "character varying(80)"}, {Name: "at", Type: "timestamp with time zone"}}}
+	v := "x'; DROP TABLE u; --"
+	q, args, err := buildUpdate(Postgres, tb, RowChange{Key: map[string]string{"id": "7"}, Set: []CellValue{{"at", &v}, {"name", nil}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `UPDATE "public"."u" SET "name" = NULL, "at" = CAST($1::text AS timestamp with time zone) WHERE "id" = CAST($2::text AS integer)`
+	if q != want || len(args) != 2 || args[0] != v || args[1] != "7" {
+		t.Errorf("pg:\n got %s %v\nwant %s", q, args, want)
+	}
+	q, args, _ = buildUpdate(MySQL, tb, RowChange{Key: map[string]string{"id": "7"}, Set: []CellValue{{"name", &v}}})
+	if q != "UPDATE `u` SET `name` = ? WHERE `id` = ?" || len(args) != 2 {
+		t.Errorf("mysql: %s %v", q, args)
+	}
+	bad := &Table{Name: "u", PrimaryKey: []string{"id"}, Columns: []Column{{Name: "id", Type: "int"}, {Name: "x", Type: "int); DROP TABLE u; --"}}}
+	if _, _, err := buildUpdate(Postgres, bad, RowChange{Key: map[string]string{"id": "1"}, Set: []CellValue{{"x", &v}}}); err == nil {
+		t.Error("tipo de coluna suspeito deve ser recusado")
+	}
+	if _, _, err := buildUpdate(Postgres, &Table{Name: "t", Columns: []Column{{Name: "a"}}}, RowChange{Set: []CellValue{{"a", &v}}}); err == nil {
+		t.Error("tabela sem PK deve ser recusada")
 	}
 }
 

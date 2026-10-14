@@ -309,7 +309,7 @@ function SchemaView({ profile, onBack, onDisconnect, onError }: SchemaViewProps)
                             {tables.length === 0 && <li className="db-muted">Nenhuma tabela corresponde.</li>}
                         </ul>
                     </aside>
-                    {table && <TableView connectionId={profile.id} table={table} />}
+                    {table && <TableView connectionId={profile.id} table={table} readOnly={profile.readOnly} />}
                 </div>
             )}
         </div>
@@ -317,7 +317,7 @@ function SchemaView({ profile, onBack, onDisconnect, onError }: SchemaViewProps)
 }
 
 /** One table, as its rows ("Dados") or its structure ("Estrutura"). */
-function TableView({ connectionId, table }: { connectionId: string; table: orm.Table }) {
+function TableView({ connectionId, table, readOnly }: { connectionId: string; table: orm.Table; readOnly: boolean }) {
     const [view, setView] = useState<'data' | 'structure'>('data');
     return (
         <section className="db-detail" aria-label={tableLabel(table)}>
@@ -332,7 +332,7 @@ function TableView({ connectionId, table }: { connectionId: string; table: orm.T
                     </button>
                 </div>
             </div>
-            {view === 'data' ? <DataGrid connectionId={connectionId} table={table} /> : <TableDetail table={table} />}
+            {view === 'data' ? <DataGrid connectionId={connectionId} table={table} readOnly={readOnly} /> : <TableDetail table={table} />}
         </section>
     );
 }
