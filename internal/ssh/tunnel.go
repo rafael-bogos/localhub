@@ -91,6 +91,7 @@ type inspectDoc struct {
 	Config struct {
 		Image        string              `json:"Image"`
 		Env          []string            `json:"Env"`
+		Labels       map[string]string   `json:"Labels"`
 		ExposedPorts map[string]struct{} `json:"ExposedPorts"`
 	} `json:"Config"`
 	HostConfig struct {

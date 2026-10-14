@@ -386,6 +386,26 @@ export function RestartIcon({ size = 16, className }: IconProps) {
     );
 }
 
+export function RebuildIcon({ size = 16, className }: IconProps) {
+    return (
+        <Glyph size={size} className={className}>
+            <path d="M12 3 3.5 7.5 12 12l8.5-4.5z" />
+            <path d="M3.5 12 12 16.5l8.5-4.5" />
+            <path d="M3.5 16.5 12 21l8.5-4.5" />
+        </Glyph>
+    );
+}
+
+export function DeployIcon({ size = 16, className }: IconProps) {
+    return (
+        <Glyph size={size} className={className}>
+            <path d="M12 16V4" />
+            <path d="m7 9 5-5 5 5" />
+            <path d="M4 20h16" />
+        </Glyph>
+    );
+}
+
 export function TrashIcon({ size = 16, className }: IconProps) {
     return (
         <Glyph size={size} className={className}>

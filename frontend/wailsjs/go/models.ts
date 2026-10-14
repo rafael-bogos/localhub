@@ -1,3 +1,22 @@
+export namespace coolify {
+	
+	export class Config {
+	    url: string;
+	    token: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Config(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.url = source["url"];
+	        this.token = source["token"];
+	    }
+	}
+
+}
+
 export namespace docker {
 	
 	export class CleanupOptions {

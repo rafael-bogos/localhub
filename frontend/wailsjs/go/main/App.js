@@ -14,6 +14,18 @@ export function ConfigPath() {
   return window['go']['main']['App']['ConfigPath']();
 }
 
+export function ContainerRebuildInfos(arg1) {
+  return window['go']['main']['App']['ContainerRebuildInfos'](arg1);
+}
+
+export function CoolifyRedeploy(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['main']['App']['CoolifyRedeploy'](arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
+export function CoolifyTest(arg1) {
+  return window['go']['main']['App']['CoolifyTest'](arg1);
+}
+
 export function DBBrowse(arg1, arg2) {
   return window['go']['main']['App']['DBBrowse'](arg1, arg2);
 }
@@ -98,6 +110,10 @@ export function PruneImages() {
   return window['go']['main']['App']['PruneImages']();
 }
 
+export function RebuildContainer(arg1) {
+  return window['go']['main']['App']['RebuildContainer'](arg1);
+}
+
 export function RemoteCloseTunnel(arg1) {
   return window['go']['main']['App']['RemoteCloseTunnel'](arg1);
 }
@@ -108,6 +124,10 @@ export function RemoteContainerAction(arg1, arg2, arg3) {
 
 export function RemoteContainerNetworks(arg1, arg2) {
   return window['go']['main']['App']['RemoteContainerNetworks'](arg1, arg2);
+}
+
+export function RemoteContainerRebuildInfos(arg1, arg2) {
+  return window['go']['main']['App']['RemoteContainerRebuildInfos'](arg1, arg2);
 }
 
 export function RemoteKillProcess(arg1, arg2) {
@@ -140,6 +160,10 @@ export function RemoteOpenForward(arg1, arg2, arg3, arg4, arg5, arg6) {
 
 export function RemoteOpenTunnel(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['RemoteOpenTunnel'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function RemoteRebuildContainer(arg1, arg2) {
+  return window['go']['main']['App']['RemoteRebuildContainer'](arg1, arg2);
 }
 
 export function RemoteRemoveImage(arg1, arg2) {

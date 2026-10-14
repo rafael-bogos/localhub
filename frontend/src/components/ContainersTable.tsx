@@ -5,12 +5,16 @@ import {
     RemoveContainer,
     RestartContainer,
     StartContainer,
+    RebuildContainer,
+    ContainerRebuildInfos,
     StopContainer,
 } from '../../wailsjs/go/main/App';
 import { docker } from '../../wailsjs/go/models';
-import { AlertIcon, BoxIcon, InfoIcon, PlayIcon, RestartIcon, SearchIcon, StopIcon, TrashIcon, LogsIcon, DatabaseIcon } from './icons';
+import { AlertIcon, BoxIcon, InfoIcon, PlayIcon, RestartIcon, SearchIcon, StopIcon, TrashIcon, LogsIcon, DatabaseIcon, RebuildIcon, DeployIcon } from './icons';
 import { looksLikeDbImage } from '../dbImage';
 import IconButton from './IconButton';
+import RebuildStatus, { type RebuildInfo } from './RebuildStatus';
+import type { RowAction } from './rowAction';
 import { matchesSearch } from '../search';
 import ContainerDetailsDialog from './ContainerDetailsDialog';
 import { displayName, isCustomName, type NameLabelApi } from '../containerName';
@@ -37,22 +41,51 @@ interface ContainersTableProps {
     onOpenLogs: (id: string, name: string, label?: string) => void;
     /** Opens the database in this container in the Bancos tab; rejects with the message to show. */
     onAccessDb: (containerName: string) => Promise<void>;
+    /** Asks for the Coolify settings if needed and for confirmation; resolves with the function that does the redeploy, or null when the user backs out. */
+    onPrepareRedeploy: (c: docker.ContainerInfo) => Promise<(() => Promise<void>) | null>;
     activeLogsId: string | null;
 }
 
-function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, activeLogsId }: ContainersTableProps) {
+function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, onPrepareRedeploy, activeLogsId }: ContainersTableProps) {
     const confirm = useConfirm();
     const [containers, setContainers] = useState<docker.ContainerInfo[]>([]);
+    // Per Compose container: whether its service builds an image (so there is
+    // something to rebuild) or why its project could not be read. A service with
+    // a ready-made image, like postgres, is absent: no button.
+    const [rebuildInfo, setRebuildInfo] = useState<Record<string, RebuildInfo>>({});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [pendingId, setPendingId] = useState<string | null>(null);
-    const [pendingAction, setPendingAction] = useState<'start' | 'stop' | 'restart' | 'remove' | 'db' | null>(null);
+    // What each container is doing right now, by ID: several can run at once
+    // (two redeploys, a rebuild and a stop...). 'idle' keeps a row's buttons
+    // disabled without showing a busy one (the cool-down after a removal).
+    const [pending, setPending] = useState<Record<string, RowAction>>({});
+    const beginPending = (id: string, action: RowAction) => setPending((p) => ({ ...p, [id]: action }));
+    const endPending = (id: string) =>
+        setPending((p) => {
+            const next = { ...p };
+            delete next[id];
+            return next;
+        });
     const [coolingId, setCoolingId] = useState<string | null>(null);
     const [stats, setStats] = useState<Record<string, docker.ContainerStats>>({});
     const [details, setDetails] = useState<docker.ContainerInfo | null>(null);
     const countReported = useRef(false);
     const selection = useSelection<string>();
     const [batchBusy, setBatchBusy] = useState(false);
+
+    useEffect(() => {
+        if (!containers.some((c) => c.project && c.service)) {
+            setRebuildInfo({});
+            return;
+        }
+        let live = true;
+        ContainerRebuildInfos(containers)
+            .then((info) => live && setRebuildInfo(info ?? {}))
+            .catch(() => {});
+        return () => {
+            live = false;
+        };
+    }, [containers]);
 
     async function load() {
         setLoading(true);
@@ -121,32 +154,62 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
         };
     }, [hasRunning]);
 
+    async function handleRedeploy(c: docker.ContainerInfo) {
+        const run = await onPrepareRedeploy(c);
+        if (!run) return;
+        setError('');
+        beginPending(c.id, 'redeploy');
+        try {
+            await run();
+            await load();
+        } catch (err) {
+            setError(String(err).replace(/^Error:\s*/, ''));
+        } finally {
+            endPending(c.id);
+        }
+    }
+
+    async function handleRebuild(c: docker.ContainerInfo) {
+        const name = displayName(c, names.nameLabel);
+        const confirmed = await confirm(
+            `Reconstruir o container "${name}"? A imagem do serviço "${c.service}" será refeita e o container recriado (pode demorar). Ele fica fora do ar durante a troca.`
+        );
+        if (!confirmed) return;
+
+        setError('');
+        beginPending(c.id, 'rebuild');
+        try {
+            await RebuildContainer(c.id);
+            await load();
+        } catch (err) {
+            setError(String(err).replace(/^Error:\s*/, ''));
+        } finally {
+            endPending(c.id);
+        }
+    }
+
     async function handleAccessDb(c: docker.ContainerInfo) {
         setError('');
-        setPendingId(c.id);
-        setPendingAction('db');
+        beginPending(c.id, 'db');
         try {
             await onAccessDb(c.name);
         } catch (err) {
             setError(String(err).replace(/^Error:\s*/, ''));
         } finally {
-            setPendingId(null);
-            setPendingAction(null);
+            endPending(c.id);
         }
     }
 
     async function handleStart(c: docker.ContainerInfo) {
         setError('');
-        setPendingId(c.id);
-        setPendingAction('start');
+        beginPending(c.id, 'start');
         try {
             await StartContainer(c.id);
             await load();
         } catch (err) {
             setError(String(err));
         } finally {
-            setPendingId(null);
-            setPendingAction(null);
+            endPending(c.id);
         }
     }
 
@@ -155,16 +218,14 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
         if (!confirmed) return;
 
         setError('');
-        setPendingId(c.id);
-        setPendingAction('stop');
+        beginPending(c.id, 'stop');
         try {
             await StopContainer(c.id);
             await load();
         } catch (err) {
             setError(String(err));
         } finally {
-            setPendingId(null);
-            setPendingAction(null);
+            endPending(c.id);
         }
     }
 
@@ -173,16 +234,14 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
         if (!confirmed) return;
 
         setError('');
-        setPendingId(c.id);
-        setPendingAction('restart');
+        beginPending(c.id, 'restart');
         try {
             await RestartContainer(c.id);
             await load();
         } catch (err) {
             setError(String(err));
         } finally {
-            setPendingId(null);
-            setPendingAction(null);
+            endPending(c.id);
         }
     }
 
@@ -215,19 +274,17 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
         if (!confirmed) return;
 
         setError('');
-        setPendingId(c.id);
-        setPendingAction('remove');
+        beginPending(c.id, 'remove');
         try {
             await RemoveContainer(c.id);
-            setPendingAction(null);
+            beginPending(c.id, 'idle');
             setCoolingId(c.id);
             await new Promise((resolve) => setTimeout(resolve, COOL_DOWN_MS));
             await load();
         } catch (err) {
             setError(String(err));
         } finally {
-            setPendingId(null);
-            setPendingAction(null);
+            endPending(c.id);
             setCoolingId(null);
         }
     }
@@ -369,7 +426,8 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
                     <tbody>
                         {visible.map((c) => {
                             const isRunning = c.state === 'running';
-                            const isPending = pendingId === c.id;
+                            const pendingAction = pending[c.id] ?? null;
+                            const isPending = pendingAction !== null;
                             const isCooling = coolingId === c.id;
                             const shown = displayName(c, names.nameLabel);
                             const custom = isCustomName(c, names.nameLabel);
@@ -381,6 +439,7 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
                                         'container-row',
                                         !isRunning ? '' : 'container-row--protected',
                                         isCooling ? 'container-row--cooling' : '',
+                                        isPending && (pendingAction === 'rebuild' || pendingAction === 'redeploy') ? 'container-row--rebuilding' : '',
                                         activeLogsId === c.id ? 'container-row--logs' : '',
                                         'row--selectable',
                                         selection.selected.has(c.id) ? 'row--selected' : '',
@@ -422,6 +481,7 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
                                                 {c.project ? ` · projeto: ${c.project}` : ''}
                                             </span>
                                         )}
+                                        {isPending && (pendingAction === 'rebuild' || pendingAction === 'redeploy') && <RebuildStatus hostId="" containerId={c.id} />}
                                     </td>
                                     <td className="container-row__image" data-label="Imagem">{c.image}</td>
                                     <td className="container-row__ports" data-label="Portas">{c.ports || '—'}</td>
@@ -482,6 +542,34 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
                                                         disabled={isPending}
                                                         onClick={() => handleRestart(c)}
                                                     />
+                                                    {rebuildInfo[c.id]?.build && (
+                                                        <IconButton
+                                                            icon={<RebuildIcon />}
+                                                            label={isPending && pendingAction === 'rebuild' ? 'Reconstruindo…' : 'Reconstruir'}
+                                                            title="Reconstruir a imagem e recriar o container (docker compose up --build)"
+                                                            busy={isPending && pendingAction === 'rebuild'}
+                                                            disabled={isPending}
+                                                            onClick={() => handleRebuild(c)}
+                                                        />
+                                                    )}
+                                                    {rebuildInfo[c.id]?.redeploy && (
+                                                        <IconButton
+                                                            icon={<DeployIcon />}
+                                                            label={isPending && pendingAction === 'redeploy' ? 'Fazendo deploy…' : 'Redeploy'}
+                                                            title="Fazer o redeploy deste app pelo Coolify"
+                                                            busy={isPending && pendingAction === 'redeploy'}
+                                                            disabled={isPending}
+                                                            onClick={() => handleRedeploy(c)}
+                                                        />
+                                                    )}
+                                                    {rebuildInfo[c.id]?.problem && (
+                                                        <IconButton
+                                                            icon={<RebuildIcon />}
+                                                            label="Reconstruir indisponível"
+                                                            title={rebuildInfo[c.id].problem}
+                                                            disabled
+                                                        />
+                                                    )}
                                                     <IconButton
                                                         danger
                                                         icon={<TrashIcon />}
@@ -499,6 +587,34 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
                                                         disabled={isPending}
                                                         onClick={() => handleStart(c)}
                                                     />
+                                                    {rebuildInfo[c.id]?.build && (
+                                                        <IconButton
+                                                            icon={<RebuildIcon />}
+                                                            label={isPending && pendingAction === 'rebuild' ? 'Reconstruindo…' : 'Reconstruir'}
+                                                            title="Reconstruir a imagem e recriar o container (docker compose up --build)"
+                                                            busy={isPending && pendingAction === 'rebuild'}
+                                                            disabled={isPending}
+                                                            onClick={() => handleRebuild(c)}
+                                                        />
+                                                    )}
+                                                    {rebuildInfo[c.id]?.redeploy && (
+                                                        <IconButton
+                                                            icon={<DeployIcon />}
+                                                            label={isPending && pendingAction === 'redeploy' ? 'Fazendo deploy…' : 'Redeploy'}
+                                                            title="Fazer o redeploy deste app pelo Coolify"
+                                                            busy={isPending && pendingAction === 'redeploy'}
+                                                            disabled={isPending}
+                                                            onClick={() => handleRedeploy(c)}
+                                                        />
+                                                    )}
+                                                    {rebuildInfo[c.id]?.problem && (
+                                                        <IconButton
+                                                            icon={<RebuildIcon />}
+                                                            label="Reconstruir indisponível"
+                                                            title={rebuildInfo[c.id].problem}
+                                                            disabled
+                                                        />
+                                                    )}
                                                     <IconButton
                                                         danger
                                                         icon={<TrashIcon />}

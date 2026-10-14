@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import './App.css';
-import { DBOpenContainer, KillProcess, ListContainers, ListPortOwners, ListPorts } from '../wailsjs/go/main/App';
-import { ports } from '../wailsjs/go/models';
+import { CoolifyRedeploy, DBOpenContainer, KillProcess, ListContainers, ListPortOwners, ListPorts } from '../wailsjs/go/main/App';
+import { coolify as coolifyModels, docker, ports } from '../wailsjs/go/models';
 import PortsTable from './components/PortsTable';
 import ContainersTable from './components/ContainersTable';
 import ImagesTable from './components/ImagesTable';
 import CleanupTab from './components/CleanupTab';
 import DatabasesTab from './components/DatabasesTab';
 import { useDbConnections, type DbProfile } from './useDbConnections';
+import { useCoolify, type CoolifyConfig } from './useCoolify';
+import CoolifyDialog from './components/CoolifyDialog';
 import NotificationCenter from './components/NotificationCenter';
 import { useStopNotices, type StopNotice } from './useStopNotices';
 import SshTab, { type TerminalRequest } from './components/SshTab';
@@ -59,6 +61,50 @@ function App() {
     const sshHosts = useSshHosts();
     const dbConnections = useDbConnections();
     const [dbRequest, setDbRequest] = useState<DbProfile | null>(null);
+    const coolify = useCoolify();
+    // The Coolify settings dialog, waiting for what the user decides.
+    const [coolifyAsk, setCoolifyAsk] = useState<{
+        machine: string;
+        initial?: CoolifyConfig;
+        resolve: (cfg: CoolifyConfig | null) => void;
+    } | null>(null);
+
+    // "Redeploy" on a Coolify container: make sure the Coolify settings of that
+    // machine are known (asking once), confirm, and return what does the
+    // redeploy. Null when the user backs out of either step.
+    const prepareRedeploy = useCallback(
+        async (hostId: string, hostName: string, c: docker.ContainerInfo): Promise<(() => Promise<void>) | null> => {
+            let cfg = coolify.get(hostId);
+            if (!cfg) {
+                const machine = hostId ? `o servidor "${hostName}"` : 'esta máquina';
+                const asked = await new Promise<CoolifyConfig | null>((resolve) => setCoolifyAsk({ machine, resolve }));
+                setCoolifyAsk(null);
+                if (!asked) return null;
+                coolify.set(hostId, asked);
+                cfg = asked;
+            }
+            const where = hostId ? ` em "${hostName}"` : '';
+            const ok = await confirm(
+                `Fazer o redeploy de "${c.name}"${where} pelo Coolify? Ele refaz o build do app e troca o container, que fica fora do ar durante a troca (pode demorar).`
+            );
+            if (!ok) return null;
+            const use = cfg;
+            return async () => {
+                try {
+                    await CoolifyRedeploy(coolifyModels.Config.createFrom(use), hostId, c.id, c.name, c.labels ?? {}, false);
+                } catch (err) {
+                    const msg = String(err).replace(/^Error:\s*/, '');
+                    if (msg.startsWith('Token do Coolify')) {
+                        // Ask for a new token on the next try.
+                        coolify.remove(hostId);
+                        throw new Error(`${msg} Clique em Redeploy de novo para informar outro token.`);
+                    }
+                    throw err;
+                }
+            };
+        },
+        [coolify, confirm]
+    );
 
     // "Acessar banco" on a container row: work out the connection, save it in
     // Bancos and open it there. Throws the user-facing message on failure.
@@ -417,6 +463,7 @@ function App() {
                                     onOpenLogs={(id, name, label) => openRemoteLogs(h.id, h.name, id, name, label)}
                                     onOpenTerminal={(c) => openContainerTerminal(h.id, c)}
                                     onAccessDb={(c) => accessContainerDb(h.id, h.name, c)}
+                                    onPrepareRedeploy={(c) => prepareRedeploy(h.id, h.name, c)}
                                     activeLogsId={logsTarget?.hostId === h.id ? logsTarget.id : null}
                                 />
                             )}
@@ -599,6 +646,7 @@ function App() {
                                 activeLogsId={logsTarget && !logsTarget.hostId ? logsTarget.id : null}
                                 onOpenLogs={openLogs}
                                 onAccessDb={(c) => accessContainerDb('', '', c)}
+                                onPrepareRedeploy={(c) => prepareRedeploy('', '', c)}
                                 onCountChange={(n) => setCounts((prev) => ({ ...prev, containers: n }))}
                             />
                         )}
@@ -613,6 +661,14 @@ function App() {
                         )}
                     {activeTab === 'limpeza' && (
                         <CleanupTab onCountChange={(n) => setCounts((prev) => ({ ...prev, limpeza: n }))} />
+                    )}
+                    {coolifyAsk && (
+                        <CoolifyDialog
+                            machine={coolifyAsk.machine}
+                            initial={coolifyAsk.initial}
+                            onSave={(cfg) => coolifyAsk.resolve(cfg)}
+                            onCancel={() => coolifyAsk.resolve(null)}
+                        />
                     )}
                     {activeTab === 'bancos' && <DatabasesTab api={dbConnections} request={dbRequest} onRequestHandled={() => setDbRequest(null)} />}
                     {sshMounted && (

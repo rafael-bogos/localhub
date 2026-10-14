@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { RemoteCloseTunnel, RemoteContainerAction, RemoteListContainers } from '../../wailsjs/go/main/App';
+import { RemoteCloseTunnel, RemoteContainerAction, RemoteListContainers, RemoteRebuildContainer, RemoteContainerRebuildInfos } from '../../wailsjs/go/main/App';
 import { docker, ssh } from '../../wailsjs/go/models';
 import {
     AlertIcon,
     CloseIcon,
     DatabaseIcon,
+    RebuildIcon,
+    DeployIcon,
     InfoIcon,
     LogsIcon,
     PlayIcon,
@@ -15,6 +17,8 @@ import {
     TunnelIcon,
 } from './icons';
 import IconButton from './IconButton';
+import RebuildStatus, { type RebuildInfo } from './RebuildStatus';
+import type { RowAction } from './rowAction';
 import { looksLikeDbImage } from '../dbImage';
 import { matchesSearch } from '../search';
 import ContainerDetailsDialog from './ContainerDetailsDialog';
@@ -26,7 +30,7 @@ import { useConfirm } from './ConfirmDialog';
 
 const COOL_DOWN_MS = 340;
 
-type Action = 'start' | 'stop' | 'restart' | 'remove' | 'db';
+type Action = 'start' | 'stop' | 'restart' | 'remove' | 'db' | 'rebuild' | 'redeploy';
 
 interface RemoteContainersSectionProps {
     /** The header search box: matches names, IDs, images and Compose service/project. */
@@ -44,6 +48,8 @@ interface RemoteContainersSectionProps {
     onOpenTerminal: (container: { id: string; name: string }) => void;
     /** Opens the database in this container in the Bancos tab; rejects with the message to show. */
     onAccessDb: (containerName: string) => Promise<void>;
+    /** Asks for the Coolify settings if needed and for confirmation; resolves with the function that does the redeploy, or null when the user backs out. */
+    onPrepareRedeploy: (c: docker.ContainerInfo) => Promise<(() => Promise<void>) | null>;
     /** Container whose logs are open for this server, to mark its row. */
     activeLogsId: string | null;
 }
@@ -61,13 +67,25 @@ function RemoteContainersSection({
     onOpenLogs,
     onOpenTerminal,
     onAccessDb,
+    onPrepareRedeploy,
     activeLogsId,
 }: RemoteContainersSectionProps) {
     const confirm = useConfirm();
     const [result, setResult] = useState<ssh.RemoteContainers | null>(null);
+    // Per Compose container: can it be rebuilt, or why not (see ContainersTable).
+    const [rebuildInfo, setRebuildInfo] = useState<Record<string, RebuildInfo>>({});
     const [error, setError] = useState('');
-    const [pendingId, setPendingId] = useState<string | null>(null);
-    const [pendingAction, setPendingAction] = useState<Action | null>(null);
+    // What each container is doing right now, by ID: several can run at once
+    // (two redeploys, a rebuild and a stop...). 'idle' keeps a row's buttons
+    // disabled without showing a busy one (the cool-down after a removal).
+    const [pending, setPending] = useState<Record<string, RowAction>>({});
+    const beginPending = (id: string, action: RowAction) => setPending((p) => ({ ...p, [id]: action }));
+    const endPending = (id: string) =>
+        setPending((p) => {
+            const next = { ...p };
+            delete next[id];
+            return next;
+        });
     const [coolingId, setCoolingId] = useState<string | null>(null);
     const [tunnelFor, setTunnelFor] = useState<docker.ContainerInfo | null>(null);
     const [details, setDetails] = useState<docker.ContainerInfo | null>(null);
@@ -90,29 +108,73 @@ function RemoteContainersSection({
         load();
     }, [load, refreshKey]);
 
+    useEffect(() => {
+        const items = result?.items ?? [];
+        if (!items.some((c) => c.project && c.service)) {
+            setRebuildInfo({});
+            return;
+        }
+        let live = true;
+        RemoteContainerRebuildInfos(hostId, items)
+            .then((info) => live && setRebuildInfo(info ?? {}))
+            .catch(() => {});
+        return () => {
+            live = false;
+        };
+    }, [hostId, result]);
+
     async function accessDb(c: docker.ContainerInfo) {
         setError('');
-        setPendingId(c.id);
-        setPendingAction('db');
+        beginPending(c.id, 'db');
         try {
             await onAccessDb(c.name);
         } catch (err) {
             setError(String(err).replace(/^Error:\s*/, ''));
         } finally {
-            setPendingId(null);
-            setPendingAction(null);
+            endPending(c.id);
+        }
+    }
+
+    async function handleRedeploy(c: docker.ContainerInfo) {
+        const run = await onPrepareRedeploy(c);
+        if (!run) return;
+        setError('');
+        beginPending(c.id, 'redeploy');
+        try {
+            await run();
+            await load();
+        } catch (err) {
+            setError(String(err).replace(/^Error:\s*/, ''));
+        } finally {
+            endPending(c.id);
+        }
+    }
+
+    async function rebuild(c: docker.ContainerInfo, shown: string) {
+        const ok = await confirm(
+            `Reconstruir o container "${shown}" em "${hostName}"? A imagem do serviço "${c.service}" será refeita no servidor e o container recriado (pode demorar). Ele fica fora do ar durante a troca.`
+        );
+        if (!ok) return;
+        setError('');
+        beginPending(c.id, 'rebuild');
+        try {
+            await RemoteRebuildContainer(hostId, c.id);
+            await load();
+        } catch (err) {
+            setError(String(err).replace(/^Error:\s*/, ''));
+        } finally {
+            endPending(c.id);
         }
     }
 
     async function run(c: docker.ContainerInfo, action: Action, confirmMessage?: string) {
         if (confirmMessage && !(await confirm(confirmMessage))) return;
         setError('');
-        setPendingId(c.id);
-        setPendingAction(action);
+        beginPending(c.id, action);
         try {
             await RemoteContainerAction(hostId, c.id, action);
             if (action === 'remove') {
-                setPendingAction(null);
+                beginPending(c.id, 'idle');
                 setCoolingId(c.id);
                 await new Promise((resolve) => setTimeout(resolve, COOL_DOWN_MS));
             }
@@ -120,8 +182,7 @@ function RemoteContainersSection({
         } catch (err) {
             setError(String(err).replace(/^Error:\s*/, ''));
         } finally {
-            setPendingId(null);
-            setPendingAction(null);
+            endPending(c.id);
             setCoolingId(null);
         }
     }
@@ -159,7 +220,8 @@ function RemoteContainersSection({
                     <tbody>
                         {items.map((c) => {
                             const isRunning = c.state === 'running';
-                            const isPending = pendingId === c.id;
+                            const pendingAction = pending[c.id] ?? null;
+                            const isPending = pendingAction !== null;
                             const shown = displayName(c, names.nameLabel);
                             const custom = isCustomName(c, names.nameLabel);
                             return (
@@ -169,6 +231,7 @@ function RemoteContainersSection({
                                         'container-row',
                                         isRunning ? 'container-row--protected' : '',
                                         coolingId === c.id ? 'container-row--cooling' : '',
+                                        isPending && (pendingAction === 'rebuild' || pendingAction === 'redeploy') ? 'container-row--rebuilding' : '',
                                         activeLogsId === c.id ? 'container-row--logs' : '',
                                     ]
                                         .filter(Boolean)
@@ -219,6 +282,7 @@ function RemoteContainersSection({
                                                     </button>
                                                 </span>
                                             ))}
+                                        {isPending && (pendingAction === 'rebuild' || pendingAction === 'redeploy') && <RebuildStatus hostId={hostId} containerId={c.id} />}
                                     </td>
                                     <td className="container-row__image" data-label="Imagem">
                                         {c.image}
@@ -282,6 +346,34 @@ function RemoteContainersSection({
                                                             run(c, 'restart', `Reiniciar o container "${shown}" em "${hostName}"?`)
                                                         }
                                                     />
+                                                    {rebuildInfo[c.id]?.build && (
+                                                        <IconButton
+                                                            icon={<RebuildIcon />}
+                                                            label={isPending && pendingAction === 'rebuild' ? 'Reconstruindo…' : 'Reconstruir'}
+                                                            title="Reconstruir a imagem no servidor e recriar o container (docker compose up --build)"
+                                                            busy={isPending && pendingAction === 'rebuild'}
+                                                            disabled={isPending}
+                                                            onClick={() => rebuild(c, shown)}
+                                                        />
+                                                    )}
+                                                    {rebuildInfo[c.id]?.redeploy && (
+                                                        <IconButton
+                                                            icon={<DeployIcon />}
+                                                            label={isPending && pendingAction === 'redeploy' ? 'Fazendo deploy…' : 'Redeploy'}
+                                                            title="Fazer o redeploy deste app pelo Coolify"
+                                                            busy={isPending && pendingAction === 'redeploy'}
+                                                            disabled={isPending}
+                                                            onClick={() => handleRedeploy(c)}
+                                                        />
+                                                    )}
+                                                    {rebuildInfo[c.id]?.problem && (
+                                                        <IconButton
+                                                            icon={<RebuildIcon />}
+                                                            label="Reconstruir indisponível"
+                                                            title={rebuildInfo[c.id].problem}
+                                                            disabled
+                                                        />
+                                                    )}
                                                     <IconButton
                                                         danger
                                                         icon={<TrashIcon />}
@@ -299,6 +391,34 @@ function RemoteContainersSection({
                                                         disabled={isPending}
                                                         onClick={() => run(c, 'start')}
                                                     />
+                                                    {rebuildInfo[c.id]?.build && (
+                                                        <IconButton
+                                                            icon={<RebuildIcon />}
+                                                            label={isPending && pendingAction === 'rebuild' ? 'Reconstruindo…' : 'Reconstruir'}
+                                                            title="Reconstruir a imagem no servidor e recriar o container (docker compose up --build)"
+                                                            busy={isPending && pendingAction === 'rebuild'}
+                                                            disabled={isPending}
+                                                            onClick={() => rebuild(c, shown)}
+                                                        />
+                                                    )}
+                                                    {rebuildInfo[c.id]?.redeploy && (
+                                                        <IconButton
+                                                            icon={<DeployIcon />}
+                                                            label={isPending && pendingAction === 'redeploy' ? 'Fazendo deploy…' : 'Redeploy'}
+                                                            title="Fazer o redeploy deste app pelo Coolify"
+                                                            busy={isPending && pendingAction === 'redeploy'}
+                                                            disabled={isPending}
+                                                            onClick={() => handleRedeploy(c)}
+                                                        />
+                                                    )}
+                                                    {rebuildInfo[c.id]?.problem && (
+                                                        <IconButton
+                                                            icon={<RebuildIcon />}
+                                                            label="Reconstruir indisponível"
+                                                            title={rebuildInfo[c.id].problem}
+                                                            disabled
+                                                        />
+                                                    )}
                                                     <IconButton
                                                         danger
                                                         icon={<TrashIcon />}

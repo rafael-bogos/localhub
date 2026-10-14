@@ -5,8 +5,10 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"time"
 
 	"localhub/internal/config"
+	"localhub/internal/coolify"
 	"localhub/internal/docker"
 	"localhub/internal/nodemodules"
 	"localhub/internal/orm"
@@ -505,4 +507,94 @@ func (a *App) dbRemoteContainer(hostID, ref string) (orm.Profile, error) {
 // transaction. Refused on read-only connections. Returns how many rows changed.
 func (a *App) DBUpdate(id string, req orm.UpdateRequest) (int, error) {
 	return a.db.Update(a.ctx, id, req)
+}
+
+// rebuildEvent is the "container:rebuild" event: how far a rebuild is, for the
+// row of that container (hostId "" is this machine).
+type rebuildEvent struct {
+	HostID      string `json:"hostId"`
+	ContainerID string `json:"containerId"`
+	docker.Progress
+}
+
+func (a *App) emitRebuild(hostID, containerID string) func(docker.Progress) {
+	return func(p docker.Progress) {
+		wruntime.EventsEmit(a.ctx, "container:rebuild", rebuildEvent{HostID: hostID, ContainerID: containerID, Progress: p})
+	}
+}
+
+// RebuildContainer rebuilds the image of a container's Compose service and
+// recreates the container (`docker compose up -d --build --force-recreate
+// --no-deps`). It takes as long as the build does, reporting its progress with
+// the "container:rebuild" event. The old container is gone afterwards, so it is
+// not announced as a stop.
+func (a *App) RebuildContainer(id string) error {
+	a.notifier.mute("", id)
+	return docker.RebuildContainer(a.ctx, id, a.emitRebuild("", id))
+}
+
+// RemoteRebuildContainer does the same on a connected SSH server.
+func (a *App) RemoteRebuildContainer(hostID, containerID string) error {
+	a.notifier.mute(hostID, containerID)
+	return a.ssh.RebuildContainer(a.ctx, hostID, containerID, a.emitRebuild(hostID, containerID))
+}
+
+// ContainerRebuildInfos tells, for the Docker Compose containers among these,
+// whether they can be rebuilt (the service has a build) or why the project
+// could not be read.
+func (a *App) ContainerRebuildInfos(items []docker.ContainerInfo) map[string]docker.RebuildInfo {
+	return docker.RebuildInfos(a.ctx, items)
+}
+
+// RemoteContainerRebuildInfos does the same for the containers of a server.
+func (a *App) RemoteContainerRebuildInfos(hostID string, items []docker.ContainerInfo) (map[string]docker.RebuildInfo, error) {
+	return a.ssh.RebuildInfos(a.ctx, hostID, items)
+}
+
+// CoolifyTest checks a Coolify address and token, returning the team's name.
+func (a *App) CoolifyTest(cfg coolify.Config) (string, error) {
+	c, err := coolify.NewClient(cfg)
+	if err != nil {
+		return "", err
+	}
+	ctx, cancel := context.WithTimeout(a.ctx, 30*time.Second)
+	defer cancel()
+	return c.Ping(ctx)
+}
+
+// CoolifyRedeploy asks a Coolify to redeploy the application a container
+// belongs to, and follows the deploy to its end, reporting it with the
+// "container:rebuild" event (phase "deploy"). The application is found by the
+// UUID in the container's names, among those the token can see. hostID is the
+// server the container runs on ("" is this machine).
+func (a *App) CoolifyRedeploy(cfg coolify.Config, hostID, containerID, containerName string, labels map[string]string, force bool) error {
+	c, err := coolify.NewClient(cfg)
+	if err != nil {
+		return err
+	}
+	emit := a.emitRebuild(hostID, containerID)
+	emit(docker.Progress{Phase: "deploy", Text: "iniciando"})
+
+	ctx, cancel := context.WithTimeout(a.ctx, 60*time.Second)
+	apps, err := c.Applications(ctx)
+	if err != nil {
+		cancel()
+		return err
+	}
+	app, ok := coolify.FindApp(apps, containerName, labels)
+	if !ok {
+		cancel()
+		return errors.New("Não achei no Coolify o app deste container. O token enxerga o time certo? (Só apps são suportados, não serviços nem bancos do Coolify.)")
+	}
+	dep, err := c.Deploy(ctx, app.UUID, force)
+	cancel()
+	if err != nil {
+		return err
+	}
+	// The old container is replaced when the deploy ends: not a crash.
+	a.notifier.mute(hostID, containerID)
+	return c.Wait(a.ctx, dep, func(status string) {
+		a.notifier.mute(hostID, containerID)
+		emit(docker.Progress{Phase: "deploy", Text: coolify.StatusText(status)})
+	})
 }

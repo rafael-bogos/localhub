@@ -71,6 +71,11 @@ type Service struct {
 	mgr  *Manager
 	emit Emit
 
+	// buildCache holds, per server project, which services build an image
+	// (see RebuildableContainers).
+	buildMu    sync.Mutex
+	buildCache map[string]remoteBuild
+
 	// OnContainerStop, when set before the first Connect, is called for every
 	// container that stops on a connected server.
 	OnContainerStop func(StopEvent)

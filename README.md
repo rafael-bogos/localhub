@@ -50,6 +50,39 @@ rápido que o terminal, sempre, sem sair de uma única janela.
     imagem, logs ao vivo). Toda ação destrutiva em um servidor pede confirmação
     citando o nome dele. Vários servidores podem ficar conectados ao mesmo
     tempo; o terminal é um por vez.
+  - **Qual Docker ele usa** — o mesmo que o comando `docker` do seu terminal:
+    `DOCKER_HOST` se estiver definido, senão o contexto ativo (`docker context
+    show`, por exemplo o do Docker Desktop), senão o socket padrão. Contextos
+    `ssh://` não são suportados e caem no padrão.
+  - **Reconstruir container** — o botão **Reconstruir**, nos containers criados
+    pelo Docker Compose (local ou de um servidor), refaz a imagem do serviço e
+    recria o container (`docker compose up -d --build --force-recreate
+    --no-deps <serviço>`, na pasta do projeto). É diferente de **Reiniciar**,
+    que só para e inicia o mesmo container com a mesma imagem. O botão só
+    aparece nos serviços que têm `build` no Compose: um serviço que só usa uma
+    imagem pronta (como um `postgres`) e os containers criados com `docker run`
+    não têm o que reconstruir. Se o app não conseguir ler o Compose do projeto
+    (por exemplo, o servidor não tem o `docker compose` v2, falta uma variável
+    obrigatória ou a pasta mudou de lugar), o botão aparece desabilitado e o
+    motivo está no texto ao passar o mouse. Containers gerenciados por uma
+    plataforma de deploy (Coolify, Dokku, CapRover, Portainer, Swarm) também
+    ficam desabilitados: o build deles roda numa pasta temporária, então a
+    reconstrução é feita pelo painel da própria plataforma. Enquanto roda, a linha do container mostra uma pilha de
+    camadas que se preenche a cada passo do Dockerfile, o passo atual e um
+    cronômetro. Se o build falhar, o container antigo continua no ar e o fim do
+    log do build aparece no aviso.
+  - **Redeploy pelo Coolify** — os containers de apps do Coolify (local ou de
+    um servidor) ganham o botão **Redeploy**, que pede ao Coolify um novo
+    deploy pela API dele (`POST /api/v1/deploy`) e acompanha até o fim,
+    mostrando na linha do container "na fila", "em andamento" e o resultado; se
+    falhar, o fim do log do deploy aparece no aviso. Na primeira vez o app pede
+    o endereço do Coolify e um token da API (Keys & Tokens, com as permissões
+    **read** e **deploy**, e a API habilitada em Settings → Advanced); o
+    endereço é testado antes de salvar. O token fica salvo em texto em
+    `~/.config/localhub/config.json`, como as senhas dos bancos. O app acha o
+    app do Coolify pelo UUID que está no nome do container; serviços e bancos
+    do Coolify não são suportados. A chamada sai do seu computador direto para o
+    endereço do Coolify (não passa pelo túnel SSH).
   - **Terminal dentro do container** — o botão **Terminal**, em cada container
     rodando de um servidor, abre um shell dentro dele (`docker exec -it`, com
     `bash` quando o container tem e `sh` quando não), na aba Servidores. É o

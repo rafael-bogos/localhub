@@ -10,11 +10,15 @@ import (
 
 const pingTimeout = 3 * time.Second
 
-// newClient connects to the local Docker daemon and verifies it responds
+// newClient connects to the Docker engine the docker CLI would use (see engineHost) and verifies it responds
 // before handing the client back, so every caller fails fast with a clear
 // Portuguese message instead of a raw SDK error deep in a list/remove call.
 func newClient(ctx context.Context) (*client.Client, error) {
-	cli, err := client.New(client.FromEnv)
+	opts := []client.Opt{client.FromEnv}
+	if host := engineHost(); host != "" {
+		opts = append(opts, client.WithHost(host))
+	}
+	cli, err := client.New(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("não foi possível iniciar o cliente Docker")
 	}
