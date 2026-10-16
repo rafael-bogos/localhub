@@ -28,7 +28,7 @@ import { useTunnelControl } from './useTunnelControl';
 import { useNameLabel } from './containerName';
 import { runBatch } from './batch';
 import { configProblem } from './appConfig';
-import { AlertIcon, RefreshIcon, SearchIcon, CloseIcon } from './components/icons';
+import { AlertIcon, RefreshIcon, SearchIcon, CloseIcon, ServerIcon } from './components/icons';
 import { useConfirm } from './components/ConfirmDialog';
 import logo from './assets/images/localhub-logo.svg';
 
@@ -158,7 +158,22 @@ function App() {
     const remoteHosts = sshHosts.hosts.filter((h) => sshConnections.tracked[h.id]);
     const [remoteCounts, setRemoteCounts] = useState<Record<string, Record<string, number>>>({});
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-    const [hintDismissed, setHintDismissed] = useState(false);
+    // Remembered: someone who never uses SSH should not be told about it every launch.
+    const [hintDismissed, setHintDismissed] = useState(() => {
+        try {
+            return localStorage.getItem('hostHintDismissed') === '1';
+        } catch {
+            return false;
+        }
+    });
+    function dismissHint() {
+        setHintDismissed(true);
+        try {
+            localStorage.setItem('hostHintDismissed', '1');
+        } catch {
+            /* the hint just comes back next time */
+        }
+    }
     // The SSH tab stays mounted once opened, so open terminals survive tab switches.
     const [sshMounted, setSshMounted] = useState(false);
 
@@ -377,26 +392,31 @@ function App() {
      */
     function renderGroups(tab: 'portas' | 'containers' | 'imagens', local: ReactNode) {
         const showHeaders = remoteHosts.length > 0;
-        // Servers are saved but none is connected: say where remote data comes from.
-        const showHint = !showHeaders && sshHosts.hosts.length > 0 && !hintDismissed;
+        // No server is connected: say where remote data would come from.
+        const showHint = !showHeaders && !hintDismissed;
+        const saved = sshHosts.hosts;
         return (
             <>
                 {showHint && (
-                    <p className="host-hint" role="note">
-                        <span>
-                            Para ver processos, containers e imagens de um servidor SSH aqui, conecte-o na aba Servidores.
-                        </span>
-                        <button className="action-key" onClick={() => setActiveTab('ssh')}>
-                            Ir para Servidores
+                    <aside className="host-hint" role="note">
+                        <ServerIcon size={20} className="host-hint__icon" />
+                        <div className="host-hint__body">
+                            <strong className="host-hint__title">
+                                {saved.length > 0 ? 'Nenhum servidor conectado' : 'Só esta máquina por aqui'}
+                            </strong>
+                            <span className="host-hint__text">
+                                {saved.length > 0
+                                    ? 'Conecte um servidor SSH para ver os processos, containers e imagens dele junto com os desta máquina.'
+                                    : 'Adicione um servidor SSH na aba Servidores e, depois de conectar, os processos, containers e imagens dele aparecem aqui também.'}
+                            </span>
+                        </div>
+                        <button className="action-key host-hint__manage" onClick={() => setActiveTab('ssh')}>
+                            Gerenciar servidores
                         </button>
-                        <button
-                            className="ssh-notice__close"
-                            onClick={() => setHintDismissed(true)}
-                            aria-label="Dispensar dica"
-                        >
+                        <button className="ssh-notice__close" onClick={dismissHint} aria-label="Dispensar dica" title="Não mostrar de novo">
                             <CloseIcon size={11} />
                         </button>
-                    </p>
+                    </aside>
                 )}
                 {showHeaders && (
                     <nav className="host-jump" aria-label="Ir para a máquina">

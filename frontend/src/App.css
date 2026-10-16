@@ -2903,21 +2903,51 @@ body.is-resizing * {
 
 .host-hint {
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
+    align-items: flex-start;
+    gap: 12px;
     margin: 0 0 12px;
-    padding: 8px 12px;
+    padding: 12px 14px;
     border-radius: var(--radius-chip);
     background: var(--bezel);
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
     font-family: var(--font-sans);
-    font-size: 0.8rem;
     color: var(--ink-secondary);
 }
 
-.host-hint .ssh-notice__close {
+.host-hint__icon {
+    flex: none;
+    margin-top: 1px;
+    color: var(--ink-tertiary);
+}
+
+.host-hint__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.host-hint__title {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--ink-primary);
+}
+
+.host-hint__text {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--ink-tertiary);
+}
+
+.host-hint__manage {
+    flex: none;
+    align-self: center;
     margin-left: auto;
+}
+
+.host-hint .ssh-notice__close {
+    flex: none;
 }
 
 .host-group__header:hover {
