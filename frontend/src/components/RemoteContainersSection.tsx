@@ -136,9 +136,15 @@ function RemoteContainersSection({
     }
 
     async function handleRedeploy(c: docker.ContainerInfo) {
-        const run = await onPrepareRedeploy(c);
-        if (!run) return;
         setError('');
+        let run: (() => Promise<void>) | null;
+        try {
+            run = await onPrepareRedeploy(c);
+        } catch (err) {
+            setError(String(err).replace(/^Error:\s*/, ''));
+            return;
+        }
+        if (!run) return;
         beginPending(c.id, 'redeploy');
         try {
             await run();
@@ -360,7 +366,7 @@ function RemoteContainersSection({
                                                         <IconButton
                                                             icon={<DeployIcon />}
                                                             label={isPending && pendingAction === 'redeploy' ? 'Fazendo deploy…' : 'Redeploy'}
-                                                            title="Fazer o redeploy deste app pelo Coolify"
+                                                            title="Fazer o redeploy deste app pelo Coolify (busca o código mais recente do repositório)"
                                                             busy={isPending && pendingAction === 'redeploy'}
                                                             disabled={isPending}
                                                             onClick={() => handleRedeploy(c)}
@@ -405,7 +411,7 @@ function RemoteContainersSection({
                                                         <IconButton
                                                             icon={<DeployIcon />}
                                                             label={isPending && pendingAction === 'redeploy' ? 'Fazendo deploy…' : 'Redeploy'}
-                                                            title="Fazer o redeploy deste app pelo Coolify"
+                                                            title="Fazer o redeploy deste app pelo Coolify (busca o código mais recente do repositório)"
                                                             busy={isPending && pendingAction === 'redeploy'}
                                                             disabled={isPending}
                                                             onClick={() => handleRedeploy(c)}

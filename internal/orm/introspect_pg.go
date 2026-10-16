@@ -56,7 +56,11 @@ func introspectPostgres(ctx context.Context, db *sql.DB) (*Schema, error) {
 		       array_to_string(ARRAY(
 		         SELECT a.attname FROM unnest(ix.indkey) WITH ORDINALITY k(attnum, ord)
 		         JOIN pg_attribute a ON a.attrelid = ix.indrelid AND a.attnum = k.attnum
-		         ORDER BY k.ord), chr(31))
+		         ORDER BY k.ord), chr(31)),
+		       COALESCE((SELECT oc.opcname LIKE '%!_pattern!_ops' ESCAPE '!' FROM pg_opclass oc WHERE oc.oid = ix.indclass[0]), false)
+		       OR CASE WHEN ix.indcollation[0] = 100
+		            THEN (SELECT datcollate IN ('C', 'POSIX') FROM pg_database WHERE datname = current_database())
+		            ELSE COALESCE((SELECT co.collname IN ('C', 'POSIX') FROM pg_collation co WHERE co.oid = ix.indcollation[0]), false) END
 		FROM pg_index ix
 		JOIN pg_class c ON c.oid = ix.indrelid
 		JOIN pg_class i ON i.oid = ix.indexrelid
@@ -68,8 +72,8 @@ func introspectPostgres(ctx context.Context, db *sql.DB) (*Schema, error) {
 	}
 	for rows.Next() {
 		var schema, table, name, cols string
-		var unique, primary bool
-		if err := rows.Scan(&schema, &table, &name, &unique, &primary, &cols); err != nil {
+		var unique, primary, prefix bool
+		if err := rows.Scan(&schema, &table, &name, &unique, &primary, &cols, &prefix); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -78,6 +82,9 @@ func introspectPostgres(ctx context.Context, db *sql.DB) (*Schema, error) {
 			continue
 		}
 		list := splitList(cols)
+		if prefix && len(list) > 0 {
+			t.PrefixCols = append(t.PrefixCols, list[0])
+		}
 		if primary {
 			t.PrimaryKey = list
 			continue

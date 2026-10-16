@@ -195,13 +195,23 @@ func runIntegration(t *testing.T, p Profile, setup string) {
 	if len(last.Rows) != 20 || last.HasMore {
 		t.Errorf("última página: %d linhas, hasMore=%v", len(last.Rows), last.HasMore)
 	}
-	found, _ := m.Browse(ctx, p.ID, BrowseRequest{Table: "users", Schema: users.Schema, Search: "NOME 120"})
-	if len(found.Rows) != 1 {
-		t.Errorf("busca 'NOME 120' (sem diferenciar caixa): %d linhas", len(found.Rows))
+	// Indexed search: id by equality, email by prefix (or equality when the engine
+	// cannot serve a prefix from the index), never a scan.
+	byID, err := m.Browse(ctx, p.ID, BrowseRequest{Table: "users", Schema: users.Schema, Search: "7"})
+	if err != nil || len(byID.Rows) < 1 || *byID.Rows[0][0] != "7" {
+		t.Errorf("busca por id: err=%v page=%+v", err, byID)
+	}
+	byMail, err := m.Browse(ctx, p.ID, BrowseRequest{Table: "users", Schema: users.Schema, Search: "u120@x.dev"})
+	if err != nil || len(byMail.Rows) != 1 {
+		t.Errorf("busca por e-mail: err=%v page=%+v", err, byMail)
 	}
 	pct, _ := m.Browse(ctx, p.ID, BrowseRequest{Table: "users", Schema: users.Schema, Search: "%"})
 	if len(pct.Rows) != 0 {
 		t.Errorf("'%%' deve ser literal, veio %d linhas", len(pct.Rows))
+	}
+	slow, err := m.Browse(ctx, p.ID, BrowseRequest{Table: "users", Schema: users.Schema, Search: "NOME 120", SearchColumn: "name", SearchMode: SearchContains})
+	if err != nil || len(slow.Rows) != 1 {
+		t.Errorf("'contém' na coluna escolhida: err=%v page=%+v", err, slow)
 	}
 	desc, _ := m.Browse(ctx, p.ID, BrowseRequest{Table: "users", Schema: users.Schema, OrderBy: "id", Desc: true, Limit: 1})
 	if len(desc.Rows) != 1 || *desc.Rows[0][1] != "u120@x.dev" {
@@ -267,25 +277,75 @@ func runIntegration(t *testing.T, p Profile, setup string) {
 }
 
 func TestBuildBrowse(t *testing.T) {
-	tb := &Table{Schema: "public", Name: `we"ird`, PrimaryKey: []string{"id"},
-		Columns: []Column{{Name: "id"}, {Name: "na`me"}}}
-	q, args, err := buildBrowse(Postgres, tb, BrowseRequest{Search: "50%", OrderBy: "na`me", Desc: true, Limit: 10, Offset: 20})
+	tb := &Table{Schema: "public", Name: `we"ird`, PrimaryKey: []string{"id"}, PrefixCols: []string{"na`me"},
+		Indexes: []Index{{Name: "i", Columns: []string{"na`me"}}},
+		Columns: []Column{{Name: "id", Type: "integer"}, {Name: "na`me", Type: "text"}, {Name: "bio", Type: "text"}}}
+	q, args, err := buildBrowse(Postgres, tb, BrowseRequest{Search: "50", OrderBy: "na`me", Desc: true, Limit: 10, Offset: 20})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `SELECT "id", "na` + "`" + `me" FROM "public"."we""ird" WHERE "id"::text ILIKE $1 OR "na` + "`" + `me"::text ILIKE $2 ORDER BY "na` + "`" + `me" DESC, "id" DESC LIMIT $3 OFFSET $4`
+	want := `SELECT "id", "na` + "`" + `me", "bio" FROM "public"."we""ird" WHERE "id" = $1 OR "na` + "`" + `me" LIKE $2 ORDER BY "na` + "`" + `me" DESC, "id" DESC LIMIT $3 OFFSET $4`
 	if q != want {
 		t.Errorf("pg:\n got %s\nwant %s", q, want)
 	}
-	if len(args) != 4 || args[0] != `%50\%%` || args[2] != 11 || args[3] != 20 {
+	if len(args) != 4 || args[0] != int64(50) || args[1] != "50%" || args[2] != 11 || args[3] != 20 {
 		t.Errorf("args pg: %v", args)
 	}
+	// A literal %, and text that is not a number: only the text column is searched.
+	_, args, _ = buildBrowse(Postgres, tb, BrowseRequest{Search: "5%_"})
+	if args[0] != `5\%\_%` {
+		t.Errorf("curinga deve ser literal: %v", args)
+	}
+	// Postgres without a pattern index cannot serve a prefix: equality instead.
+	tb2 := *tb
+	tb2.PrefixCols = nil
+	q, _, _ = buildBrowse(Postgres, &tb2, BrowseRequest{Search: "ab"})
+	if !strings.Contains(q, `"na`+"`"+`me" = $1`) || strings.Contains(q, "LIKE") {
+		t.Errorf("sem índice de prefixo deveria usar =: %s", q)
+	}
+	// Never a leading wildcard unless "contains" is asked for a chosen column.
+	for _, mode := range []string{"", SearchPrefix, SearchExact} {
+		q, _, _ = buildBrowse(Postgres, tb, BrowseRequest{Search: "ab", SearchMode: mode})
+		if strings.Contains(q, "ILIKE") || strings.Contains(q, "::text") {
+			t.Errorf("modo %q não pode varrer a tabela: %s", mode, q)
+		}
+	}
+	q, args, _ = buildBrowse(Postgres, tb, BrowseRequest{Search: "ab", SearchMode: SearchContains})
+	if !strings.Contains(q, "WHERE 1 = 0") {
+		t.Errorf("contains sem coluna escolhida não deve buscar: %s", q)
+	}
+	q, args, _ = buildBrowse(Postgres, tb, BrowseRequest{Search: "ab", SearchMode: SearchContains, SearchColumn: "bio"})
+	if !strings.Contains(q, `"bio"::text ILIKE $1`) || args[0] != "%ab%" {
+		t.Errorf("contains na coluna escolhida: %s %v", q, args)
+	}
+	_, _, note, _ := buildBrowseNote(Postgres, tb, BrowseRequest{Search: "ab", SearchColumn: "bio"})
+	if !strings.Contains(note, "sem índice") {
+		t.Errorf("coluna sem índice deve ser avisada: %q", note)
+	}
 	q, args, _ = buildBrowse(MySQL, tb, BrowseRequest{Search: "a"})
-	if !strings.Contains(q, "CAST(`id` AS CHAR) LIKE ?") || !strings.HasSuffix(q, "LIMIT ? OFFSET ?") || len(args) != 4 || args[2] != 51 {
+	if !strings.Contains(q, "`na``me` LIKE ?") || !strings.HasSuffix(q, "LIMIT ? OFFSET ?") || len(args) != 3 || args[1] != 51 {
 		t.Errorf("mysql: %s %v", q, args)
 	}
 	if _, _, err := buildBrowse(Postgres, tb, BrowseRequest{OrderBy: "nope"}); err == nil {
 		t.Error("ordenação por coluna desconhecida deve falhar")
+	}
+	if _, _, err := buildBrowse(Postgres, tb, BrowseRequest{Search: "a", SearchColumn: "x; DROP"}); err == nil {
+		t.Error("coluna de busca desconhecida deve falhar")
+	}
+	if _, _, err := buildBrowse(Postgres, tb, BrowseRequest{Search: "a", SearchMode: "regex"}); err == nil {
+		t.Error("modo de busca inválido deve falhar")
+	}
+}
+
+func TestClassify(t *testing.T) {
+	for typ, want := range map[string]colClass{
+		"integer": classInt, "int(11) unsigned": classInt, "bigint": classInt, "interval": classOther,
+		"uuid": classUUID, "character varying(80)": classText, "varchar(255)": classText, "text": classText,
+		"timestamp with time zone": classOther, "jsonb": classOther,
+	} {
+		if got := classify(typ); got != want {
+			t.Errorf("classify(%q) = %v, queria %v", typ, got, want)
+		}
 	}
 }
 

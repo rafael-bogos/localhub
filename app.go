@@ -598,3 +598,23 @@ func (a *App) CoolifyRedeploy(cfg coolify.Config, hostID, containerID, container
 		emit(docker.Progress{Phase: "deploy", Text: coolify.StatusText(status)})
 	})
 }
+
+// CoolifyAppInfo finds the Coolify application a container belongs to and
+// returns what the deploy dialog shows: its name and where its code comes from.
+func (a *App) CoolifyAppInfo(cfg coolify.Config, containerName string, labels map[string]string) (coolify.App, error) {
+	c, err := coolify.NewClient(cfg)
+	if err != nil {
+		return coolify.App{}, err
+	}
+	ctx, cancel := context.WithTimeout(a.ctx, 30*time.Second)
+	defer cancel()
+	apps, err := c.Applications(ctx)
+	if err != nil {
+		return coolify.App{}, err
+	}
+	app, ok := coolify.FindApp(apps, containerName, labels)
+	if !ok {
+		return coolify.App{}, errors.New("Não achei no Coolify o app deste container. O token enxerga o time certo? (Só apps são suportados, não serviços nem bancos do Coolify.)")
+	}
+	return app, nil
+}

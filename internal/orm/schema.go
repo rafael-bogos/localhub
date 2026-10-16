@@ -23,6 +23,9 @@ type Table struct {
 	// RowEstimate is the engine's own estimate, -1 when it has none. It is
 	// never a COUNT(*): that would scan big tables just to open the list.
 	RowEstimate int64 `json:"rowEstimate"`
+	// PrefixCols (PostgreSQL only) are the columns whose leading index can
+	// answer LIKE 'x%': built with text_pattern_ops or a C collation.
+	PrefixCols []string `json:"prefixCols"`
 }
 
 // Column is one column with its type as the engine spells it.

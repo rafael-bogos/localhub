@@ -18,6 +18,10 @@ export function ContainerRebuildInfos(arg1) {
   return window['go']['main']['App']['ContainerRebuildInfos'](arg1);
 }
 
+export function CoolifyAppInfo(arg1, arg2, arg3) {
+  return window['go']['main']['App']['CoolifyAppInfo'](arg1, arg2, arg3);
+}
+
 export function CoolifyRedeploy(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['main']['App']['CoolifyRedeploy'](arg1, arg2, arg3, arg4, arg5, arg6);
 }

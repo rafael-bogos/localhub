@@ -81,8 +81,12 @@ rápido que o terminal, sempre, sem sair de uma única janela.
     endereço é testado antes de salvar. O token fica salvo em texto em
     `~/.config/localhub/config.json`, como as senhas dos bancos. O app acha o
     app do Coolify pelo UUID que está no nome do container; serviços e bancos
-    do Coolify não são suportados. A chamada sai do seu computador direto para o
-    endereço do Coolify (não passa pelo túnel SSH).
+    do Coolify não são suportados. Antes de disparar, o app mostra uma confirmação
+    com o nome do app e a branch, e avisa se o app está **fixado num commit** no
+    Coolify (aí o deploy não pega commits novos). O deploy sempre começa pela
+    busca do código mais recente da branch no repositório remoto, feita pelo
+    próprio Coolify. A chamada sai do seu computador direto para o endereço do
+    Coolify (não passa pelo túnel SSH).
   - **Terminal dentro do container** — o botão **Terminal**, em cada container
     rodando de um servidor, abre um shell dentro dele (`docker exec -it`, com
     `bash` quando o container tem e `sh` quando não), na aba Servidores. É o

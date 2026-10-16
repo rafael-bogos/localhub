@@ -1,3 +1,5 @@
+import { useSmoothScroll } from '../useSmoothScroll';
+import { Select } from './Select';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DBBrowse, DBUpdate } from '../../wailsjs/go/main/App';
 import { orm } from '../../wailsjs/go/models';
@@ -57,12 +59,18 @@ function DataGrid({ connectionId, table, readOnly }: DataGridProps) {
     const [desc, setDesc] = useState(false);
     const [input, setInput] = useState('');
     const [search, setSearch] = useState('');
+    // Where and how to search. Default: the indexed columns, "começa com"; only
+    // "contém" (on a chosen column) has to read every row.
+    const [searchColumn, setSearchColumn] = useState('');
+    const [searchMode, setSearchMode] = useState<'prefix' | 'exact' | 'contains'>('prefix');
     const [widths, setWidths] = useState<Widths>(() => widthStore.get(tableKey) ?? {});
     const [pending, setPending] = useState<Map<string, RowEdit>>(() => pendingStore.get(tableKey) ?? new Map());
     const [editing, setEditing] = useState<{ r: number; c: number } | null>(null);
     const [saving, setSaving] = useState(false);
     // Only the newest request may update the grid (fast typing, fast paging).
     const seq = useRef(0);
+    const scroller = useRef<HTMLDivElement>(null);
+    useSmoothScroll(scroller, 'db-data__scroll--moving');
 
     const pkCols = table.primaryKey ?? [];
     const canEdit = !readOnly && pkCols.length > 0;
@@ -74,6 +82,8 @@ function DataGrid({ connectionId, table, readOnly }: DataGridProps) {
         setDesc(false);
         setInput('');
         setSearch('');
+        setSearchColumn('');
+        setSearchMode('prefix');
         setLoaded(null);
         setEditing(null);
         setWidths(widthStore.get(tableKey) ?? {});
@@ -105,7 +115,7 @@ function DataGrid({ connectionId, table, readOnly }: DataGridProps) {
         setLoading(true);
         DBBrowse(
             connectionId,
-            orm.BrowseRequest.createFrom({ schema: table.schema, table: table.name, limit: PAGE_SIZE, offset, orderBy, desc, search })
+            orm.BrowseRequest.createFrom({ schema: table.schema, table: table.name, limit: PAGE_SIZE, offset, orderBy, desc, search, searchColumn, searchMode })
         )
             .then((p) => {
                 if (mine !== seq.current) return;
@@ -119,9 +129,14 @@ function DataGrid({ connectionId, table, readOnly }: DataGridProps) {
             .finally(() => {
                 if (mine === seq.current) setLoading(false);
             });
-    }, [connectionId, table.schema, table.name, tableKey, offset, orderBy, desc, search]);
+    }, [connectionId, table.schema, table.name, tableKey, offset, orderBy, desc, search, searchColumn, searchMode]);
 
     useEffect(load, [load]);
+
+    // A new page, order or search starts at the top, gliding.
+    useEffect(() => {
+        scroller.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [offset, orderBy, desc, search, searchColumn, searchMode, tableKey]);
 
     function sortBy(col: string) {
         setOffset(0);
@@ -256,16 +271,41 @@ function DataGrid({ connectionId, table, readOnly }: DataGridProps) {
                     <input
                         type="text"
                         className="port-search__input"
-                        placeholder="Buscar nas linhas"
+                        placeholder={searchMode === 'contains' && !searchColumn ? 'Escolha uma coluna' : 'Buscar nas linhas'}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         aria-label="Buscar nas linhas da tabela"
                     />
                 </div>
+                <Select
+                    active={Boolean(searchColumn)}
+                    value={searchColumn}
+                    ariaLabel="Coluna da busca"
+                    options={[{ value: '', label: 'Colunas indexadas' }, ...table.columns.map((c) => ({ value: c.name, label: c.name }))]}
+                    onChange={(v) => {
+                        setSearchColumn(v);
+                        setOffset(0);
+                    }}
+                />
+                <Select
+                    active={searchMode === 'contains'}
+                    value={searchMode}
+                    ariaLabel="Tipo de busca"
+                    options={[
+                        { value: 'prefix', label: 'Começa com' },
+                        { value: 'exact', label: 'Igual' },
+                        { value: 'contains', label: 'Contém (lento)' },
+                    ]}
+                    onChange={(v) => {
+                        setSearchMode(v as 'prefix' | 'exact' | 'contains');
+                        setOffset(0);
+                    }}
+                />
                 <button className="action-key" onClick={load} disabled={loading || saving}>
                     Atualizar
                 </button>
             </div>
+            {search && page?.searchNote && <p className="db-muted db-data__note">{page.searchNote}</p>}
 
             {error && (
                 <p className="alert" role="alert">
@@ -300,7 +340,7 @@ function DataGrid({ connectionId, table, readOnly }: DataGridProps) {
                 )
             )}
 
-            <div className="db-data__scroll" aria-busy={loading}>
+            <div className="db-data__scroll" ref={scroller} aria-busy={loading}>
                 <table className="db-grid" style={{ width: totalWidth }}>
                     <colgroup>
                         {table.columns.map((c, i) => (

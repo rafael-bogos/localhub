@@ -1,3 +1,4 @@
+import { Select } from './Select';
 import type { RefObject } from 'react';
 import { LEVELS, type Level } from '../logLevel';
 import type { LogsPrefs, Period, PrefsPatch, SearchMode } from '../useLogsPrefs';
@@ -172,18 +173,13 @@ function LogsToolbar({
                     ))}
                 </div>
 
-                <select
-                    className={`logs-select${prefs.period !== 'all' ? ' logs-select--active' : ''}`}
+                <Select
+                    active={prefs.period !== 'all'}
                     value={prefs.period}
-                    aria-label="Período"
-                    onChange={(e) => onChange({ period: e.target.value as Period })}
-                >
-                    {PERIODS.map((p) => (
-                        <option key={p.value} value={p.value}>
-                            {p.label}
-                        </option>
-                    ))}
-                </select>
+                    ariaLabel="Período"
+                    options={PERIODS.map((p) => ({ value: p.value, label: p.label }))}
+                    onChange={(v) => onChange({ period: v as Period })}
+                />
             </div>
 
             <div className="logs-toolbar__row logs-toolbar__row--actions">

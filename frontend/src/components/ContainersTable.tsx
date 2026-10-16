@@ -5,8 +5,8 @@ import {
     RemoveContainer,
     RestartContainer,
     StartContainer,
-    RebuildContainer,
     ContainerRebuildInfos,
+    RebuildContainer,
     StopContainer,
 } from '../../wailsjs/go/main/App';
 import { docker } from '../../wailsjs/go/models';
@@ -155,9 +155,15 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
     }, [hasRunning]);
 
     async function handleRedeploy(c: docker.ContainerInfo) {
-        const run = await onPrepareRedeploy(c);
-        if (!run) return;
         setError('');
+        let run: (() => Promise<void>) | null;
+        try {
+            run = await onPrepareRedeploy(c);
+        } catch (err) {
+            setError(String(err).replace(/^Error:\s*/, ''));
+            return;
+        }
+        if (!run) return;
         beginPending(c.id, 'redeploy');
         try {
             await run();
@@ -170,9 +176,8 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
     }
 
     async function handleRebuild(c: docker.ContainerInfo) {
-        const name = displayName(c, names.nameLabel);
         const confirmed = await confirm(
-            `Reconstruir o container "${name}"? A imagem do serviço "${c.service}" será refeita e o container recriado (pode demorar). Ele fica fora do ar durante a troca.`
+            `Reconstruir o container "${displayName(c, names.nameLabel)}"? A imagem do serviço "${c.service}" será refeita e o container recriado (pode demorar). Ele fica fora do ar durante a troca.`
         );
         if (!confirmed) return;
 
@@ -556,7 +561,7 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
                                                         <IconButton
                                                             icon={<DeployIcon />}
                                                             label={isPending && pendingAction === 'redeploy' ? 'Fazendo deploy…' : 'Redeploy'}
-                                                            title="Fazer o redeploy deste app pelo Coolify"
+                                                            title="Fazer o redeploy deste app pelo Coolify (busca o código mais recente do repositório)"
                                                             busy={isPending && pendingAction === 'redeploy'}
                                                             disabled={isPending}
                                                             onClick={() => handleRedeploy(c)}
@@ -601,7 +606,7 @@ function ContainersTable({ query, names, onCountChange, onOpenLogs, onAccessDb, 
                                                         <IconButton
                                                             icon={<DeployIcon />}
                                                             label={isPending && pendingAction === 'redeploy' ? 'Fazendo deploy…' : 'Redeploy'}
-                                                            title="Fazer o redeploy deste app pelo Coolify"
+                                                            title="Fazer o redeploy deste app pelo Coolify (busca o código mais recente do repositório)"
                                                             busy={isPending && pendingAction === 'redeploy'}
                                                             disabled={isPending}
                                                             onClick={() => handleRedeploy(c)}

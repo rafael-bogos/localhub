@@ -1,3 +1,4 @@
+import { Select } from './Select';
 import { useEffect, useState, type FormEvent } from 'react';
 import { RemoteSuggestLocalPort } from '../../wailsjs/go/main/App';
 import type { SshHost } from '../useSshHosts';
@@ -108,18 +109,14 @@ function TunnelFormDialog({ hosts, hostId, initial, onSave, onCancel }: TunnelFo
                 {hosts.length > 1 && (
                     <label className="ssh-field">
                         <span className="ssh-field__label">Servidor</span>
-                        <select
-                            className="ssh-input"
+                        <Select
+                            className="select--field"
                             value={server}
-                            onChange={(e) => setServer(e.target.value)}
+                            onChange={setServer}
                             disabled={Boolean(initial)}
-                        >
-                            {hosts.map((h) => (
-                                <option key={h.id} value={h.id}>
-                                    {h.name}
-                                </option>
-                            ))}
-                        </select>
+                            ariaLabel="Servidor"
+                            options={hosts.map((h) => ({ value: h.id, label: h.name }))}
+                        />
                     </label>
                 )}
 

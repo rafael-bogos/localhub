@@ -1,3 +1,4 @@
+import { Select } from './Select';
 import { useEffect, useState } from 'react';
 import { RemoteContainerNetworks, RemoteOpenTunnel, RemoteSuggestLocalPort } from '../../wailsjs/go/main/App';
 import { ssh } from '../../wailsjs/go/models';
@@ -164,18 +165,13 @@ function TunnelDialog({ host, container, onClose }: TunnelDialogProps) {
                                 <div className="ssh-field">
                                     <span className="ssh-field__label">Rede do container</span>
                                     {nets.length > 1 ? (
-                                        <select
-                                            className="ssh-input ssh-input--mono"
+                                        <Select
+                                            className="select--field select--mono"
                                             value={network}
-                                            onChange={(e) => setNetwork(e.target.value)}
-                                            aria-label="Rede do container"
-                                        >
-                                            {nets.map((n) => (
-                                                <option key={n.name} value={n.name}>
-                                                    {n.name} · {n.ip}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            onChange={setNetwork}
+                                            ariaLabel="Rede do container"
+                                            options={nets.map((n) => ({ value: n.name, label: n.name, detail: n.ip }))}
+                                        />
                                     ) : (
                                         <code className="tunnel-dialog__static">
                                             {picked ? `${picked.name} · ${picked.ip}` : 'sem rede'}

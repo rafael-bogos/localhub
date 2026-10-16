@@ -186,6 +186,12 @@ type App struct {
 	ID   int    `json:"id"`
 	UUID string `json:"uuid"`
 	Name string `json:"name"`
+	// Where the app's code comes from; empty for apps built from an image.
+	GitRepository string `json:"git_repository"`
+	GitBranch     string `json:"git_branch"`
+	// GitCommitSHA is "HEAD" (or empty) when the app deploys the latest commit
+	// of its branch, and a commit hash when it is pinned to one.
+	GitCommitSHA string `json:"git_commit_sha"`
 }
 
 // Applications lists the applications the token can see.

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import './App.css';
-import { CoolifyRedeploy, DBOpenContainer, KillProcess, ListContainers, ListPortOwners, ListPorts } from '../wailsjs/go/main/App';
+import { CoolifyAppInfo, CoolifyRedeploy, DBOpenContainer, KillProcess, ListContainers, ListPortOwners, ListPorts } from '../wailsjs/go/main/App';
 import { coolify as coolifyModels, docker, ports } from '../wailsjs/go/models';
 import PortsTable from './components/PortsTable';
 import ContainersTable from './components/ContainersTable';
@@ -83,12 +83,25 @@ function App() {
                 coolify.set(hostId, asked);
                 cfg = asked;
             }
-            const where = hostId ? ` em "${hostName}"` : '';
-            const ok = await confirm(
-                `Fazer o redeploy de "${c.name}"${where} pelo Coolify? Ele refaz o build do app e troca o container, que fica fora do ar durante a troca (pode demorar).`
-            );
-            if (!ok) return null;
+            // Which Coolify app is this container? Its branch is what the deploy fetches.
             const use = cfg;
+            let app: coolifyModels.App;
+            try {
+                app = await CoolifyAppInfo(coolifyModels.Config.createFrom(use), c.name, c.labels ?? {});
+            } catch (err) {
+                const msg = String(err).replace(/^Error:\s*/, '');
+                if (msg.startsWith('Token do Coolify')) {
+                    coolify.remove(hostId);
+                    throw new Error(`${msg} Clique de novo para informar outro token.`);
+                }
+                throw err;
+            }
+            const where = hostId ? ` em "${hostName}"` : '';
+            const pinned = app.git_commit_sha && app.git_commit_sha.toUpperCase() !== 'HEAD' ? app.git_commit_sha : '';
+            const message = pinned
+                ? `Atenção: no Coolify, o app "${app.name}" está fixado no commit ${pinned.slice(0, 7)}. O deploy NÃO vai pegar commits novos do repositório. Fazer o redeploy${where} mesmo assim?`
+                : `Fazer o redeploy de "${app.name}"${where}? O Coolify busca o código mais recente${app.git_branch ? ` da branch "${app.git_branch}"` : ' da branch configurada'} no repositório e refaz o build; o container é trocado ao fim (pode demorar).`;
+            if (!(await confirm(message))) return null;
             return async () => {
                 try {
                     await CoolifyRedeploy(coolifyModels.Config.createFrom(use), hostId, c.id, c.name, c.labels ?? {}, false);

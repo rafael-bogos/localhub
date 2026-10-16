@@ -15,6 +15,8 @@ export function ConfigPath():Promise<string>;
 
 export function ContainerRebuildInfos(arg1:Array<docker.ContainerInfo>):Promise<Record<string, docker.RebuildInfo>>;
 
+export function CoolifyAppInfo(arg1:coolify.Config,arg2:string,arg3:Record<string, string>):Promise<coolify.App>;
+
 export function CoolifyRedeploy(arg1:coolify.Config,arg2:string,arg3:string,arg4:string,arg5:Record<string, string>,arg6:boolean):Promise<void>;
 
 export function CoolifyTest(arg1:coolify.Config):Promise<string>;

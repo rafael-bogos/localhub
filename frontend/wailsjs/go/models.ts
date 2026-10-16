@@ -1,5 +1,27 @@
 export namespace coolify {
 	
+	export class App {
+	    id: number;
+	    uuid: string;
+	    name: string;
+	    git_repository: string;
+	    git_branch: string;
+	    git_commit_sha: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new App(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.uuid = source["uuid"];
+	        this.name = source["name"];
+	        this.git_repository = source["git_repository"];
+	        this.git_branch = source["git_branch"];
+	        this.git_commit_sha = source["git_commit_sha"];
+	    }
+	}
 	export class Config {
 	    url: string;
 	    token: string;
@@ -289,6 +311,8 @@ export namespace orm {
 	    orderBy: string;
 	    desc: boolean;
 	    search: string;
+	    searchColumn: string;
+	    searchMode: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new BrowseRequest(source);
@@ -303,6 +327,8 @@ export namespace orm {
 	        this.orderBy = source["orderBy"];
 	        this.desc = source["desc"];
 	        this.search = source["search"];
+	        this.searchColumn = source["searchColumn"];
+	        this.searchMode = source["searchMode"];
 	    }
 	}
 	export class CellValue {
@@ -385,6 +411,7 @@ export namespace orm {
 	    columns: string[];
 	    rows: string[][];
 	    hasMore: boolean;
+	    searchNote: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Page(source);
@@ -395,6 +422,7 @@ export namespace orm {
 	        this.columns = source["columns"];
 	        this.rows = source["rows"];
 	        this.hasMore = source["hasMore"];
+	        this.searchNote = source["searchNote"];
 	    }
 	}
 	export class Profile {
@@ -467,6 +495,7 @@ export namespace orm {
 	    indexes: Index[];
 	    foreignKeys: ForeignKey[];
 	    rowEstimate: number;
+	    prefixCols: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new Table(source);
@@ -481,6 +510,7 @@ export namespace orm {
 	        this.indexes = this.convertValues(source["indexes"], Index);
 	        this.foreignKeys = this.convertValues(source["foreignKeys"], ForeignKey);
 	        this.rowEstimate = source["rowEstimate"];
+	        this.prefixCols = source["prefixCols"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

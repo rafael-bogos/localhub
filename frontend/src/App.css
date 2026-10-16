@@ -1299,16 +1299,6 @@
     box-shadow: inset 0 0 0 1px var(--key-border-strong);
 }
 
-.logs-select {
-    padding: 4px 8px;
-    border: 1px solid var(--key-border-strong);
-    border-radius: var(--radius-chip);
-    background: var(--bezel);
-    color: var(--ink-secondary);
-    font-family: var(--font-sans);
-    font-size: 0.72rem;
-}
-
 .logs-nav {
     display: flex;
     align-items: center;
@@ -1726,7 +1716,6 @@ body.is-resizing * {
 
 .logs-chip:focus-visible,
 .logs-segment__btn:focus-visible,
-.logs-select:focus-visible,
 .logs-nav__btn:focus-visible,
 .logs-icon-btn:focus-visible {
     outline: 1px solid var(--amber);
@@ -1741,12 +1730,6 @@ body.is-resizing * {
 .logs-segment__btn[aria-pressed="true"] {
     background: var(--amber-dim);
     box-shadow: inset 0 0 0 1px var(--amber-glow);
-    color: var(--amber);
-}
-
-.logs-select--active {
-    border-color: var(--amber-glow);
-    background: var(--amber-dim);
     color: var(--amber);
 }
 
@@ -3815,13 +3798,19 @@ body.is-resizing * {
 
 .db-data__bar {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     align-items: center;
 }
 
 .db-data__search {
     flex: 1;
-    min-width: 0;
+    min-width: 160px;
+}
+
+.db-data__note {
+    padding: 0 4px;
+    font-size: 0.76rem;
 }
 
 .db-data__scroll {
@@ -4161,4 +4150,189 @@ body.is-resizing * {
     .rebuild__layer--active {
         background: var(--key-ink);
     }
+}
+
+/* ---- Select: the closed button and the option list are both ours, so the
+   list matches the theme instead of the OS's white native popup ---- */
+.select {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    padding: 4px 8px;
+    border: 1px solid var(--key-border-strong);
+    border-radius: var(--radius-chip);
+    background: var(--bezel);
+    color: var(--ink-secondary);
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 120ms ease, color 120ms ease;
+}
+
+.select:hover:not(:disabled) {
+    border-color: var(--ink-tertiary);
+    color: var(--ink-primary);
+}
+
+.select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.select:focus-visible,
+.select[aria-expanded="true"] {
+    outline: 1px solid var(--amber);
+    outline-offset: 1px;
+}
+
+.select--active {
+    border-color: var(--amber-glow);
+    background: var(--amber-dim);
+    color: var(--amber);
+}
+
+/* In forms: same box as a text field. */
+.select--field {
+    display: flex;
+    width: 100%;
+    padding: 8px 10px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    font-size: 0.85rem;
+    color: var(--ink-primary);
+}
+
+.select--mono {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+}
+
+.select__stack {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+}
+
+.select__item {
+    grid-area: 1 / 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.select__value,
+.select__label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.select__detail {
+    color: var(--ink-tertiary);
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.select__chevron {
+    flex: none;
+    transform: rotate(90deg);
+    transition: transform 140ms ease;
+}
+
+.select[aria-expanded="true"] .select__chevron {
+    transform: rotate(-90deg);
+}
+
+.select__menu {
+    position: fixed;
+    z-index: 2000;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--chassis-panel);
+    border: 1px solid var(--key-border-strong);
+    border-radius: var(--radius-key);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    outline: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--key-border-strong) transparent;
+}
+
+.select__option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: var(--radius-chip);
+    color: var(--ink-secondary);
+    cursor: pointer;
+}
+
+.select__option--cursor {
+    background: var(--key-surface-hover);
+    color: var(--ink-primary);
+}
+
+.select__option--on {
+    color: var(--ink-primary);
+    box-shadow: inset 2px 0 0 var(--ink-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .select__chevron {
+        transition: none;
+    }
+}
+
+/* ---- Bancos: scrolling ---- */
+.db-data__scroll {
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--key-border-strong) transparent;
+    /* Own layer: scrolling moves it on the GPU instead of repainting 50 rows. */
+    will-change: scroll-position;
+}
+
+.db-data__scroll::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.db-data__scroll::-webkit-scrollbar-thumb {
+    background: var(--key-border-strong);
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.db-data__scroll::-webkit-scrollbar-thumb:hover {
+    background-color: var(--ink-tertiary);
+}
+
+.db-data__scroll::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* While the wheel is moving the grid, hover effects would repaint every cell
+   the pointer passes over. */
+.db-data__scroll--moving .db-grid td,
+.db-data__scroll--moving .db-grid__sort {
+    pointer-events: none;
+}
+
+.db-grid tbody tr {
+    contain: layout paint;
+}
+
+.db-grid td {
+    transition: background-color 90ms ease;
 }

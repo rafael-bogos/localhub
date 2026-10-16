@@ -30,8 +30,12 @@ type BrowseRequest struct {
 	Offset  int    `json:"offset"`
 	OrderBy string `json:"orderBy"`
 	Desc    bool   `json:"desc"`
-	// Search keeps rows where any column contains this text.
-	Search string `json:"search"`
+	// Search keeps rows that match this text. SearchColumn picks one column
+	// ("" = the indexed columns) and SearchMode how to compare: "prefix"
+	// (default), "exact" or "contains" (the only mode that scans the table).
+	Search       string `json:"search"`
+	SearchColumn string `json:"searchColumn"`
+	SearchMode   string `json:"searchMode"`
 }
 
 // Page is one slice of a table. Cells are display strings; nil is SQL NULL.
@@ -41,6 +45,9 @@ type Page struct {
 	// HasMore says there is at least one row after this page; counting every
 	// row would scan the whole table just to open it.
 	HasMore bool `json:"hasMore"`
+	// SearchNote says where a search looked and how ("id (igual), email
+	// (começa com)"), or why it could not search.
+	SearchNote string `json:"searchNote"`
 }
 
 // quoteIdent quotes a table or column name for the engine.
@@ -59,6 +66,15 @@ func qualified(kind string, t *Table) string {
 }
 
 // likeEscape makes %, _ and the escape character literal inside a LIKE pattern.
+func hasColumn(t *Table, name string) bool {
+	for _, c := range t.Columns {
+		if c.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 func likeEscape(s string) string {
 	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }
@@ -66,6 +82,12 @@ func likeEscape(s string) string {
 // buildBrowse composes the SELECT for a page. It reads one row past the limit
 // to learn whether another page exists.
 func buildBrowse(kind string, t *Table, req BrowseRequest) (string, []any, error) {
+	q, args, _, err := buildBrowseNote(kind, t, req)
+	return q, args, err
+}
+
+// buildBrowseNote is buildBrowse plus the description of the search it built.
+func buildBrowseNote(kind string, t *Table, req BrowseRequest) (string, []any, string, error) {
 	limit := req.Limit
 	if limit <= 0 {
 		limit = defaultPageSize
@@ -74,10 +96,10 @@ func buildBrowse(kind string, t *Table, req BrowseRequest) (string, []any, error
 		limit = maxPageSize
 	}
 	if req.Offset < 0 {
-		return "", nil, errors.New("Página inválida.")
+		return "", nil, "", errors.New("Página inválida.")
 	}
 	if len(t.Columns) == 0 {
-		return "", nil, errors.New("A tabela não tem colunas.")
+		return "", nil, "", errors.New("A tabela não tem colunas.")
 	}
 
 	cols := make([]string, len(t.Columns))
@@ -95,18 +117,23 @@ func buildBrowse(kind string, t *Table, req BrowseRequest) (string, []any, error
 		return "$" + strconv.Itoa(len(args))
 	}
 
-	if s := strings.TrimSpace(req.Search); s != "" {
-		pattern := "%" + likeEscape(s) + "%"
-		conds := make([]string, len(t.Columns))
-		for i, c := range t.Columns {
-			args = append(args, pattern)
-			if kind == MySQL {
-				conds[i] = "CAST(" + quoteIdent(kind, c.Name) + " AS CHAR) LIKE " + ph()
-			} else {
-				conds[i] = quoteIdent(kind, c.Name) + "::text ILIKE " + ph()
-			}
+	var note string
+	if strings.TrimSpace(req.Search) != "" {
+		if req.SearchColumn != "" && !hasColumn(t, req.SearchColumn) {
+			return "", nil, "", errors.New("Coluna de busca não existe nesta tabela.")
 		}
-		b.WriteString(" WHERE " + strings.Join(conds, " OR "))
+		switch req.SearchMode {
+		case "", SearchPrefix, SearchExact, SearchContains:
+		default:
+			return "", nil, "", errors.New("Modo de busca inválido.")
+		}
+		var conds []string
+		conds, note = buildSearch(kind, t, req, &args, ph)
+		if len(conds) == 0 {
+			b.WriteString(" WHERE 1 = 0")
+		} else {
+			b.WriteString(" WHERE " + strings.Join(conds, " OR "))
+		}
 	}
 
 	// A stable order is what makes paging correct: the chosen column, then the
@@ -124,7 +151,7 @@ func buildBrowse(kind string, t *Table, req BrowseRequest) (string, []any, error
 			}
 		}
 		if !found {
-			return "", nil, errors.New("Coluna de ordenação não existe nesta tabela.")
+			return "", nil, "", errors.New("Coluna de ordenação não existe nesta tabela.")
 		}
 		order = append(order, quoteIdent(kind, req.OrderBy)+dir)
 	}
@@ -143,7 +170,7 @@ func buildBrowse(kind string, t *Table, req BrowseRequest) (string, []any, error
 	} else {
 		b.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)-1, len(args)))
 	}
-	return b.String(), args, nil
+	return b.String(), args, note, nil
 }
 
 // cellString renders one scanned value for display.
@@ -194,12 +221,16 @@ func (m *Manager) Browse(ctx context.Context, id string, req BrowseRequest) (*Pa
 	if err != nil {
 		return nil, err
 	}
-	query, args, err := buildBrowse(s.profile.Kind, t, req)
+	query, args, note, err := buildBrowseNote(s.profile.Kind, t, req)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, browseTimeout)
+	timeout := browseTimeout
+	if note != "" {
+		timeout = searchTimeout * time.Second
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
@@ -219,7 +250,7 @@ func (m *Manager) Browse(ctx context.Context, id string, req BrowseRequest) (*Pa
 	if limit > maxPageSize {
 		limit = maxPageSize
 	}
-	page := &Page{Columns: make([]string, len(t.Columns)), Rows: [][]*string{}}
+	page := &Page{Columns: make([]string, len(t.Columns)), Rows: [][]*string{}, SearchNote: note}
 	for i, c := range t.Columns {
 		page.Columns[i] = c.Name
 	}
@@ -276,7 +307,7 @@ func (m *Manager) table(ctx context.Context, s *session, schemaName, name string
 // returns the raw driver text.
 func friendlyQuery(err error, p Profile) error {
 	if errors.Is(err, context.DeadlineExceeded) {
-		return errors.New("A consulta demorou demais e foi cancelada. Tente filtrar ou ordenar por uma coluna indexada.")
+		return errors.New("A consulta demorou demais e foi cancelada. Busque por “Igual” ou “Começa com” em uma coluna indexada.")
 	}
 	msg := strings.ToLower(err.Error())
 	if strings.Contains(msg, "permission denied") || strings.Contains(msg, "command denied") {
