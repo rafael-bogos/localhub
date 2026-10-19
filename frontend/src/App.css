@@ -3649,16 +3649,22 @@ body.is-resizing * {
 
 .db-schema {
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: 12px;
     min-height: 0;
 }
 
+/* The table list and the rows take all the height the panel has: the rows
+   scroll inside their box instead of the box ending where the data does. */
 .db-split {
     display: grid;
+    flex: 1;
     grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     gap: 14px;
-    align-items: start;
+    align-items: stretch;
+    min-height: 0;
 }
 
 .db-tables {
@@ -3666,6 +3672,7 @@ body.is-resizing * {
     flex-direction: column;
     gap: 8px;
     min-width: 0;
+    min-height: 0;
 }
 
 .db-tables .port-search {
@@ -3677,8 +3684,14 @@ body.is-resizing * {
     padding: 0;
     list-style: none;
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: 4px;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--key-border-strong) transparent;
 }
 
 .db-tables__item {
@@ -3720,7 +3733,11 @@ body.is-resizing * {
 }
 
 .db-detail {
+    display: flex;
+    flex-direction: column;
     min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .db-detail__title {
@@ -3775,6 +3792,7 @@ body.is-resizing * {
 @media (max-width: 720px) {
     .db-split {
         grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 30vh) minmax(0, 1fr);
     }
 }
 
@@ -3821,9 +3839,11 @@ body.is-resizing * {
 
 .db-data {
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: 10px;
     min-width: 0;
+    min-height: 0;
 }
 
 .db-data__bar {
@@ -3845,7 +3865,8 @@ body.is-resizing * {
 
 .db-data__scroll {
     overflow: auto;
-    max-height: 62vh;
+    flex: 1;
+    min-height: 160px;
     border-radius: var(--radius-chip);
     background: var(--key-surface);
 }
