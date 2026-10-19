@@ -109,7 +109,7 @@ function SshTerminal({ host, container, visible, onEnded }: SshTerminalProps) {
         };
         refit();
         // Cell size depends on the web font; remeasure once it is loaded.
-        document.fonts?.load('13px "IBM Plex Mono"').then(() => !cancelled && refit()).catch(() => {});
+        document.fonts?.load('13px "Geist Mono"').then(() => !cancelled && refit()).catch(() => {});
 
         // Subscribe before opening so no early output is lost.
         let ackPending = 0;

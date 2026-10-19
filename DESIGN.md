@@ -18,31 +18,31 @@ colors:
   key-ink-muted: "#92948f"
 typography:
   body:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    fontFamily: "Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     fontSize: "0.85rem"
     fontWeight: 400
     lineHeight: 1.4
     letterSpacing: "normal"
   label:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    fontFamily: "Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     fontSize: "0.62rem"
     fontWeight: 600
     lineHeight: 1
     letterSpacing: "0.1em"
   wordmark:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    fontFamily: "Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     fontSize: "0.92rem"
     fontWeight: 600
     lineHeight: 1
     letterSpacing: "0.08em"
   data:
-    fontFamily: "IBM Plex Mono, ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace"
+    fontFamily: "Geist Mono, ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace"
     fontSize: "0.88rem"
     fontWeight: 400
     lineHeight: 1.4
     letterSpacing: "normal"
   data-emphasis:
-    fontFamily: "IBM Plex Mono, ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace"
+    fontFamily: "Geist Mono, ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace"
     fontSize: "1.05rem"
     fontWeight: 600
     lineHeight: 1
@@ -102,7 +102,7 @@ This is a code-led build (no comp/image round; the direction contract's assigned
 - Dark gunmetal chassis holding dark graphite, physically raised keycap rows — layered and lifted, never flat, and never light — the whole instrument is monochrome-dark by deliberate choice.
 - One safety-orange kill/danger role, spent only on the kill key and the error alert.
 - One instrument-amber live-status role, spent only on the port counter and the LISTEN chip.
-- IBM Plex Mono for every data value (port, protocol, PID, status); IBM Plex Sans for all chrome and copy, set in Brazilian Portuguese.
+- Geist Mono for every data value (port, protocol, PID, status); Geist for all chrome and copy, set in Brazilian Portuguese.
 - Whole-row grid reflow on narrow viewports — never a fractional or broken table.
 
 ## Colors
@@ -128,20 +128,20 @@ A three-role palette on a cool dark ground: one neutral chassis system, one dang
 
 ## Typography
 
-**Body/Chrome Font:** IBM Plex Sans (self-hosted, weights 400/500/600/700)
-**Data Font:** IBM Plex Mono (self-hosted, weights 400/500/600)
+**Body/Chrome Font:** Geist (self-hosted, weights 400/500/600/700)
+**Data Font:** Geist Mono (self-hosted, weights 400/500/600)
 
-**Character:** A workhorse technical pairing — Plex Sans carries chrome, labels, and Portuguese copy; Plex Mono is reserved for every value that comes off the machine (port, protocol, PID, process, status), so the eye can tell "label" from "reading" without color.
+**Character:** A workhorse technical pairing — Geist carries chrome, labels, and Portuguese copy; Geist Mono is reserved for every value that comes off the machine (port, protocol, PID, process, status), so the eye can tell "label" from "reading" without color.
 
 ### Hierarchy
 - **Data-emphasis** (600, 1.05rem, tabular-nums): the port counter's digit readout only — the one number the instrument makes loud.
 - **Wordmark** (600, 0.92rem, 0.08em tracking, uppercase): the "localhub" brand mark in the fascia.
 - **Data** (400, 0.88rem): port/protocol/PID/process/status values inside each keycap row, always mono.
-- **Body** (400, 0.85rem): alert and empty-state copy, in Plex Sans.
+- **Body** (400, 0.85rem): alert and empty-state copy, in Geist.
 - **Label** (600, 0.6–0.72rem, 0.1em tracking, uppercase): column headers, counter caption, kill-key legend, status chip text.
 
 ### Named Rules
-**The Mono-Is-Data Rule.** IBM Plex Mono marks a live value read off the system; IBM Plex Sans marks everything the interface itself is saying. Never swap the two.
+**The Mono-Is-Data Rule.** Geist Mono marks a live value read off the system; Geist marks everything the interface itself is saying. Never swap the two.
 
 ## Layout
 
@@ -189,7 +189,7 @@ One `<tr>` per open port (or container, or image) is the system's defining unit:
 ### Do:
 - **Do** keep Safety Orange to exactly the kill key and the error alert — one "kill/danger" role, not a general accent.
 - **Do** mark protected/disabled rows with the diagonal hatch texture, never with color alone.
-- **Do** use IBM Plex Mono for every value read off the live system (port, protocol, PID, process, status) and IBM Plex Sans for everything the interface says.
+- **Do** use Geist Mono for every value read off the live system (port, protocol, PID, process, status) and Geist for everything the interface says.
 - **Do** give every pressable control (kill-key, refresh knob) real travel — a shadow collapse and/or `translateY` on `:active`, not a flat color-only hover.
 - **Do** reflow narrow layouts by whole field groups via named CSS grid areas, never by letting columns shrink into a broken fractional table.
 
